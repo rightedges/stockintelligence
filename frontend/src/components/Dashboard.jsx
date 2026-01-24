@@ -1,0 +1,183 @@
+import React, { useState, useEffect } from 'react';
+import { getStocks, addStock, deleteStock, getAnalysis } from '../services/api';
+import StockChart from './StockChart';
+import MarketIntelligence from './MarketIntelligence';
+import { Plus, Trash2, TrendingUp, Activity, Brain, LineChart } from 'lucide-react';
+
+const Dashboard = () => {
+    const [stocks, setStocks] = useState([]);
+    const [selectedSymbol, setSelectedSymbol] = useState(null);
+    const [chartData, setChartData] = useState([]);
+    const [regimeData, setRegimeData] = useState(null);
+    const [newSymbol, setNewSymbol] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [view, setView] = useState('technical'); // 'technical' or 'intelligence'
+
+    useEffect(() => {
+        loadStocks();
+    }, []);
+
+    useEffect(() => {
+        if (selectedSymbol) {
+            loadAnalysis(selectedSymbol);
+        }
+    }, [selectedSymbol]);
+
+    const loadStocks = async () => {
+        try {
+            const res = await getStocks();
+            setStocks(res.data);
+            if (res.data.length > 0 && !selectedSymbol) {
+                setSelectedSymbol(res.data[0].symbol);
+            }
+        } catch (err) {
+            console.error("Failed to load stocks", err);
+        }
+    };
+
+    const loadAnalysis = async (symbol) => {
+        setLoading(true);
+        try {
+            const res = await getAnalysis(symbol);
+            setChartData(res.data.data);
+            setRegimeData({
+                regime: res.data.regime,
+                reason: res.data.regime_reason,
+                volatility: res.data.volatility,
+                confidence: res.data.confidence,
+                confluence: res.data.confluence_factor,
+                macro: res.data.macro_status,
+                relative_strength: res.data.relative_strength,
+                macro_tides: res.data.macro_tides,
+                suggestion: res.data.strategic_suggestion,
+                sector_analysis: res.data.sector_analysis
+            });
+        } catch (err) {
+            console.error("Failed to load analysis", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddStock = async (e) => {
+        e.preventDefault();
+        if (!newSymbol) return;
+        try {
+            await addStock(newSymbol.toUpperCase());
+            setNewSymbol('');
+            loadStocks();
+        } catch (err) {
+            alert('Failed to add stock');
+        }
+    };
+
+    const handleDeleteStock = async (symbol, e) => {
+        e.stopPropagation();
+        if (confirm(`Delete ${symbol}?`)) {
+            try {
+                await deleteStock(symbol);
+                if (selectedSymbol === symbol) setSelectedSymbol(null);
+                loadStocks();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    };
+
+    return (
+        <div className="flex h-screen bg-gray-900 text-white">
+            {/* Sidebar */}
+            <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
+                <div className="p-4 border-b border-gray-700 font-bold text-xl flex items-center gap-2">
+                    <TrendingUp className="text-green-500" />
+                    StockAI
+                </div>
+
+                {/* Add Stock */}
+                <form onSubmit={handleAddStock} className="p-4 border-b border-gray-700">
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            className="bg-gray-700 text-white px-2 py-1 rounded w-full border border-gray-600 focus:border-blue-500 outline-none"
+                            placeholder="Symbol..."
+                            value={newSymbol}
+                            onChange={(e) => setNewSymbol(e.target.value)}
+                        />
+                        <button type="submit" className="bg-blue-600 hover:bg-blue-700 p-1 rounded">
+                            <Plus size={20} />
+                        </button>
+                    </div>
+                </form>
+
+                {/* Stock List */}
+                <div className="flex-1 overflow-y-auto">
+                    {stocks.map((stock) => (
+                        <div
+                            key={stock.symbol}
+                            className={`p-3 flex justify-between items-center cursor-pointer hover:bg-gray-700 transition ${selectedSymbol === stock.symbol ? 'bg-gray-700 border-l-4 border-blue-500' : ''}`}
+                            onClick={() => setSelectedSymbol(stock.symbol)}
+                        >
+                            <div>
+                                <div className="font-bold">{stock.symbol}</div>
+                                <div className="text-xs text-gray-400 truncate w-32">{stock.name || '-'}</div>
+                            </div>
+                            <button
+                                onClick={(e) => handleDeleteStock(stock.symbol, e)}
+                                className="text-gray-500 hover:text-red-500"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col">
+                {/* Header */}
+                <div className="h-16 bg-gray-800 border-b border-gray-700 flex items-center px-6 justify-between">
+                    <div className="text-xl font-semibold">
+                        {selectedSymbol ? `${selectedSymbol} Analysis` : 'Dashboard'}
+                    </div>
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() => setView('technical')}
+                            className={`flex items-center gap-2 px-3 py-1 rounded-md transition ${view === 'technical' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
+                        >
+                            <LineChart size={18} />
+                            Technical
+                        </button>
+                        <button
+                            onClick={() => setView('intelligence')}
+                            className={`flex items-center gap-2 px-3 py-1 rounded-md transition ${view === 'intelligence' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
+                        >
+                            <Brain size={18} />
+                            Intelligence
+                        </button>
+                    </div>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 p-6 overflow-y-auto bg-gray-900">
+                    {loading ? (
+                        <div className="flex items-center justify-center h-full text-gray-400">
+                            <Activity className="animate-spin mr-2" /> Loading...
+                        </div>
+                    ) : view === 'intelligence' ? (
+                        <MarketIntelligence regimeData={regimeData} />
+                    ) : selectedSymbol && chartData.length > 0 ? (
+                        <div className="bg-gray-800 p-4 rounded-lg shadow-lg">
+                            <StockChart data={chartData} />
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center h-full text-gray-500">
+                            Select a stock to view analysis
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default Dashboard;

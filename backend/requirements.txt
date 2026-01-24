@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+yfinance<1.0
+pandas
+ta
+sqlmodel
+scikit-learn
