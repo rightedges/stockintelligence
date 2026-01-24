@@ -309,24 +309,33 @@ const MarketIntelligence = ({ regimeData }) => {
             <LogicExplainer />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-                <section>
-                    <h3 className="text-lg font-semibold mb-4 text-gray-300 uppercase tracking-widest text-xs font-mono">2. Automated Routine</h3>
-                    <TopDownRoutine regimeData={regimeData} />
-                </section>
-                <div className="flex flex-col gap-8">
-                    <section>
-                        <h3 className="text-lg font-semibold mb-4 text-gray-300 uppercase tracking-widest text-xs font-mono">3. Macro Tides</h3>
-                        <MacroIndicators macroData={regimeData?.macro_tides} />
-                    </section>
+                <section className="flex flex-col gap-8">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-300 uppercase tracking-widest text-xs font-mono">2. Strategy & Decision</h3>
+
+                    {regimeData?.decision && (
+                        <div className="bg-gradient-to-br from-blue-600 to-indigo-800 p-6 rounded-2xl shadow-xl border border-blue-400/30 animate-in zoom-in-95 duration-700">
+                            <div className="flex items-center gap-2 mb-4">
+                                <ShieldCheck className="text-blue-200" size={24} />
+                                <div className="text-xs uppercase font-black text-blue-100 tracking-[0.2em]">High-Conviction Decision</div>
+                            </div>
+                            <div className="text-2xl font-bold text-white leading-tight mb-2">
+                                {regimeData.decision}
+                            </div>
+                            <div className="h-1 w-20 bg-blue-400/50 rounded-full" />
+                        </div>
+                    )}
 
                     {regimeData?.suggestion && (
-                        <div className="bg-purple-600/10 border border-purple-500/30 p-6 rounded-2xl animate-in zoom-in-95 duration-500">
+                        <div className="bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-lg relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <Zap size={80} className="text-purple-400" />
+                            </div>
                             <div className="flex items-center gap-2 mb-3">
                                 <Zap className="text-purple-400" size={20} />
-                                <h3 className="text-lg font-bold text-white uppercase tracking-tight">Strategic Playbook</h3>
+                                <h3 className="text-lg font-bold text-white uppercase tracking-tight">Macro Strategic Playbook</h3>
                             </div>
-                            <div className="text-lg font-bold text-purple-300 mb-1">{regimeData.suggestion.title}</div>
-                            <p className="text-sm text-gray-300 mb-4">{regimeData.suggestion.action}</p>
+                            <div className="text-xl font-bold text-purple-300 mb-1">{regimeData.suggestion.title}</div>
+                            <p className="text-sm text-gray-300 mb-4 pr-12">{regimeData.suggestion.action}</p>
                             <div className="flex flex-wrap gap-2">
                                 {regimeData.suggestion.focus.split(', ').map(sector => (
                                     <span key={sector} className="px-2 py-1 bg-purple-900/40 border border-purple-700/30 rounded-md text-[10px] uppercase font-bold text-purple-200">
@@ -336,28 +345,44 @@ const MarketIntelligence = ({ regimeData }) => {
                             </div>
                         </div>
                     )}
-                </div>
+                </section>
+
+                <section className="flex flex-col gap-8">
+                    <div>
+                        <h3 className="text-lg font-semibold mb-4 text-gray-300 uppercase tracking-widest text-xs font-mono">3. Automated Routine</h3>
+                        <TopDownRoutine regimeData={regimeData} />
+                    </div>
+                </section>
             </div>
 
-            <div className="bg-blue-600/10 border border-blue-500/30 p-6 rounded-2xl">
-                <h3 className="font-bold flex items-center gap-2 mb-2 text-white text-lg">
-                    <BarChart3 className="text-blue-400" />
-                    Market Logic Pivot
-                </h3>
-                <div className="flex flex-col md:flex-row gap-6 mt-4">
-                    <div className="flex-1">
-                        <div className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Technician Approach</div>
-                        <p className="text-sm border-l-2 border-red-500 pl-4 py-3 bg-red-900/10 rounded-r text-gray-400">
-                            Looking at indicators in a vacuum. Buying breakouts into distributions.
-                        </p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+                <section>
+                    <h3 className="text-lg font-semibold mb-4 text-gray-300 uppercase tracking-widest text-xs font-mono">4. Macro Tides</h3>
+                    <MacroIndicators macroData={regimeData?.macro_tides} />
+                </section>
+
+                <section className="flex flex-col justify-end">
+                    <div className="bg-blue-600/10 border border-blue-500/30 p-6 rounded-2xl h-full flex flex-col justify-center">
+                        <h3 className="font-bold flex items-center gap-2 mb-4 text-white text-lg">
+                            <BarChart3 className="text-blue-400" />
+                            Market Logic Pivot
+                        </h3>
+                        <div className="space-y-4">
+                            <div>
+                                <div className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Technician Approach</div>
+                                <p className="text-xs border-l-2 border-red-500 pl-4 py-2 bg-red-900/5 rounded-r text-gray-400 italic">
+                                    "I'm buying the breakout because the RSI is oversold and the MACD crossed." (Ignoring the macro distribution and sector rotation).
+                                </p>
+                            </div>
+                            <div>
+                                <div className="text-[10px] text-blue-400 uppercase font-bold mb-2 tracking-widest">Market Logic Approach</div>
+                                <p className="text-xs border-l-2 border-blue-500 pl-4 py-2 bg-blue-900/5 rounded-r text-gray-200 italic">
+                                    "I'm buying because Macro identifies a Goldilocks zone, the Sector is leading the S&P 500, and a Mark-Up regime provides the entry trigger."
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex-1">
-                        <div className="text-[10px] text-blue-400 uppercase font-bold mb-2 tracking-widest">Market Logic Approach</div>
-                        <p className="text-sm border-l-2 border-blue-500 pl-4 py-3 bg-blue-900/10 rounded-r text-gray-200">
-                            Using Macro to find direction, Sector to find the wave, and High-Confluence TA to time the entry.
-                        </p>
-                    </div>
-                </div>
+                </section>
             </div>
         </div>
     );
