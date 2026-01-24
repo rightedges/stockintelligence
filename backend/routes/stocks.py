@@ -9,7 +9,7 @@ from backend.models import Stock
 router = APIRouter(prefix="/api/stocks", tags=["stocks"])
 
 @router.post("/", response_model=Stock)
-def add_sock(stock: Stock, session: Session = Depends(get_session)):
+def add_stock(stock: Stock, session: Session = Depends(get_session)):
     # Check if stock exists
     statement = select(Stock).where(Stock.symbol == stock.symbol)
     existing_stock = session.exec(statement).first()
