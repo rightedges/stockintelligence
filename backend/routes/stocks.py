@@ -286,20 +286,44 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
 
                 # --- Decision Logic (Harmonized with Strategic Playbook) ---
                 playbook_title = suggestion.get("title", "Unknown")
+                playbook_focus = [s.strip().lower() for s in suggestion.get("focus", "").split(",")]
                 is_bullish_playbook = any(word in playbook_title for word in ["Bullish", "Goldilocks", "Recovery"])
                 is_bearish_playbook = any(word in playbook_title for word in ["Defensive", "Conservative", "Stagflation", "Deflationary"])
+                
+                # Check for Sector Alignment
+                stock_sector_lower = stock_sector.lower() if stock_sector else "unknown"
+                # Some mapping for yfinance sectors to playbook focus strings
+                sector_map = {
+                    "technology": "tech",
+                    "financial services": "financials",
+                    "energy": "energy",
+                    "industrials": "industrials",
+                    "healthcare": "healthcare",
+                    "consumer cyclical": "discretionary",
+                    "consumer defensive": "staples",
+                    "basic materials": "materials",
+                    "utilities": "utilities",
+                    "communication services": "communication"
+                }
+                mapped_sector = sector_map.get(stock_sector_lower, stock_sector_lower)
+                is_sector_aligned = any(mapped_sector in f or f in mapped_sector for f in playbook_focus)
 
                 decision = "Wait / Watch"
                 
                 # Logic cases
                 if macro_status == "Risk-On" and regime == "Mark-Up" and confidence == "High" and is_leading_sector:
-                    if is_bullish_playbook:
+                    if is_bullish_playbook and is_sector_aligned:
                         decision = "Strong Buy. All cylinders are firing (Trend, Sector, and Macro Playbook)."
+                    elif not is_sector_aligned:
+                        decision = f"Cautious. Strong trend but {stock_sector} is not the current Macro priority ({playbook_title})."
                     else:
-                        decision = "Cautious Buy. Strong technicals but macro playbook suggests caution."
+                        decision = "Hold / Buy. Strong technicals but macro playbook suggests balanced caution."
                 
                 elif regime == "Mark-Up" and macro_status == "Risk-On":
-                    decision = "Bullish. Stock trend and Macro regime are aligned."
+                    if is_sector_aligned:
+                        decision = "Bullish. Sector and Trend are aligned with Risk-On and Macro."
+                    else:
+                        decision = "Speculative Bullish. Individual trend is strong, but sector lacks macro tailwind."
                 
                 elif is_bearish_playbook and (regime in ["Mark-Down", "Distribution", "Transition"]):
                     decision = f"Avoid / Short. Low-conviction technicals fighting a {playbook_title} macro tide."
@@ -314,7 +338,10 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                     decision = "Watch for Entry. Macro is favorable, waiting for technical trend to establish."
                 
                 elif regime == "Accumulation":
-                    decision = "Hold / Accumulate. Quiet absorption detected; building position for next cycle."
+                    if is_sector_aligned:
+                        decision = f"Build Position. Accumulation phase in a priority macro sector ({playbook_title})."
+                    else:
+                        decision = "Hold / Watch. Quiet absorption detected, but sector is not currently a macro priority."
                 
                 elif macro_status == "Risk-Off":
                      decision = "Defensive. Macro Risk-Off environment overrides technical setups."
