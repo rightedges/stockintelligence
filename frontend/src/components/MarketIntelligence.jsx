@@ -262,8 +262,6 @@ const MarketIntelligence = ({ regimeData }) => {
                         Multi-confluence scoring reduces the risk of indicator noise.
                     </p>
                 </div>
-
-
             </div>
 
             <section className="mb-10">
@@ -277,23 +275,10 @@ const MarketIntelligence = ({ regimeData }) => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
                 <section className="flex flex-col gap-8">
-                    <h3 className="text-lg font-semibold mb-4 text-gray-300 uppercase tracking-widest text-xs font-mono">2. Strategy & Decision</h3>
-
-                    {regimeData?.decision && (
-                        <div className="bg-gradient-to-br from-blue-600 to-indigo-800 p-6 rounded-2xl shadow-xl border border-blue-400/30 animate-in zoom-in-95 duration-700">
-                            <div className="flex items-center gap-2 mb-4">
-                                <ShieldCheck className="text-blue-200" size={24} />
-                                <div className="text-xs uppercase font-black text-blue-100 tracking-[0.2em]">High-Conviction Decision</div>
-                            </div>
-                            <div className="text-2xl font-bold text-white leading-tight mb-2">
-                                {regimeData.decision}
-                            </div>
-                            <div className="h-1 w-20 bg-blue-400/50 rounded-full" />
-                        </div>
-                    )}
+                    <h3 className="text-lg font-semibold mb-4 text-gray-300 uppercase tracking-widest text-xs font-mono">2. Strategy</h3>
 
                     {regimeData?.suggestion && (
-                        <div className="bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-lg relative overflow-hidden group">
+                        <div className="bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-lg relative overflow-hidden group h-full">
                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                                 <Zap size={80} className="text-purple-400" />
                             </div>
@@ -322,35 +307,57 @@ const MarketIntelligence = ({ regimeData }) => {
                 </section>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 mb-10">
                 <section>
                     <h3 className="text-lg font-semibold mb-4 text-gray-300 uppercase tracking-widest text-xs font-mono">4. Macro Tides</h3>
                     <MacroIndicators macroData={regimeData?.macro_tides} />
                 </section>
+            </div>
 
-                <section className="flex flex-col justify-end">
-                    <div className="bg-blue-600/10 border border-blue-500/30 p-6 rounded-2xl h-full flex flex-col justify-center">
-                        <h3 className="font-bold flex items-center gap-2 mb-4 text-white text-lg">
-                            <BarChart3 className="text-blue-400" />
-                            Market Logic Pivot
-                        </h3>
-                        <div className="space-y-4">
-                            <div>
-                                <div className="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">Technician Approach</div>
-                                <p className="text-xs border-l-2 border-red-500 pl-4 py-2 bg-red-900/5 rounded-r text-gray-400 italic">
-                                    "I'm buying the breakout because the RSI is oversold and the MACD crossed." (Ignoring the macro distribution and sector rotation).
-                                </p>
+            <section className="mb-10">
+                <h3 className="text-lg font-semibold mb-4 text-gray-300 uppercase tracking-widest text-xs font-mono">5. Final Synthesis & Decision</h3>
+                {regimeData && (
+                    <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-blue-500/30 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl -mr-20 -mt-20" />
+
+                        <div className="flex flex-col md:flex-row gap-8 items-center md:items-stretch relative z-10">
+                            {/* Decision Box */}
+                            <div className="flex-1 bg-gradient-to-br from-blue-600 to-indigo-800 p-8 rounded-2xl shadow-xl flex flex-col justify-center border border-blue-400/20">
+                                <div className="text-xs uppercase font-black text-blue-100 mb-3 tracking-[0.3em] flex items-center gap-2">
+                                    <ShieldCheck size={16} /> Final Recommendation
+                                </div>
+                                <div className="text-3xl font-bold text-white mb-4 leading-tight">
+                                    {regimeData.decision}
+                                </div>
+                                <div className="h-1.5 w-24 bg-blue-300/40 rounded-full" />
                             </div>
-                            <div>
-                                <div className="text-[10px] text-blue-400 uppercase font-bold mb-2 tracking-widest">Market Logic Approach</div>
-                                <p className="text-xs border-l-2 border-blue-500 pl-4 py-2 bg-blue-900/5 rounded-r text-gray-200 italic">
-                                    "I'm buying because Macro identifies a Goldilocks zone, the Sector is leading the S&P 500, and a Mark-Up regime provides the entry trigger."
-                                </p>
+
+                            {/* Details Box */}
+                            <div className="flex-1 flex flex-col justify-between py-2">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-4 bg-gray-900/50 rounded-xl border border-gray-700/50">
+                                        <div className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-widest">Active Regime</div>
+                                        <div className="text-lg font-bold text-white">{regimeData.regime}</div>
+                                    </div>
+                                    <div className="p-4 bg-gray-900/50 rounded-xl border border-gray-700/50 text-right">
+                                        <div className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-widest">Confidence Score</div>
+                                        <div className={`text-lg font-bold ${regimeData.confidence === 'High' ? 'text-green-400' : regimeData.confidence === 'Medium' ? 'text-yellow-400' : 'text-red-400'}`}>
+                                            {regimeData.confluence}/3 Confluences
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 p-4 bg-blue-900/10 border border-blue-800/20 rounded-xl">
+                                    <div className="text-[10px] text-blue-400 uppercase font-bold mb-1 tracking-widest">Techno-Fundamental Synthesis</div>
+                                    <p className="text-sm text-gray-300 italic leading-relaxed">
+                                        "{regimeData.reason}"
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </section>
-            </div>
+                )}
+            </section>
         </div>
     );
 };
