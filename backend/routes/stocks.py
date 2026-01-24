@@ -283,6 +283,21 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                     stock_1m_ret = (df['Close'].iloc[-1] / df['Close'].iloc[-21]) - 1
                     spy_1m_ret = (p_close['SPY'].iloc[-1] / p_close['SPY'].iloc[-21]) - 1
                     relative_strength = (1 + stock_1m_ret) / (1 + spy_1m_ret)
+
+                # --- Decision Logic ---
+                decision = "Wait / Watch"
+                if macro_status == "Risk-On" and regime == "Mark-Up" and confidence == "High" and is_leading_sector:
+                    decision = "Strong Buy. All cylinders are firing."
+                elif macro_status == "Risk-Off" and (regime in ["Mark-Down", "Distribution", "Transition"]):
+                    decision = "Avoid / Short. Low-conviction technicals fighting a Risk-Off macro tide."
+                elif regime == "Distribution":
+                    decision = "Avoid / Short. Technical bounce fighting a distribution regime."
+                elif regime == "Mark-Down":
+                    decision = "Avoid. Strong markdown in progress."
+                elif regime == "Mark-Up" and macro_status == "Risk-On":
+                    decision = "Bullish. Trend and Macro are aligned."
+                elif regime == "Accumulation":
+                    decision = "Hold / Accumulate. Building a position for the next cycle."
         except Exception as p_err:
             print(f"Error fetching Market Proxies: {p_err}")
 
@@ -318,6 +333,7 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
             "relative_strength": round(float(relative_strength), 4),
             "macro_tides": macro_tides,
             "strategic_suggestion": suggestion,
+            "decision": decision,
             "sector_analysis": {
                 "stock_sector": stock_sector,
                 "leading_sector": leading_sector,

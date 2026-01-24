@@ -50,6 +50,7 @@ const Dashboard = () => {
                 relative_strength: res.data.relative_strength,
                 macro_tides: res.data.macro_tides,
                 suggestion: res.data.strategic_suggestion,
+                decision: res.data.decision,
                 sector_analysis: res.data.sector_analysis
             });
         } catch (err) {

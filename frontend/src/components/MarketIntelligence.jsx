@@ -264,24 +264,35 @@ const MarketIntelligence = ({ regimeData }) => {
                 </div>
 
                 {regimeData && (
-                    <div className="bg-blue-600/20 border border-blue-500 p-5 rounded-2xl max-w-sm w-full md:w-auto shadow-lg shadow-blue-500/10">
-                        <div className="flex justify-between items-start mb-2">
-                            <div className="text-xs uppercase font-bold text-blue-400">Current Phase</div>
-                            <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${regimeData.confidence === 'High' ? 'bg-green-500 text-white' :
-                                regimeData.confidence === 'Medium' ? 'bg-yellow-500 text-black' : 'bg-red-500 text-white'
-                                }`}>
-                                {regimeData.confidence} Reliability
+                    <div className="flex flex-col gap-4 max-w-sm w-full md:w-auto">
+                        {regimeData.decision && (
+                            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-5 rounded-2xl shadow-xl border border-blue-400/30 animate-in slide-in-from-right-4 duration-700">
+                                <div className="text-[10px] uppercase font-black text-blue-100 mb-1 tracking-[0.2em]">Final Decision</div>
+                                <div className="text-lg font-bold text-white leading-tight">
+                                    {regimeData.decision}
+                                </div>
                             </div>
-                        </div>
-                        <div className="text-xl font-bold text-white mb-1 leading-none">{regimeData.regime}</div>
-                        <p className="text-xs text-gray-300 mb-3">{regimeData.reason}</p>
+                        )}
 
-                        <div className="flex gap-2 items-center">
-                            <div className="px-2 py-1 rounded bg-gray-900 border border-gray-800 text-[10px] font-mono text-gray-400">
-                                Vol: {regimeData.volatility}
+                        <div className="bg-blue-600/20 border border-blue-500 p-5 rounded-2xl shadow-lg shadow-blue-500/10">
+                            <div className="flex justify-between items-start mb-2">
+                                <div className="text-xs uppercase font-bold text-blue-400">Current Phase</div>
+                                <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-colors ${regimeData.confidence === 'High' ? 'bg-green-500 text-white' :
+                                    regimeData.confidence === 'Medium' ? 'bg-yellow-500 text-black' : 'bg-red-500 text-white'
+                                    }`}>
+                                    {regimeData.confidence} Reliability
+                                </div>
                             </div>
-                            <div className="px-2 py-1 rounded bg-gray-900 border border-gray-800 text-[10px] font-mono text-gray-400">
-                                Confluence: {regimeData.confluence}/3
+                            <div className="text-xl font-bold text-white mb-1 leading-none">{regimeData.regime}</div>
+                            <p className="text-xs text-gray-300 mb-3">{regimeData.reason}</p>
+
+                            <div className="flex gap-2 items-center">
+                                <div className="px-2 py-1 rounded bg-gray-900 border border-gray-800 text-[10px] font-mono text-gray-400">
+                                    Vol: {regimeData.volatility}
+                                </div>
+                                <div className="px-2 py-1 rounded bg-gray-900 border border-gray-800 text-[10px] font-mono text-gray-400">
+                                    Confluence: {regimeData.confluence}/3
+                                </div>
                             </div>
                         </div>
                     </div>
