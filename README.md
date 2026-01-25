@@ -96,3 +96,75 @@ npm run dev
 ```
 
 The app will be available at `http://localhost:5173`.
+
+---
+
+## 🖥️ Proxmox / Linux Deployment
+
+### 1. Download & Initial Setup
+Clone the repository to your server (e.g., `/opt/stock-suite`):
+```bash
+cd /opt
+git clone https://github.com/YOUR_USERNAME/stock2026.git stock-suite
+cd stock-suite
+
+# Prep Backend
+cd backend && python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+
+# Prep Frontend
+cd ../frontend && npm install && npm run build
+```
+
+### 2. Automatic Updates (Upgrade Script)
+To update the application from GitHub, create an `update.sh` script:
+```bash
+#!/bin/bash
+git pull origin main
+cd backend && source venv/bin/activate && pip install -r requirements.txt
+cd ../frontend && npm install && npm run build
+sudo systemctl restart stock-backend stock-frontend
+```
+
+### 3. Autostart with Systemd
+To ensure the app starts after every Proxmox/system reboot, create two service files.
+
+#### A. Backend Service (`/etc/systemd/system/stock-backend.service`)
+```ini
+[Unit]
+Description=Stock Suite Backend
+After=network.target
+
+[Service]
+User=youruser
+WorkingDirectory=/opt/stock-suite/backend
+ExecStart=/opt/stock-suite/backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+#### B. Frontend Service (`/etc/systemd/system/stock-frontend.service`)
+*Note: For production, it is recommended to serve the `dist` folder via Nginx. However, for a simple auto-start setup:*
+```ini
+[Unit]
+Description=Stock Suite Frontend
+After=network.target
+
+[Service]
+User=youruser
+WorkingDirectory=/opt/stock-suite/frontend
+ExecStart=/usr/bin/npm run dev -- --host 0.0.0.0
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### 4. Enable Services
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable stock-backend stock-frontend
+sudo systemctl start stock-backend stock-frontend
+```

@@ -8,6 +8,8 @@ backend/__pycache__/
 backend/*.pyc
 backend/.env
 backend/database.db
+database.db
+backend/data_cache/
 
 # Frontend (Node/React)
 frontend/node_modules/

@@ -8,7 +8,18 @@ class Stock(SQLModel, table=True):
     sector: Optional[str] = None
     exchange: Optional[str] = None
 
+class StockPublic(Stock):
+    impulse: Optional[str] = None
+
 class Template(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     configuration: str  # JSON string storing active indicators/settings
+
+class JournalEntry(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    symbol: str = Field(index=True)
+    timestamp: str 
+    note: str
+    snapshot: Optional[str] = None # Base64 string
+    timeframe: str # Weekly or Daily

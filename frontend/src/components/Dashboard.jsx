@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getStocks, addStock, deleteStock, getAnalysis } from '../services/api';
 import StockChart from './StockChart';
 import MarketIntelligence from './MarketIntelligence';
+import ElderAnalysis from './ElderAnalysis';
 import { Plus, Trash2, TrendingUp, Activity, Brain, LineChart } from 'lucide-react';
 
 const Dashboard = () => {
@@ -9,9 +10,12 @@ const Dashboard = () => {
     const [selectedSymbol, setSelectedSymbol] = useState(null);
     const [chartData, setChartData] = useState([]);
     const [regimeData, setRegimeData] = useState(null);
+    const [srLevels, setSrLevels] = useState([]);
+    const [elderTactics, setElderTactics] = useState(null);
+    const [macdDivergence, setMacdDivergence] = useState(null);
     const [newSymbol, setNewSymbol] = useState('');
     const [loading, setLoading] = useState(false);
-    const [view, setView] = useState('technical'); // 'technical' or 'intelligence'
+    const [view, setView] = useState('weekly'); // 'weekly', 'elder' (daily), or 'intelligence'
 
     useEffect(() => {
         loadStocks();
@@ -21,7 +25,7 @@ const Dashboard = () => {
         if (selectedSymbol) {
             loadAnalysis(selectedSymbol);
         }
-    }, [selectedSymbol]);
+    }, [selectedSymbol, view]);
 
     const loadStocks = async () => {
         try {
@@ -38,7 +42,11 @@ const Dashboard = () => {
     const loadAnalysis = async (symbol) => {
         setLoading(true);
         try {
-            const res = await getAnalysis(symbol);
+            // Fix: pass period as first arg, interval as second
+            const period = view === 'weekly' ? '2y' : '1y';
+            const interval = view === 'weekly' ? '1wk' : '1d';
+
+            const res = await getAnalysis(symbol, period, interval);
             setChartData(res.data.data);
             setRegimeData({
                 regime: res.data.regime,
@@ -46,6 +54,7 @@ const Dashboard = () => {
                 volatility: res.data.volatility,
                 confidence: res.data.confidence,
                 confluence: res.data.confluence_factor,
+                confluence_details: res.data.confluence_details,
                 macro: res.data.macro_status,
                 relative_strength: res.data.relative_strength,
                 macro_tides: res.data.macro_tides,
@@ -53,6 +62,9 @@ const Dashboard = () => {
                 decision: res.data.decision,
                 sector_analysis: res.data.sector_analysis
             });
+            setSrLevels(res.data.sr_levels || []);
+            setElderTactics(res.data.elder_tactics || null);
+            setMacdDivergence(res.data.macd_divergence || null);
         } catch (err) {
             console.error("Failed to load analysis", err);
         } finally {
@@ -110,6 +122,7 @@ const Dashboard = () => {
                     </div>
                 </form>
 
+
                 {/* Stock List */}
                 <div className="flex-1 overflow-y-auto">
                     {stocks.map((stock) => (
@@ -119,7 +132,13 @@ const Dashboard = () => {
                             onClick={() => setSelectedSymbol(stock.symbol)}
                         >
                             <div>
-                                <div className="font-bold">{stock.symbol}</div>
+                                <div className="flex items-center gap-2">
+                                    <div className={`w-2 h-2 rounded-full ${stock.impulse === 'green' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' :
+                                        stock.impulse === 'red' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
+                                            'bg-blue-500'
+                                        }`}></div>
+                                    <div className="font-bold">{stock.symbol}</div>
+                                </div>
                                 <div className="text-xs text-gray-400 truncate w-32">{stock.name || '-'}</div>
                             </div>
                             <button
@@ -142,11 +161,18 @@ const Dashboard = () => {
                     </div>
                     <div className="flex gap-4">
                         <button
-                            onClick={() => setView('technical')}
-                            className={`flex items-center gap-2 px-3 py-1 rounded-md transition ${view === 'technical' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
+                            onClick={() => setView('weekly')}
+                            className={`flex items-center gap-2 px-3 py-1 rounded-md transition ${view === 'weekly' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
                         >
                             <LineChart size={18} />
-                            Technical
+                            Elder Weekly
+                        </button>
+                        <button
+                            onClick={() => setView('elder')}
+                            className={`flex items-center gap-2 px-3 py-1 rounded-md transition ${view === 'elder' ? 'bg-green-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
+                        >
+                            <TrendingUp size={18} />
+                            Elder Daily
                         </button>
                         <button
                             onClick={() => setView('intelligence')}
@@ -166,10 +192,10 @@ const Dashboard = () => {
                         </div>
                     ) : view === 'intelligence' ? (
                         <MarketIntelligence regimeData={regimeData} />
-                    ) : selectedSymbol && chartData.length > 0 ? (
-                        <div className="bg-gray-800 p-4 rounded-lg shadow-lg">
-                            <StockChart data={chartData} />
-                        </div>
+                    ) : view === 'elder' ? (
+                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} timeframeLabel="Daily" />
+                    ) : view === 'weekly' ? (
+                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} timeframeLabel="Weekly" />
                     ) : (
                         <div className="flex items-center justify-center h-full text-gray-500">
                             Select a stock to view analysis
@@ -177,7 +203,7 @@ const Dashboard = () => {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

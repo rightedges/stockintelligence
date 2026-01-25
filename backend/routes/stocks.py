@@ -4,30 +4,103 @@ import yfinance as yf
 import pandas as pd
 import ta
 from backend.database import get_session
-from backend.models import Stock
+from backend.models import Stock, StockPublic
+from backend.cache import get_cached, set_cache
 
 router = APIRouter(prefix="/api/stocks", tags=["stocks"])
 
+def calculate_indicators(df):
+    if len(df) < 2:
+        return df
+        
+    # Calculate Indicators using 'ta' library
+    # MACD
+    df['macd'] = ta.trend.macd(df['Close'])
+    df['macd_signal'] = ta.trend.macd_signal(df['Close'])
+    df['macd_diff'] = ta.trend.macd_diff(df['Close'])
+    
+    # RSI
+    df['rsi'] = ta.momentum.rsi(df['Close'], window=14)
+    
+    # EMA
+    df['ema_13'] = ta.trend.ema_indicator(df['Close'], window=13)
+    df['ema_22'] = ta.trend.ema_indicator(df['Close'], window=22)
+    df['ema_26'] = ta.trend.ema_indicator(df['Close'], window=26)
+    df['ema_50'] = ta.trend.ema_indicator(df['Close'], window=50)
+    df['ema_200'] = ta.trend.ema_indicator(df['Close'], window=200)
+
+    # 95% Envelope Logic (Elder's Auto-Envelope)
+    window = 100
+    dist = (df['High'] - df['ema_22']).abs() / df['ema_22']
+    # Use rolling quantile if enough data, else fallback
+    if len(df) >= window:
+        multiplier = dist.rolling(window=window).quantile(0.95).iloc[-1]
+    else:
+        multiplier = dist.quantile(0.95) # Fallback for short history
+        
+    if pd.isna(multiplier) or multiplier == 0: multiplier = 0.03 # Fallback
+    
+    df['envelope_upper'] = df['ema_22'] * (1 + multiplier)
+    df['envelope_lower'] = df['ema_22'] * (1 - multiplier)
+
+    # Calculate Volume SMA
+    df['volume_sma_20'] = ta.trend.sma_indicator(df['Volume'], window=20)
+
+    # --- Alex Elder Indicators ---
+    # 1. Elder Impulse System
+    df['ema_13_slope'] = df['ema_13'].diff()
+    df['macd_diff_slope'] = df['macd_diff'].diff()
+    
+    def get_impulse(row):
+        if pd.isna(row['ema_13_slope']) or pd.isna(row['macd_diff_slope']):
+            return "blue" # Default
+        if row['ema_13_slope'] > 0 and row['macd_diff_slope'] > 0:
+            return "green"
+        elif row['ema_13_slope'] < 0 and row['macd_diff_slope'] < 0:
+            return "red"
+        else:
+            return "blue"
+    
+    df['impulse'] = df.apply(get_impulse, axis=1)
+
+    # 2. Elder-ray Index
+    df['bulls_power'] = df['High'] - df['ema_13']
+    df['bears_power'] = df['Low'] - df['ema_13']
+
+    # 3. Force Index
+    raw_force = (df['Close'] - df['Close'].shift(1)) * df['Volume']
+    df['force_index_2'] = raw_force.ewm(span=2, adjust=False).mean()
+    df['force_index_13'] = raw_force.ewm(span=13, adjust=False).mean()
+    
+    return df
+
 @router.post("/", response_model=Stock)
 def add_stock(stock: Stock, session: Session = Depends(get_session)):
+    # Sanitize symbol
+    stock.symbol = stock.symbol.strip().upper().replace("\n", "").replace("\r", "")
+    
     # Check if stock exists
     statement = select(Stock).where(Stock.symbol == stock.symbol)
     existing_stock = session.exec(statement).first()
     if existing_stock:
         raise HTTPException(status_code=400, detail="Stock already exists")
     
-    # Verify symbol with yfinance
-    ticker = yf.Ticker(stock.symbol)
-    info = ticker.info
-    if 'symbol' not in info:
-         # Some valid tickers might fail info check, but robust check is good.
-         # For now, let's assume if it doesn't error out completely it's semi-valid, 
-         # but yfinance is tricky.
+    # Verify symbol with yfinance (Use cache for info)
+    info = get_cached(f"info_{stock.symbol}", ttl=86400) # Info can last 24h
+    if not info:
+        ticker = yf.Ticker(stock.symbol)
+        info = ticker.info
+        set_cache(f"info_{stock.symbol}", info, use_pkl=False)
+
+    if 'symbol' not in info and not info.get('regularMarketPrice'):
+         # info check can be unreliable, but let's try to be smart
          pass 
 
     # Populate name if missing
     if not stock.name and 'longName' in info:
         stock.name = info['longName']
+    if not stock.name and 'shortName' in info:
+        stock.name = info['shortName']
     if not stock.sector and 'sector' in info:
         stock.sector = info['sector']
 
@@ -36,10 +109,55 @@ def add_stock(stock: Stock, session: Session = Depends(get_session)):
     session.refresh(stock)
     return stock
 
-@router.get("/", response_model=list[Stock])
+@router.get("/", response_model=list[StockPublic])
 def get_stocks(session: Session = Depends(get_session)):
     stocks = session.exec(select(Stock)).all()
-    return stocks
+    public_stocks = []
+    
+    # Process weekly impulse for sidebar coloring
+    # This is optimizing to do 1 request per stock (could be better but ok for <20 stocks)
+    for stock in stocks:
+        try:
+             # Check cache for fetching weekly data
+            cache_key = f"impulse_wk_{stock.symbol}"
+            impulse = get_cached(cache_key, ttl=3600) # Cache for 1 hour
+            
+            if not impulse:
+                # Fetch only last ~50 weeks to calculate indicators
+                wk_df = yf.download(stock.symbol, period="1y", interval="1wk", progress=False)
+                if not wk_df.empty:
+                    if isinstance(wk_df.columns, pd.MultiIndex):
+                        wk_df.columns = wk_df.columns.get_level_values(0)
+                    
+                    # Calculate minimal indicators for impulse
+                    wk_df['ema_13'] = ta.trend.ema_indicator(wk_df['Close'], window=13)
+                    wk_df['macd_diff'] = ta.trend.macd_diff(wk_df['Close'])
+                    
+                    slope_ema = wk_df['ema_13'].diff().iloc[-1]
+                    slope_macd = wk_df['macd_diff'].diff().iloc[-1]
+                    
+                    if slope_ema > 0 and slope_macd > 0:
+                        impulse = "green"
+                    elif slope_ema < 0 and slope_macd < 0:
+                        impulse = "red"
+                    else:
+                        impulse = "blue"
+                    
+                    set_cache(cache_key, impulse)
+            
+            # Create StockPublic instance
+            s_pub = StockPublic.model_validate(stock)
+            s_pub.impulse = impulse
+            public_stocks.append(s_pub)
+            
+        except Exception as e:
+            print(f"Error calc weekly impulse for {stock.symbol}: {e}")
+            # Fallback
+            s_pub = StockPublic.model_validate(stock)
+            s_pub.impulse = "blue"
+            public_stocks.append(s_pub)
+
+    return public_stocks
 
 @router.delete("/{symbol}")
 def delete_stock(symbol: str, session: Session = Depends(get_session)):
@@ -53,31 +171,65 @@ def delete_stock(symbol: str, session: Session = Depends(get_session)):
 
 @router.get("/{symbol}/analysis")
 def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
-    # Fetch data
+    # Fetch data (Use cache)
+    cache_key = f"download_{symbol}_{period}_{interval}"
+    df = get_cached(cache_key, ttl=900) # 15 mins for price data
+
     try:
-        df = yf.download(symbol, period=period, interval=interval, progress=False)
-        if df.empty:
-             raise HTTPException(status_code=404, detail="No data found for symbol")
+        if df is None:
+            df = yf.download(symbol, period=period, interval=interval, progress=False)
+            if df.empty:
+                 raise HTTPException(status_code=404, detail="No data found for symbol")
+            set_cache(cache_key, df)
         
         # Clean data (flatten MultiIndex columns if present, yfinance updated recently)
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
             
-        # Calculate Indicators using 'ta' library
-        # MACD
-        df['macd'] = ta.trend.macd(df['Close'])
-        df['macd_signal'] = ta.trend.macd_signal(df['Close'])
-        df['macd_diff'] = ta.trend.macd_diff(df['Close'])
-        
-        # RSI
-        df['rsi'] = ta.momentum.rsi(df['Close'], window=14)
-        
-        # EMA
-        df['ema_50'] = ta.trend.ema_indicator(df['Close'], window=50)
-        df['ema_200'] = ta.trend.ema_indicator(df['Close'], window=200)
+        # Calculate Indicators using Helper
+        df = calculate_indicators(df)
 
-        # Calculate Volume SMA
-        df['volume_sma_20'] = ta.trend.sma_indicator(df['Volume'], window=20)
+        # --- Support & Resistance Detection ---
+        # Look for local extrema in the last 100 days
+        def find_levels(df, window=5):
+            levels = []
+            if len(df) < window * 2 + 1:
+                return levels
+            
+            # Simple fractal-based detection
+            for i in range(window, len(df) - window):
+                # Resistance (Local Peak)
+                is_resistance = True
+                for j in range(i - window, i + window + 1):
+                    if df['High'].iloc[j] > df['High'].iloc[i]:
+                        is_resistance = False
+                        break
+                if is_resistance:
+                    levels.append({"price": float(df['High'].iloc[i]), "type": "resistance", "date": df.index[i]})
+
+                # Support (Local Trough)
+                is_support = True
+                for j in range(i - window, i + window + 1):
+                    if df['Low'].iloc[j] < df['Low'].iloc[i]:
+                        is_support = False
+                        break
+                if is_support:
+                    levels.append({"price": float(df['Low'].iloc[i]), "type": "support", "date": df.index[i]})
+            
+            # Keep only the most recent and significant ones
+            # For simplicity, let's take the 2 most recent resistance and 2 most recent support
+            res_levels = [l for l in levels if l['type'] == 'resistance']
+            sup_levels = [l for l in levels if l['type'] == 'support']
+            
+            final_levels = []
+            if res_levels:
+                final_levels.extend(sorted(res_levels, key=lambda x: x['date'], reverse=True)[:2])
+            if sup_levels:
+                final_levels.extend(sorted(sup_levels, key=lambda x: x['date'], reverse=True)[:2])
+            
+            return final_levels
+
+        sr_levels = find_levels(df.tail(120)) # Look at last 120 candles
 
         # --- Market Regime Detection ---
         # 1. Trend Direction
@@ -112,35 +264,72 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
         confluence_count = 1 # Trend is always base
 
         if last_ema50 is not None and last_ema200 is not None:
-            # Mark-Up Logic
+            # Confluence Tracking
+            confluence_details = {
+                "trend": False,
+                "momentum": False,
+                "flow": False
+            }
+
+            # 1. Mark-Up (Classic Uptrend)
             if last_close > last_ema50 > last_ema200:
                 regime = "Mark-Up"
-                reason = "Strong uptrend with price above key averages."
-                if volume_conf: confluence_count += 1
-                if rsi_bullish: confluence_count += 1
+                reason = "Strong uptrend with price leading key averages."
+                confluence_details["trend"] = True
+                if rsi_bullish: 
+                    confluence_details["momentum"] = True
+                    confluence_count += 1
+                if volume_conf: 
+                    confluence_details["flow"] = True
+                    confluence_count += 1
             
-            # Mark-Down Logic
+            # 2. Mark-Down (Classic Downtrend)
             elif last_close < last_ema50 < last_ema200:
                 regime = "Mark-Down"
-                reason = "Price is breaking down in a established downtrend."
-                if volume_conf: confluence_count += 1
-                if rsi_bearish: confluence_count += 1
+                reason = "Established downtrend; price breaking lower."
+                confluence_details["trend"] = True
+                if rsi_bearish: 
+                    confluence_details["momentum"] = True
+                    confluence_count += 1
+                if volume_conf: 
+                    confluence_details["flow"] = True
+                    confluence_count += 1
+
+            # 3. Distribution (Breaking down from Highs)
+            elif last_close < last_ema50 and last_ema50 >= last_ema200:
+                regime = "Distribution"
+                reason = "Price breaking below fast EMA while trend averages are flat or topping."
+                confluence_details["trend"] = True
+                if volume_conf: # Aggressive selling
+                    confluence_details["flow"] = True
+                    confluence_count += 1
+                if rsi_bearish:
+                    confluence_details["momentum"] = True
+                    confluence_count += 1
             
-            # Range Logic (Accumulation / Distribution)
-            elif abs(last_ema50 - last_ema200) / last_ema200 < 0.05:
-                if volatility_status == "Low":
-                    regime = "Accumulation"
-                    reason = "Quiet sideways movement often preceding a breakout."
-                    if not volume_conf: confluence_count += 1 # Accumulation is often quiet
-                else:
-                    regime = "Distribution"
-                    reason = "High volatility range-bound action suggesting a peak."
-                    if volume_conf: confluence_count += 1 # Churn has high volume
+            # 4. Accumulation (Breaking up from Lows)
+            elif last_close > last_ema50 and last_ema50 <= last_ema200:
+                regime = "Accumulation"
+                reason = "Price recovering above fast EMA; potential smart money absorption."
+                confluence_details["trend"] = True
+                if not volume_conf: # Quiet buying is accumulation
+                    confluence_details["flow"] = True
+                    confluence_count += 1
+                if rsi_bullish:
+                    confluence_details["momentum"] = True
+                    confluence_count += 1
+            
+            # 5. Squeeze / Indecision
+            elif abs(last_ema50 - last_ema200) / last_ema200 < 0.02:
+                regime = "Consolidation"
+                reason = "Averages are tight; market awaiting macro catalyst."
+                confluence_details["trend"] = True
             
             else:
                  regime = "Transition"
                  reason = "Price is between major moving averages; direction is neutral."
                  confluence_count = 1
+                 confluence_details["trend"] = True
 
         # Reliability Score
         if confluence_count >= 3:
@@ -165,7 +354,12 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
         try:
             # Optimized: Fetch all proxies at once
             proxies = ["SPY", "XLI", "TIP", "^TNX"]
-            p_data = yf.download(proxies, period=period, interval=interval, progress=False)
+            cache_key_proxies = f"proxies_{period}_{interval}"
+            p_data = get_cached(cache_key_proxies, ttl=3600) # Macro cache 1h
+            
+            if p_data is None:
+                p_data = yf.download(proxies, period=period, interval=interval, progress=False)
+                set_cache(cache_key_proxies, p_data)
             
             if not p_data.empty:
                 # Handle MultiIndex
@@ -261,7 +455,13 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                 }
                 
                 sector_etfs = list(sectors.values())
-                s_data = yf.download(sector_etfs, period="2mo", interval="1d", progress=False)
+                cache_key_sectors = "sector_leadership_1mo"
+                s_data = get_cached(cache_key_sectors, ttl=14400) # Sector cache 4h
+                
+                if s_data is None:
+                    s_data = yf.download(sector_etfs, period="2mo", interval="1d", progress=False)
+                    set_cache(cache_key_sectors, s_data)
+
                 sector_performance = {}
                 
                 if not s_data.empty:
@@ -345,10 +545,165 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                 
                 elif macro_status == "Risk-Off":
                      decision = "Defensive. Macro Risk-Off environment overrides technical setups."
+
         except Exception as p_err:
             print(f"Error fetching Market Proxies: {p_err}")
 
+        # --- Alex Elder Tactical Logic ---
+        # 1. Trend (The Tide)
+        # If interval is daily, Screen 1 (The Tide) must be the Weekly EMA13 slope.
+        # If already in weekly, use the current dataframe.
+        
+        ema13_slope = df['ema_13'].diff().iloc[-1]
+        tide_slope = ema13_slope
+        tide_label = "Daily"
+        
+        if interval == "1d":
+            try:
+                # Fetch weekly data for Screen 1 (The Tide)
+                cache_key_wk = f"tide_wk_{symbol}"
+                wk_df = get_cached(cache_key_wk, ttl=3600)
+                if wk_df is None:
+                    wk_df = yf.download(symbol, period="2y", interval="1wk", progress=False)
+                    if isinstance(wk_df.columns, pd.MultiIndex):
+                        wk_df.columns = wk_df.columns.get_level_values(0)
+                    set_cache(cache_key_wk, wk_df)
+                
+                if not wk_df.empty and len(wk_df) > 13:
+                    wk_ema13 = ta.trend.ema_indicator(wk_df['Close'], window=13)
+                    tide_slope = wk_ema13.diff().iloc[-1]
+                    tide_label = "Weekly"
+            except Exception as wk_err:
+                print(f"Error fetching Weekly Tide for {symbol}: {wk_err}")
+                # Fallback to daily slope if weekly fails
+
+        force2 = df['force_index_2'].iloc[-1]
+        impulse_color = df['impulse'].iloc[-1]
+        
+        # 2. Strategy Synthesis
+        elder_recommendation = "WAIT"
+        tactic_reason = "No high-confluence setup detected."
+        entry_price = None
+        target_price = None
+        stop_price = None
+
+        u_envelope = df['envelope_upper'].iloc[-1]
+        l_envelope = df['envelope_lower'].iloc[-1]
+
+        # BUY Logic: Rising Tide (Weekly if Daily view) + Negative Force Index 2 (Wave)
+        if tide_slope > 0:
+            entry_price = float(df['High'].iloc[-1]) if force2 < 0 else float(df['ema_13'].iloc[-1])
+            target_price = float(u_envelope)
+            stop_price = float(df['ema_26'].iloc[-1])
+            
+            if impulse_color == "red":
+                elder_recommendation = "WAIT (CENSORED)"
+                tactic_reason = f"{tide_label} Tide is active, but Impulse System is RED. Long trades are forbidden."
+            elif force2 < 0:
+                elder_recommendation = "BUY"
+                tactic_reason = f"{tide_label} EMA 13 is rising (Bull Tide); 2-day pullback detected. Impulse allows entry."
+            else:
+                elder_recommendation = "HOLD / ADD"
+                tactic_reason = f"{tide_label} Tide is intact. Optimal entry is near the EMA 13 value zone."
+        
+        # SELL Logic: Falling Tide (Weekly if Daily view) + Positive Force Index 2 (Wave)
+        elif tide_slope < 0:
+            entry_price = float(df['Low'].iloc[-1]) if force2 > 0 else float(df['ema_13'].iloc[-1])
+            target_price = float(l_envelope)
+            stop_price = float(df['ema_26'].iloc[-1])
+
+            if impulse_color == "green":
+                elder_recommendation = "WAIT (CENSORED)"
+                tactic_reason = f"{tide_label} Tide is active, but Impulse System is GREEN. Short trades are forbidden."
+            elif force2 > 0:
+                elder_recommendation = "SELL / SHORT"
+                tactic_reason = f"{tide_label} EMA 13 is falling (Bear Tide); rally detected. Impulse allows entry."
+            else:
+                elder_recommendation = "AVOID / PROTECT"
+                tactic_reason = f"{tide_label} Tide is intact. Trend is down; look for exit opportunities near EMA 13."
+
+        elder_tactics = {
+            "type": "LONG" if tide_slope > 0 else "SHORT",
+            "recommendation": elder_recommendation,
+            "reason": tactic_reason,
+            "entry": round(entry_price, 2) if entry_price else None,
+            "target": round(target_price, 2) if target_price else None,
+            "stop": round(stop_price, 2) if stop_price else None,
+            "style": "success" if elder_recommendation in ["BUY", "HOLD / ADD"] else "danger" if elder_recommendation in ["SELL / SHORT", "AVOID / PROTECT"] else "warning"
+        }
+
         # Prepare response
+        # --- MACD Divergence Detection (Wave-based) ---
+        def find_divergence(df):
+            if len(df) < 50: return None
+            
+            hist = df['macd_diff'].values
+            prices = df['High'].values # Use Highs for Bearish
+            lows = df['Low'].values # Use Lows for Bullish
+            
+            # 1. Identify Segments (waves between zero-crossings)
+            segments = []
+            if len(hist) < 2: return None
+            
+            current_seg = {"indices": [0], "type": "pos" if hist[0] >= 0 else "neg"}
+            
+            for i in range(1, len(hist)):
+                h = hist[i]
+                is_pos = h >= 0
+                if (is_pos and current_seg["type"] == "pos") or (not is_pos and current_seg["type"] == "neg"):
+                    current_seg["indices"].append(i)
+                else:
+                    segments.append(current_seg)
+                    current_seg = {"indices": [i], "type": "pos" if is_pos else "neg"}
+            segments.append(current_seg)
+            
+            # 2. Extract extrema for each segment
+            for seg in segments:
+                idxs = seg["indices"]
+                if seg["type"] == "pos":
+                    peak_idx = idxs[0] + hist[idxs].argmax()
+                    seg["extrema_idx"] = int(peak_idx)
+                    seg["extrema_val"] = float(hist[peak_idx])
+                    seg["price_at_extrema"] = float(prices[peak_idx])
+                else:
+                    trough_idx = idxs[0] + hist[idxs].argmin()
+                    seg["extrema_idx"] = int(trough_idx)
+                    seg["extrema_val"] = float(hist[trough_idx])
+                    seg["price_at_extrema"] = float(lows[trough_idx])
+
+            # 3. Detect Bearish Divergence (Price Higher High, MACD Lower High)
+            pos_segs = [s for s in segments if s["type"] == "pos" and len(s["indices"]) > 2]
+            if len(pos_segs) >= 2:
+                s2 = pos_segs[-1] # Current/Last pos wave
+                s1 = pos_segs[-2] # Previous pos wave
+                
+                # Must be recent (last segment extrema within 15 bars)
+                if (len(hist) - 1 - s2["extrema_idx"]) < 20:
+                    if s2["price_at_extrema"] > s1["price_at_extrema"] and s2["extrema_val"] < s1["extrema_val"]:
+                        # Ensure there was a negative wave in between
+                        # Find if any negative segment exists between s1 and s2
+                        s1_idx = segments.index(s1)
+                        s2_idx = segments.index(s2)
+                        if any(segments[i]["type"] == "neg" for i in range(s1_idx + 1, s2_idx)):
+                            return {"type": "bearish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
+
+            # 4. Detect Bullish Divergence (Price Lower Low, MACD Higher Low)
+            neg_segs = [s for s in segments if s["type"] == "neg" and len(s["indices"]) > 2]
+            if len(neg_segs) >= 2:
+                s2 = neg_segs[-1]
+                s1 = neg_segs[-2]
+                
+                if (len(hist) - 1 - s2["extrema_idx"]) < 20:
+                    if s2["price_at_extrema"] < s1["price_at_extrema"] and s2["extrema_val"] > s1["extrema_val"]:
+                        s1_idx = segments.index(s1)
+                        s2_idx = segments.index(s2)
+                        if any(segments[i]["type"] == "pos" for i in range(s1_idx + 1, s2_idx)):
+                            return {"type": "bullish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
+            
+            return None
+
+        macd_divergence = find_divergence(df)
+
         # Convert index (Date) to listing
         df.reset_index(inplace=True)
         
@@ -376,6 +731,7 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
             "volatility": volatility_status,
             "confidence": confidence,
             "confluence_factor": confluence_count,
+            "confluence_details": confluence_details,
             "macro_status": macro_status,
             "relative_strength": round(float(relative_strength), 4),
             "macro_tides": macro_tides,
@@ -384,8 +740,12 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
             "sector_analysis": {
                 "stock_sector": stock_sector,
                 "leading_sector": leading_sector,
-                "is_leading": is_leading_sector
-            }
+                "is_leading": is_leading_sector,
+                "sector_performance": sector_performance
+            },
+            "sr_levels": sr_levels,
+            "elder_tactics": elder_tactics,
+            "macd_divergence": macd_divergence
         }
 
     except Exception as e:

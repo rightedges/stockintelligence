@@ -21,7 +21,8 @@ app = FastAPI(lifespan=lifespan)
 
 # CORS configuration
 origins = [
-    "http://localhost:5173",  # React frontend
+    "http://localhost:5173",  # React frontend (standard)
+    "http://localhost:5174",  # React frontend (Vite alternative)
     "http://localhost:3000",
 ]
 
@@ -37,6 +38,7 @@ app.add_middleware(
 def read_root():
     return {"message": "Stock Analysis API is running"}
 
-from backend.routes import stocks
+from backend.routes import stocks, journal
 app.include_router(stocks.router)
+app.include_router(journal.router)
 

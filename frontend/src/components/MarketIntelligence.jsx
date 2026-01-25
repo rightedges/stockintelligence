@@ -13,7 +13,9 @@ import {
     ChevronDown,
     ChevronUp,
     Gauge,
-    Link
+    Link,
+    HelpCircle,
+    X
 } from 'lucide-react';
 
 const MarketRegime = ({ activeRegime }) => {
@@ -251,46 +253,277 @@ const MacroIndicators = ({ macroData }) => {
     );
 };
 
-const MarketIntelligence = ({ regimeData }) => {
+const SectorPerformance = ({ sectorAnalysis }) => {
+    if (!sectorAnalysis?.sector_performance) return null;
+
+    const performanceData = Object.entries(sectorAnalysis.sector_performance)
+        .sort(([, a], [, b]) => b - a);
+
     return (
-        <div className="animate-in fade-in duration-500">
-            <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 h-full shadow-inner">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <BarChart3 className="text-green-400" />
+                Sector Leadership (1M)
+            </h3>
+            <div className="space-y-3">
+                {performanceData.map(([sector, performance]) => {
+                    const isStockSector = sector === sectorAnalysis.stock_sector;
+                    const perfPercent = (performance * 100).toFixed(2);
+                    const isPositive = performance >= 0;
+
+                    return (
+                        <div key={sector} className={`relative flex flex-col gap-1 ${isStockSector ? 'z-10' : ''}`}>
+                            <div className="flex justify-between items-center text-[10px] mb-1">
+                                <span className={`font-bold ${isStockSector ? 'text-blue-400 flex items-center gap-1' : 'text-gray-400'}`}>
+                                    {isStockSector && <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />}
+                                    {sector}
+                                </span>
+                                <span className={`font-mono ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                                    {isPositive ? '+' : ''}{perfPercent}%
+                                </span>
+                            </div>
+                            <div className="h-1.5 w-full bg-gray-900 rounded-full overflow-hidden flex">
+                                {isPositive ? (
+                                    <>
+                                        <div className="w-1/2" />
+                                        <div
+                                            className={`h-full ${isStockSector ? 'bg-blue-500' : 'bg-green-500'}`}
+                                            style={{ width: `${Math.min(Math.abs(performance) * 100, 50)}%` }}
+                                        />
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="w-1/2 flex justify-end">
+                                            <div
+                                                className={`h-full ${isStockSector ? 'bg-blue-500' : 'bg-red-500'}`}
+                                                style={{ width: `${Math.min(Math.abs(performance) * 100, 50)}%` }}
+                                            />
+                                        </div>
+                                        <div className="w-1/2" />
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
+const MacroLogicGuide = ({ isOpen, onClose }) => {
+    if (!isOpen) return null;
+
+    const regimes = [
+        { title: "Goldilocks Zone", conditions: "Growth Up + Liquidity Up", focus: "Tech, Growth, Discretionary", color: "text-green-400" },
+        { title: "Early Cycle Recovery", conditions: "Growth Down + Liquidity Up", focus: "Small Caps, Financials", color: "text-blue-400" },
+        { title: "Late Cycle Expansion", conditions: "Growth Up + Liquidity Down", focus: "Financials, Energy, Industrials", color: "text-yellow-400" },
+        { title: "Stagflation Risk", conditions: "Growth Down + Inflation Up", focus: "Energy, Staples, Gold", color: "text-red-400" },
+        { title: "Deflationary Pressure", conditions: "Growth Down + Liquidity Down", focus: "Cash, Healthcare, Quality", color: "text-gray-400" },
+    ];
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-gray-900 border border-gray-700 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl relative">
+                <button
+                    onClick={onClose}
+                    className="absolute top-6 right-6 p-2 hover:bg-gray-800 rounded-full transition-colors text-gray-400 hover:text-white"
+                >
+                    <X size={24} />
+                </button>
+
+                <div className="p-8 md:p-12">
+                    <div className="flex items-center gap-3 mb-8">
+                        <div className="bg-purple-600/20 p-3 rounded-2xl">
+                            <Zap className="text-purple-400" size={28} />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-white">Macro Strategy Logic</h2>
+                            <p className="text-gray-400 text-sm italic">How the "Strategic Playbook" calculates its recommendations.</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                        {[
+                            { title: "Growth (XLI)", logic: "Price > EMA 50", desc: "Monitors economic expansion through Industrial activity.", color: "blue-400" },
+                            { title: "Inflation (TIP)", logic: "Price < EMA 50", desc: "Falling TIP bonds indicate rising inflation expectations.", color: "yellow-400" },
+                            { title: "Liquidity (TNX)", logic: "Price < EMA 50", desc: "Falling Treasury Yields indicate easing policy.", color: "purple-400" }
+                        ].map(pillar => {
+                            const colorClass = pillar.color === 'blue-400' ? 'text-blue-400' :
+                                pillar.color === 'yellow-400' ? 'text-yellow-400' :
+                                    'text-purple-400';
+                            return (
+                                <div key={pillar.title} className="bg-gray-800/50 border border-gray-700 p-5 rounded-2xl">
+                                    <h4 className={`text-sm font-bold ${colorClass} mb-1`}>{pillar.title}</h4>
+                                    <div className="text-[10px] font-mono text-gray-400 mb-3 uppercase tracking-tighter">Logic: {pillar.logic}</div>
+                                    <p className="text-xs text-gray-300 leading-relaxed">{pillar.desc}</p>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                        <Layers size={20} className="text-blue-400" />
+                        The Macro Regime Matrix
+                    </h3>
+                    <div className="overflow-hidden rounded-2xl border border-gray-800">
+                        <table className="w-full text-left text-sm border-collapse">
+                            <thead>
+                                <tr className="bg-gray-800/80">
+                                    <th className="p-4 font-bold text-gray-300">Regime</th>
+                                    <th className="p-4 font-bold text-gray-300">Conditions</th>
+                                    <th className="p-4 font-bold text-gray-300">Market Focus</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-800">
+                                {regimes.map(r => (
+                                    <tr key={r.title} className="hover:bg-gray-800/30 transition-colors">
+                                        <td className={`p-4 font-bold ${r.color}`}>{r.title}</td>
+                                        <td className="p-4 text-gray-400 font-mono text-xs">{r.conditions}</td>
+                                        <td className="p-4 text-gray-300 italic text-xs">{r.focus}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="mt-12 p-6 bg-blue-600/10 border border-blue-500/20 rounded-2xl">
+                        <p className="text-sm text-gray-300 leading-relaxed italic">
+                            "Techno-Fundamental analysis is about finding where individual technical trends align with broad macro tides. Never fight the tape, but never ignore the tide."
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const MarketIntelligence = ({ regimeData }) => {
+    const [showGuide, setShowGuide] = useState(false);
+    const [showLogic, setShowLogic] = useState(true);
+
+    return (
+        <div className="animate-in fade-in duration-500 max-w-7xl mx-auto pb-12">
+            <MacroLogicGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
+
+            <div className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-gray-800 pb-8">
                 <div className="flex-1">
-                    <h2 className="text-2xl font-bold mb-2 text-white">Market Intelligence</h2>
-                    <p className="text-gray-400 text-sm max-w-2xl">
-                        Fundamentals tell you the direction of the tide. Technicals tell you when to swim.
-                        Multi-confluence scoring reduces the risk of indicator noise.
+                    <h2 className="text-3xl font-black mb-2 text-white italic tracking-tighter">MARKET INTELLIGENCE</h2>
+                    <p className="text-gray-400 text-sm max-w-2xl leading-relaxed">
+                        Fundamentals determine the tide; technicals dictate the swim.
+                        We use <span className="text-blue-400 font-bold">Multi-Confluence Scoring</span> to filter noise and isolate high-probability regimes.
                     </p>
+                </div>
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => setShowGuide(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/30 rounded-xl text-purple-300 text-xs font-bold transition-all"
+                    >
+                        <Zap size={16} /> LOGIC GUIDE
+                    </button>
                 </div>
             </div>
 
-            <section className="mb-10">
-                <div className="flex items-center justify-between mb-4 px-1">
-                    <h3 className="text-lg font-semibold text-gray-300 uppercase tracking-widest text-xs font-mono">1. Phase Identification</h3>
+            {/* SECTION 1: MARKET CONTEXT */}
+            <section className="mb-12">
+                <div className="flex items-center gap-2 mb-6 px-1">
+                    <div className="w-1 h-4 bg-blue-500 rounded-full" />
+                    <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">01. Market Context (Macro Tides)</h3>
                 </div>
-                <MarketRegime activeRegime={regimeData?.regime} />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <MacroIndicators macroData={regimeData?.macro_tides} />
+                    <SectorPerformance sectorAnalysis={regimeData?.sector_analysis} />
+                </div>
             </section>
 
-            <LogicExplainer />
+            {/* SECTION 2: PHASE IDENTIFICATION */}
+            <section className="mb-12">
+                <div className="flex items-center justify-between mb-6 px-1">
+                    <div className="flex items-center gap-2">
+                        <div className="w-1 h-4 bg-green-500 rounded-full" />
+                        <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">02. Phase Identification</h3>
+                    </div>
+                </div>
+                <MarketRegime activeRegime={regimeData?.regime} />
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-                <section className="flex flex-col gap-8">
-                    <h3 className="text-lg font-semibold mb-4 text-gray-300 uppercase tracking-widest text-xs font-mono">2. Strategy</h3>
+                {/* Dynamic Confluence Explainer */}
+                <div className="mt-8 bg-gray-800/40 border border-gray-700/50 rounded-2xl overflow-hidden shadow-2xl">
+                    <div className="p-4 bg-gray-900/40 border-b border-gray-700/50 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Layers size={18} className="text-blue-400" />
+                            <span className="font-bold text-gray-200 uppercase tracking-widest text-xs font-mono">Confluence Logic: Why {regimeData?.regime}?</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase">Reliability Score:</span>
+                            <div className="flex gap-1">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className={`w-3 h-1.5 rounded-full ${i <= (regimeData?.confluence || 0) ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-gray-700'}`} />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-8">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+                            <div className={`transition-opacity duration-500 ${regimeData?.confluence_details?.trend ? 'opacity-100' : 'opacity-40'}`}>
+                                <h4 className={`text-xs font-black mb-3 uppercase flex items-center gap-2 ${regimeData?.confluence_details?.trend ? 'text-blue-400' : 'text-gray-500'}`}>
+                                    <BarChart3 size={16} />
+                                    1. Trend (The Gear)
+                                    {regimeData?.confluence_details?.trend && <CheckCircle2 size={14} className="ml-auto" />}
+                                </h4>
+                                <p className="text-sm text-gray-400 leading-relaxed">
+                                    Base identification using <strong className="text-gray-200">EMA 50 & 200</strong>. Tells us if the machine is moving up or down.
+                                </p>
+                            </div>
+                            <div className={`transition-opacity duration-500 ${regimeData?.confluence_details?.momentum ? 'opacity-100' : 'opacity-40'}`}>
+                                <h4 className={`text-xs font-black mb-3 uppercase flex items-center gap-2 ${regimeData?.confluence_details?.momentum ? 'text-yellow-400' : 'text-gray-500'}`}>
+                                    <Gauge size={16} />
+                                    2. Momentum (The Heat)
+                                    {regimeData?.confluence_details?.momentum && <CheckCircle2 size={14} className="ml-auto" />}
+                                </h4>
+                                <p className="text-sm text-gray-400 leading-relaxed">
+                                    Uses <strong className="text-gray-200">RSI Relative Strength</strong> to distinguish quiet absorption from nervous retail churn.
+                                </p>
+                            </div>
+                            <div className={`transition-opacity duration-500 ${regimeData?.confluence_details?.flow ? 'opacity-100' : 'opacity-40'}`}>
+                                <h4 className={`text-xs font-black mb-3 uppercase flex items-center gap-2 ${regimeData?.confluence_details?.flow ? 'text-purple-400' : 'text-gray-500'}`}>
+                                    <Link size={16} />
+                                    3. Flow (The Fuel)
+                                    {regimeData?.confluence_details?.flow && <CheckCircle2 size={14} className="ml-auto" />}
+                                </h4>
+                                <p className="text-sm text-gray-400 leading-relaxed">
+                                    Verified via <strong className="text-gray-200">Volume SMAs</strong>. High flow confirms institutional commitment to the current phase.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* SECTION 3: STRATEGIC PLAYBOOK */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                <section>
+                    <div className="flex items-center gap-2 mb-6 px-1">
+                        <div className="w-1 h-4 bg-purple-500 rounded-full" />
+                        <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">03. Macro Strategy</h3>
+                    </div>
 
                     {regimeData?.suggestion && (
-                        <div className="bg-gray-800 border border-gray-700 p-6 rounded-2xl shadow-lg relative overflow-hidden group h-full">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                <Zap size={80} className="text-purple-400" />
+                        <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 p-8 rounded-3xl shadow-2xl relative overflow-hidden group h-full">
+                            <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
+                                <Zap size={120} className="text-purple-400" />
                             </div>
-                            <div className="flex items-center gap-2 mb-3">
-                                <Zap className="text-purple-400" size={20} />
-                                <h3 className="text-lg font-bold text-white uppercase tracking-tight">Macro Strategic Playbook</h3>
+                            <div className="flex items-center gap-2 mb-6">
+                                <div className="p-2 bg-purple-500/20 rounded-lg">
+                                    <Zap className="text-purple-400" size={24} />
+                                </div>
+                                <h3 className="text-xl font-black text-white uppercase tracking-tight italic">Macro Strategic Playbook</h3>
                             </div>
-                            <div className="text-xl font-bold text-purple-300 mb-1">{regimeData.suggestion.title}</div>
-                            <p className="text-sm text-gray-300 mb-4 pr-12">{regimeData.suggestion.action}</p>
+                            <div className="text-2xl font-black text-purple-300 mb-2 tracking-tighter italic">{regimeData.suggestion.title}</div>
+                            <p className="text-gray-300 mb-8 pr-12 leading-relaxed">{regimeData.suggestion.action}</p>
                             <div className="flex flex-wrap gap-2">
                                 {regimeData.suggestion.focus.split(', ').map(sector => (
-                                    <span key={sector} className="px-2 py-1 bg-purple-900/40 border border-purple-700/30 rounded-md text-[10px] uppercase font-bold text-purple-200">
+                                    <span key={sector} className="px-3 py-1.5 bg-purple-900/40 border border-purple-700/30 rounded-xl text-[10px] uppercase font-black text-purple-200 tracking-widest">
                                         {sector}
                                     </span>
                                 ))}
@@ -299,57 +532,55 @@ const MarketIntelligence = ({ regimeData }) => {
                     )}
                 </section>
 
-                <section className="flex flex-col gap-8">
-                    <div>
-                        <h3 className="text-lg font-semibold mb-4 text-gray-300 uppercase tracking-widest text-xs font-mono">3. Automated Routine</h3>
-                        <TopDownRoutine regimeData={regimeData} />
-                    </div>
-                </section>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 mb-10">
                 <section>
-                    <h3 className="text-lg font-semibold mb-4 text-gray-300 uppercase tracking-widest text-xs font-mono">4. Macro Tides</h3>
-                    <MacroIndicators macroData={regimeData?.macro_tides} />
+                    <div className="flex items-center gap-2 mb-6 px-1">
+                        <div className="w-1 h-4 bg-yellow-500 rounded-full" />
+                        <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">04. Automated Routine</h3>
+                    </div>
+                    <TopDownRoutine regimeData={regimeData} />
                 </section>
             </div>
 
-            <section className="mb-10">
-                <h3 className="text-lg font-semibold mb-4 text-gray-300 uppercase tracking-widest text-xs font-mono">5. Final Synthesis & Decision</h3>
+            {/* SECTION 4: FINAL SYNTHESIS */}
+            <section className="mb-12">
+                <div className="flex items-center gap-2 mb-6 px-1">
+                    <div className="w-1 h-4 bg-red-500 rounded-full" />
+                    <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">05. Final Synthesis & Decision</h3>
+                </div>
                 {regimeData && (
-                    <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-blue-500/30 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl -mr-20 -mt-20" />
+                    <div className="bg-gradient-to-br from-blue-900/20 to-gray-900 border border-blue-500/30 rounded-[2.5rem] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/5 rounded-full blur-3xl -mr-32 -mt-32" />
 
-                        <div className="flex flex-col md:flex-row gap-8 items-center md:items-stretch relative z-10">
+                        <div className="flex flex-col xl:flex-row gap-10 items-center xl:items-stretch relative z-10">
                             {/* Decision Box */}
-                            <div className="flex-1 bg-gradient-to-br from-blue-600 to-indigo-800 p-8 rounded-2xl shadow-xl flex flex-col justify-center border border-blue-400/20">
-                                <div className="text-xs uppercase font-black text-blue-100 mb-3 tracking-[0.3em] flex items-center gap-2">
-                                    <ShieldCheck size={16} /> Final Recommendation
+                            <div className="w-full xl:w-2/5 bg-gradient-to-br from-blue-600 to-indigo-800 p-10 rounded-[2rem] shadow-2xl flex flex-col justify-center border border-blue-400/30 transform hover:scale-[1.02] transition-transform duration-500">
+                                <div className="text-[10px] uppercase font-black text-blue-100 mb-6 tracking-[0.4em] flex items-center gap-2 opacity-80">
+                                    <ShieldCheck size={16} /> FINAL RECOMMENDATION
                                 </div>
-                                <div className="text-3xl font-bold text-white mb-4 leading-tight">
+                                <div className="text-4xl font-black text-white mb-6 leading-tight tracking-tighter italic uppercase">
                                     {regimeData.decision}
                                 </div>
-                                <div className="h-1.5 w-24 bg-blue-300/40 rounded-full" />
+                                <div className="h-1.5 w-32 bg-white/20 rounded-full" />
                             </div>
 
                             {/* Details Box */}
                             <div className="flex-1 flex flex-col justify-between py-2">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-4 bg-gray-900/50 rounded-xl border border-gray-700/50">
-                                        <div className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-widest">Active Regime</div>
-                                        <div className="text-lg font-bold text-white">{regimeData.regime}</div>
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="p-6 bg-gray-900/60 rounded-2xl border border-gray-700/50 backdrop-blur-sm">
+                                        <div className="text-[10px] text-gray-500 uppercase font-black mb-2 tracking-widest">Active Regime</div>
+                                        <div className="text-xl font-black text-white italic">{regimeData.regime}</div>
                                     </div>
-                                    <div className="p-4 bg-gray-900/50 rounded-xl border border-gray-700/50 text-right">
-                                        <div className="text-[10px] text-gray-500 uppercase font-bold mb-1 tracking-widest">Confidence Score</div>
-                                        <div className={`text-lg font-bold ${regimeData.confidence === 'High' ? 'text-green-400' : regimeData.confidence === 'Medium' ? 'text-yellow-400' : 'text-red-400'}`}>
+                                    <div className="p-6 bg-gray-900/60 rounded-2xl border border-gray-700/50 text-right backdrop-blur-sm">
+                                        <div className="text-[10px] text-gray-500 uppercase font-black mb-2 tracking-widest">Confidence Score</div>
+                                        <div className={`text-xl font-black italic ${regimeData.confidence === 'High' ? 'text-green-400' : regimeData.confidence === 'Medium' ? 'text-yellow-400' : 'text-red-400'}`}>
                                             {regimeData.confluence}/3 Confluences
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="mt-4 p-4 bg-blue-900/10 border border-blue-800/20 rounded-xl">
-                                    <div className="text-[10px] text-blue-400 uppercase font-bold mb-1 tracking-widest">Techno-Fundamental Synthesis</div>
-                                    <p className="text-sm text-gray-300 italic leading-relaxed">
+                                <div className="mt-8 p-6 bg-blue-500/5 border border-blue-500/20 rounded-2xl shadow-inner">
+                                    <div className="text-[10px] text-blue-400 uppercase font-black mb-3 tracking-widest">Techno-Fundamental Synthesis</div>
+                                    <p className="text-lg text-gray-200 italic leading-relaxed font-serif">
                                         "{regimeData.reason}"
                                     </p>
                                 </div>
