@@ -111,7 +111,9 @@ def add_stock(stock: Stock, session: Session = Depends(get_session)):
 
 @router.get("/", response_model=list[StockPublic])
 def get_stocks(session: Session = Depends(get_session)):
-    stocks = session.exec(select(Stock)).all()
+    # Sort by is_watched (descending -> True first) then symbol (ascending)
+    statement = select(Stock).order_by(Stock.is_watched.desc(), Stock.symbol)
+    stocks = session.exec(statement).all()
     public_stocks = []
     
     # Process weekly impulse for sidebar coloring
@@ -167,7 +169,21 @@ def delete_stock(symbol: str, session: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail="Stock not found")
     session.delete(stock)
     session.commit()
+    session.commit()
     return {"ok": True}
+
+@router.put("/{symbol}/watch", response_model=Stock)
+def toggle_watch(symbol: str, session: Session = Depends(get_session)):
+    statement = select(Stock).where(Stock.symbol == symbol)
+    stock = session.exec(statement).first()
+    if not stock:
+        raise HTTPException(status_code=404, detail="Stock not found")
+    
+    stock.is_watched = not stock.is_watched
+    session.add(stock)
+    session.commit()
+    session.refresh(stock)
+    return stock
 
 @router.get("/{symbol}/analysis")
 def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):

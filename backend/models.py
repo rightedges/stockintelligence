@@ -7,6 +7,7 @@ class Stock(SQLModel, table=True):
     name: Optional[str] = None
     sector: Optional[str] = None
     exchange: Optional[str] = None
+    is_watched: bool = Field(default=False)
 
 class StockPublic(Stock):
     impulse: Optional[str] = None

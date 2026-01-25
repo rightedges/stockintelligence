@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { getStocks, addStock, deleteStock, getAnalysis } from '../services/api';
+import { getStocks, addStock, deleteStock, getAnalysis, toggleWatchStock } from '../services/api';
 import StockChart from './StockChart';
 import MarketIntelligence from './MarketIntelligence';
 import ElderAnalysis from './ElderAnalysis';
-import { Plus, Trash2, TrendingUp, Activity, Brain, LineChart } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, Activity, Brain, LineChart, Star } from 'lucide-react';
 
 const Dashboard = () => {
     const [stocks, setStocks] = useState([]);
@@ -97,6 +97,17 @@ const Dashboard = () => {
         }
     };
 
+    const handleToggleWatch = async (symbol, e) => {
+        e.stopPropagation();
+        try {
+            await toggleWatchStock(symbol);
+            // Optimistic update or refresh
+            loadStocks();
+        } catch (err) {
+            console.error("Failed to toggle watch status", err);
+        }
+    };
+
     return (
         <div className="flex h-screen bg-gray-900 text-white">
             {/* Sidebar */}
@@ -141,12 +152,20 @@ const Dashboard = () => {
                                 </div>
                                 <div className="text-xs text-gray-400 truncate w-32">{stock.name || '-'}</div>
                             </div>
-                            <button
-                                onClick={(e) => handleDeleteStock(stock.symbol, e)}
-                                className="text-gray-500 hover:text-red-500"
-                            >
-                                <Trash2 size={16} />
-                            </button>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={(e) => handleToggleWatch(stock.symbol, e)}
+                                    className={`p-1.5 hover:bg-gray-600 rounded-lg transition-colors ${stock.is_watched ? 'text-yellow-400' : 'text-gray-600 hover:text-yellow-400'}`}
+                                >
+                                    <Star size={16} fill={stock.is_watched ? "currentColor" : "none"} />
+                                </button>
+                                <button
+                                    onClick={(e) => handleDeleteStock(stock.symbol, e)}
+                                    className="text-gray-500 hover:text-red-500 p-1"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
