@@ -218,7 +218,12 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
     };
 
     const applyElderTemplate = () => {
-        const template = `LOGIC: (Macro Tide, Sector Rank, Chart Regime)\n- \n\nSTRATEGY: (Triple Screen / Divergence / Bounce)\n- \n\nEMOTIONS: (Calm, Greed, Fear, FOMO)\n- \n\nPLAN: (Entry Stop, Target Offset, Hard Stop)\n- `;
+        let template = '';
+        if (timeframeLabel === 'Weekly') {
+            template = `### WEEKLY MACRO TIDE\n\n**1. TIDE ANALYSIS (EMA 13)**\n- Direction: \n- Slope Quality: \n\n**2. IMPULSE SYSTEM**\n- State: (Red/Green/Blue)\n- Restriction: \n\n**3. BIG PICTURE CONTEXT**\n- Sector Rank: \n- Major S/R Levels: \n\n**4. STRATEGIC BIAS**\n- Next Week's Goal: `;
+        } else {
+            template = `### DAILY TACTICAL SETUP\n\n**1. TRIPLE SCREEN CHECK**\n- S1 (Weekly Tide): \n- S2 (Daily Wave/Force): \n- S3 (Entry Trigger): \n\n**2. EMOTIONAL SATE**\n- Current Feeling: \n- Discipline Check: \n\n**3. TRADE PLAN**\n- Entry Order (Stop/Limit): \n- Protective Stop: \n- Profit Target: \n- Risk/Reward Ratio: `;
+        }
         setNote(template);
     };
 

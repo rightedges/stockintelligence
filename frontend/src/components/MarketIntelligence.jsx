@@ -88,59 +88,97 @@ const MarketRegime = ({ activeRegime }) => {
     );
 };
 
-const LogicExplainer = () => {
-    const [isOpen, setIsOpen] = useState(false);
+const DashboardTour = ({ isOpen, onClose }) => {
+    const [currentStep, setCurrentStep] = useState(0);
+
+    if (!isOpen) return null;
+
+    const steps = [
+        {
+            title: "Welcome to Market Intelligence",
+            desc: "This dashboard aligns individual technicals with broad macro tides. Never fight the tape, but never ignore the tide.",
+            target: "header"
+        },
+        {
+            title: "01. The Weather (Macro)",
+            desc: "First, we check the ocean conditions. Are we in a 'Risk-On' expansion or a 'Risk-Off' contraction? This dictates our exposure.",
+            target: "tour-context"
+        },
+        {
+            title: "02. The Map (Phase)",
+            desc: "Next, we locate the stock. Is it Accumulating (Buying), Marking Up (Holding), or Distributing (Selling)? Use 'Confluence Logic' to verify.",
+            target: "tour-phase"
+        },
+        {
+            title: "03. The Playbook (Strategy)",
+            desc: "Based on the Macro Regime, this is your high-level strategy. Should you be buying Tech, shorting Energy, or sitting in Cash?",
+            target: "tour-strategy"
+        },
+        {
+            title: "04. Pre-Flight Check (Routine)",
+            desc: "An automated checklist comparing your stock against the S&P 500. All green lights? You're clear for takeoff.",
+            target: "tour-routine"
+        },
+        {
+            title: "05. The Decision (Synthesis)",
+            desc: "The final verdict. We combine all data into a single 'Go/No-Go' recommendation with a confidence reliability score.",
+            target: "tour-decision"
+        }
+    ];
+
+    const handleNext = () => {
+        if (currentStep < steps.length - 1) {
+            const nextStep = currentStep + 1;
+            setCurrentStep(nextStep);
+            const el = document.getElementById(steps[nextStep].target);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            onClose();
+            setCurrentStep(0);
+        }
+    };
+
+    const step = steps[currentStep];
 
     return (
-        <div className="mb-10 bg-gray-800/40 border border-gray-700 rounded-xl overflow-hidden">
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full p-4 flex items-center justify-between hover:bg-gray-700/50 transition-colors"
-            >
-                <div className="flex items-center gap-2">
-                    <Info size={18} className="text-blue-400" />
-                    <span className="font-semibold text-gray-200 uppercase tracking-widest text-xs font-mono">Reliability Guide: How Confluence Works</span>
-                </div>
-                {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-            </button>
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 pointer-events-none">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-500" />
 
-            {isOpen && (
-                <div className="p-6 border-t border-gray-700 animate-in slide-in-from-top-1 duration-300">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div>
-                            <h4 className="text-sm font-bold text-blue-400 mb-3 uppercase flex items-center gap-2">
-                                <BarChart3 size={16} />
-                                1. Trend (The Gear)
-                            </h4>
-                            <p className="text-sm text-gray-300 mb-4 leading-relaxed">
-                                Base identification using <strong>EMA 50 & 200</strong>. Tells us if the machine is moving up or down.
-                            </p>
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-bold text-yellow-400 mb-3 uppercase flex items-center gap-2">
-                                <Gauge size={16} />
-                                2. Volatility (The Heat)
-                            </h4>
-                            <p className="text-sm text-gray-300 mb-4 leading-relaxed">
-                                Uses <strong>ATR</strong> relative to the 30-day average. Distinguishes quiet buying from nervous distribution.
-                            </p>
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-bold text-purple-400 mb-3 uppercase flex items-center gap-2">
-                                <Link size={16} />
-                                3. Flow (The Fuel)
-                            </h4>
-                            <p className="text-sm text-gray-300 mb-4 leading-relaxed">
-                                Confluences with <strong>Volume SMA</strong> and <strong>RSI Momentum</strong> to score the reliability of the trend.
-                            </p>
-                        </div>
+            <div className="bg-gray-900 border border-blue-500/50 p-8 rounded-3xl shadow-2xl relative z-10 max-w-lg w-full pointer-events-auto animate-in fade-in slide-in-from-bottom-8 duration-300">
+                <div className="flex items-center gap-4 mb-6">
+                    <div className="bg-blue-600/20 p-3 rounded-2xl">
+                        <Navigation className="text-blue-400" size={24} />
                     </div>
-                    <div className="mt-6 p-4 bg-gray-900 rounded-lg border border-gray-800 text-sm text-gray-400">
-                        <span className="text-white font-bold">Reliability Score:</span>
-                        <span className="ml-2 font-mono italic">High = All 3 systems align | Medium = 2 align | Low = Trend only.</span>
+                    <div>
+                        <h3 className="text-xl font-black text-white italic tracking-tight">{step.title}</h3>
+                        <div className="flex gap-1 mt-2">
+                            {steps.map((_, i) => (
+                                <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i === currentStep ? 'w-8 bg-blue-500' : 'w-2 bg-gray-700'}`} />
+                            ))}
+                        </div>
                     </div>
                 </div>
-            )}
+
+                <p className="text-gray-300 text-sm leading-relaxed mb-8 min-h-[60px]">
+                    {step.desc}
+                </p>
+
+                <div className="flex justify-between items-center">
+                    <button
+                        onClick={onClose}
+                        className="text-xs font-bold text-gray-500 hover:text-white uppercase tracking-widest transition-colors"
+                    >
+                        Skip Tour
+                    </button>
+                    <button
+                        onClick={handleNext}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-blue-500/25 flex items-center gap-2"
+                    >
+                        {currentStep === steps.length - 1 ? 'Finish Exploration' : 'Next Step'}
+                        <ArrowUpRight size={16} />
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };
