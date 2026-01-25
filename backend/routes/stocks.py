@@ -3,9 +3,9 @@ from sqlmodel import Session, select
 import yfinance as yf
 import pandas as pd
 import ta
-from backend.database import get_session
-from backend.models import Stock, StockPublic
-from backend.cache import get_cached, set_cache
+from database import get_session
+from models import Stock, StockPublic
+from cache import get_cached, set_cache
 
 router = APIRouter(prefix="/api/stocks", tags=["stocks"])
 

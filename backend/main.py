@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel
-from backend.database import engine
+from database import engine
 
 # Create the database tables
 def create_db_and_tables():
@@ -38,7 +38,7 @@ app.add_middleware(
 def read_root():
     return {"message": "Stock Analysis API is running"}
 
-from backend.routes import stocks, journal
+from routes import stocks, journal
 app.include_router(stocks.router)
 app.include_router(journal.router)
 

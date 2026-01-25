@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlmodel import Session, select
-from backend.database import get_session
-from backend.models import JournalEntry
+from database import get_session
+from models import JournalEntry
 from datetime import datetime
 
 router = APIRouter(prefix="/api/journal", tags=["journal"])
