@@ -13,6 +13,7 @@ export const getAnalysis = (symbol, period = '1y', interval = '1d') =>
 // Journal
 export const saveJournalEntry = (entry) => api.post('/journal/', entry);
 export const getJournalEntries = (symbol, timeframe) => api.get(`/journal/${symbol}?timeframe=${timeframe}`);
+export const updateJournalEntry = (id, note) => api.put(`/journal/${id}`, { note });
 export const deleteJournalEntry = (id) => api.delete(`/journal/${id}`);
 
 export const getTemplates = () => api.get('/templates/');

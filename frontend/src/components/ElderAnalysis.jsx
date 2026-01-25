@@ -7,7 +7,7 @@ import {
     CrosshairMode
 } from 'lightweight-charts';
 import { Zap, Info, Notebook, Camera, Calendar, Trash2, Search } from 'lucide-react';
-import { saveJournalEntry, getJournalEntries, deleteJournalEntry } from '../services/api';
+import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalEntry } from '../services/api';
 import { X } from 'lucide-react';
 
 const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDivergence, timeframeLabel = 'Daily' }) => {
@@ -19,6 +19,8 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
     const [showJournal, setShowJournal] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [editingId, setEditingId] = useState(null);
+    const [editingNote, setEditingNote] = useState('');
     const lastData = data && data.length > 0 ? data[data.length - 1] : null;
     const currentImpulse = lastData?.impulse || 'blue';
     const isWeekly = timeframeLabel === 'Weekly';
@@ -212,6 +214,23 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             console.error("Failed to save journal entry", err);
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const applyElderTemplate = () => {
+        const template = `LOGIC: (Macro Tide, Sector Rank, Chart Regime)\n- \n\nSTRATEGY: (Triple Screen / Divergence / Bounce)\n- \n\nEMOTIONS: (Calm, Greed, Fear, FOMO)\n- \n\nPLAN: (Entry Stop, Target Offset, Hard Stop)\n- `;
+        setNote(template);
+    };
+
+    const handleUpdateJournal = async (id) => {
+        if (!editingNote.trim()) return;
+        try {
+            await updateJournalEntry(id, editingNote.trim());
+            setJournalEntries(journalEntries.map(e => e.id === id ? { ...e, note: editingNote.trim() } : e));
+            setEditingId(null);
+            setEditingNote('');
+        } catch (err) {
+            console.error("Failed to update journal entry", err);
         }
     };
 
@@ -625,7 +644,13 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                             placeholder={`Record your ${timeframeLabel} observations, emotions, or logic here...`}
                             className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition h-32 resize-none"
                         />
-                        <div className="flex justify-end">
+                        <div className="flex justify-between gap-2">
+                            <button
+                                onClick={applyElderTemplate}
+                                className="bg-gray-700 hover:bg-gray-600 text-gray-200 px-4 py-2.5 rounded-xl font-bold text-sm transition-all"
+                            >
+                                Elder Template
+                            </button>
                             <button
                                 onClick={handleSaveJournal}
                                 disabled={isSaving || !note.trim()}
@@ -671,6 +696,16 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                                     </button>
                                                 )}
                                                 <button
+                                                    onClick={() => {
+                                                        setEditingId(entry.id);
+                                                        setEditingNote(entry.note);
+                                                    }}
+                                                    className="text-gray-500 hover:text-blue-400 transition-colors p-1.5"
+                                                    title="Edit Entry"
+                                                >
+                                                    <Search size={14} /> {/* Using Search as edit icon for consistency or find better */}
+                                                </button>
+                                                <button
                                                     onClick={() => handleDeleteJournal(entry.id)}
                                                     className="text-gray-500 hover:text-red-400 transition-colors p-1.5"
                                                     title="Delete Entry"
@@ -680,9 +715,33 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                             </div>
                                         </div>
                                         <div className="p-4 bg-gray-950/20">
-                                            <div className="text-sm text-gray-100 leading-relaxed font-medium">
-                                                {entry.note}
-                                            </div>
+                                            {editingId === entry.id ? (
+                                                <div className="flex flex-col gap-3">
+                                                    <textarea
+                                                        value={editingNote}
+                                                        onChange={(e) => setEditingNote(e.target.value)}
+                                                        className="w-full bg-gray-900 border border-blue-500/50 rounded-xl p-3 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition h-32 resize-none"
+                                                    />
+                                                    <div className="flex justify-end gap-2">
+                                                        <button
+                                                            onClick={() => setEditingId(null)}
+                                                            className="text-xs text-gray-400 hover:text-white font-bold uppercase tracking-widest px-2"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleUpdateJournal(entry.id)}
+                                                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                                        >
+                                                            Save Changes
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="text-sm text-gray-100 leading-relaxed font-medium whitespace-pre-line">
+                                                    {entry.note}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
