@@ -529,12 +529,22 @@ const MarketIntelligence = ({ regimeData }) => {
                         <div className="w-1 h-4 bg-green-500 rounded-full" />
                         <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">02. Phase Identification</h3>
                     </div>
-                    <button
-                        onClick={() => setShowConfluence(true)}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 rounded-lg text-blue-300 text-[10px] font-bold transition-all"
-                    >
-                        <Layers size={14} /> CONFLUENCE LOGIC
-                    </button>
+                    <div className="flex items-center gap-3">
+                        {regimeData?.confluence !== undefined && (
+                            <div className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-widest ${regimeData.confidence === 'High' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
+                                    regimeData.confidence === 'Medium' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' :
+                                        'bg-red-500/10 border-red-500/30 text-red-400'
+                                }`}>
+                                {regimeData.confluence}/3 Score
+                            </div>
+                        )}
+                        <button
+                            onClick={() => setShowConfluence(true)}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 rounded-lg text-blue-300 text-[10px] font-bold transition-all"
+                        >
+                            <Layers size={14} /> CONFLUENCE LOGIC
+                        </button>
+                    </div>
                 </div>
                 <MarketRegime activeRegime={regimeData?.regime} />
             </section>
