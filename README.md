@@ -33,6 +33,26 @@ Automated tracking of the "Why" behind market moves:
 - **Liquidity (^TNX)**: Monitored via 10-Year Treasury Yields.
 - **Strategic Playbook**: Synthesizes these tides into a specific recommendation (e.g., "Goldilocks Zone: Aggressively target High-Beta Tech").
 
+### 3. Alexander Elder Triple Screen System
+A rigorous technical implementation of Dr. Alexander Elder's Triple Screen strategy.
+
+#### A. Screen 1: The Tide (Weekly)
+- **Automatic Top-Down Filtering**: Uses the slope of the **Weekly EMA 13** to dictate trade direction, even when viewing daily charts.
+- **Binary Trend Logic**: Explicitly forbids buying in bear tides or shorting in bull tides.
+
+#### B. Screen 2: The Wave (Daily)
+- **Momentum Precision**: Monitors the **2-Day Force Index** for short-term pullbacks against the dominant weekly tide.
+- **Visual Histogram**: Multi-color Force Index for instant detection of momentum shifts.
+
+#### C. Screen 3: Tactical Execution
+- **Dynamic Action Box**: Processes Tide, Wave, and Impulse signals to generate specific Buy/Short Stop orders.
+- **Risk-Reward Analysis**: Real-time quantification of trade quality (Green for professional-grade setups >= 2:1).
+- **Impulse System**: Integrates EMA 13 and MACD-Histogram slopes to "censor" low-probability trades.
+
+#### D. Professional Trading Journal
+- **Digital Lab Assistant**: Capture full chart snapshots and log observations with a single click.
+- **Searchable History**: Integrated sidebar with full-text search for reviewing past trade logic and emotions.
+
 ---
 
 ## 📈 How to Use the Intelligence Tab
