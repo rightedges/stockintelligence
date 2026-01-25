@@ -15,7 +15,9 @@ import {
     Gauge,
     Link,
     HelpCircle,
-    X
+    X,
+    Play,
+    Navigation
 } from 'lucide-react';
 
 const MarketRegime = ({ activeRegime }) => {
@@ -490,14 +492,16 @@ const ConfluenceGuide = ({ isOpen, onClose, regimeData }) => {
 const MarketIntelligence = ({ regimeData }) => {
     const [showGuide, setShowGuide] = useState(false);
     const [showConfluence, setShowConfluence] = useState(false);
+    const [showTour, setShowTour] = useState(false);
     const [showLogic, setShowLogic] = useState(true);
 
     return (
         <div className="animate-in fade-in duration-500 max-w-7xl mx-auto pb-12">
             <MacroLogicGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
             <ConfluenceGuide isOpen={showConfluence} onClose={() => setShowConfluence(false)} regimeData={regimeData} />
+            <DashboardTour isOpen={showTour} onClose={() => setShowTour(false)} />
 
-            <div className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-gray-800 pb-8">
+            <div id="header" className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-gray-800 pb-8">
                 <div className="flex-1">
                     <h2 className="text-3xl font-black mb-2 text-white italic tracking-tighter">MARKET INTELLIGENCE</h2>
                     <p className="text-gray-400 text-sm max-w-2xl leading-relaxed">
@@ -506,12 +510,17 @@ const MarketIntelligence = ({ regimeData }) => {
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
-                    {/* Logic Guide moved to Section 3 */}
+                    <button
+                        onClick={() => setShowTour(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-900/20"
+                    >
+                        <Play size={14} fill="currentColor" /> START TOUR
+                    </button>
                 </div>
             </div>
 
             {/* SECTION 1: MARKET CONTEXT */}
-            <section className="mb-12">
+            <section id="tour-context" className="mb-12">
                 <div className="flex items-center gap-2 mb-6 px-1">
                     <div className="w-1 h-4 bg-blue-500 rounded-full" />
                     <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">01. Market Context (Macro Tides)</h3>
@@ -523,7 +532,7 @@ const MarketIntelligence = ({ regimeData }) => {
             </section>
 
             {/* SECTION 2: PHASE IDENTIFICATION */}
-            <section className="mb-12">
+            <section id="tour-phase" className="mb-12">
                 <div className="flex items-center justify-between mb-6 px-1">
                     <div className="flex items-center gap-2">
                         <div className="w-1 h-4 bg-green-500 rounded-full" />
@@ -532,8 +541,8 @@ const MarketIntelligence = ({ regimeData }) => {
                     <div className="flex items-center gap-3">
                         {regimeData?.confluence !== undefined && (
                             <div className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-widest ${regimeData.confidence === 'High' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
-                                    regimeData.confidence === 'Medium' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' :
-                                        'bg-red-500/10 border-red-500/30 text-red-400'
+                                regimeData.confidence === 'Medium' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' :
+                                    'bg-red-500/10 border-red-500/30 text-red-400'
                                 }`}>
                                 {regimeData.confluence}/3 Score
                             </div>
@@ -551,7 +560,7 @@ const MarketIntelligence = ({ regimeData }) => {
 
             {/* SECTION 3: STRATEGIC PLAYBOOK */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-                <section>
+                <section id="tour-strategy">
                     <div className="flex items-center justify-between mb-6 px-1">
                         <div className="flex items-center gap-2">
                             <div className="w-1 h-4 bg-purple-500 rounded-full" />
@@ -589,7 +598,7 @@ const MarketIntelligence = ({ regimeData }) => {
                     )}
                 </section>
 
-                <section>
+                <section id="tour-routine">
                     <div className="flex items-center gap-2 mb-6 px-1">
                         <div className="w-1 h-4 bg-yellow-500 rounded-full" />
                         <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">04. Automated Routine</h3>
@@ -599,7 +608,7 @@ const MarketIntelligence = ({ regimeData }) => {
             </div>
 
             {/* SECTION 4: FINAL SYNTHESIS */}
-            <section className="mb-12">
+            <section id="tour-decision" className="mb-12">
                 <div className="flex items-center gap-2 mb-6 px-1">
                     <div className="w-1 h-4 bg-red-500 rounded-full" />
                     <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">05. Final Synthesis & Decision</h3>
