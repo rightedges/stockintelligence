@@ -398,13 +398,104 @@ const MacroLogicGuide = ({ isOpen, onClose }) => {
     );
 };
 
+const ConfluenceGuide = ({ isOpen, onClose, regimeData }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-gray-900 border border-gray-700 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl relative">
+                <button
+                    onClick={onClose}
+                    className="absolute top-6 right-6 p-2 hover:bg-gray-800 rounded-full transition-colors text-gray-400 hover:text-white"
+                >
+                    <X size={24} />
+                </button>
+
+                <div className="p-8 md:p-12">
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-blue-600/20 p-3 rounded-2xl">
+                                <Layers className="text-blue-400" size={28} />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold text-white">Confluence Logic</h2>
+                                <p className="text-gray-400 text-sm italic">Why is the market in a <span className="text-white font-bold">{regimeData?.regime}</span> regime?</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 bg-gray-800/50 p-3 rounded-xl border border-gray-700">
+                            <span className="text-xs font-bold text-gray-500 uppercase">Score</span>
+                            <div className="flex gap-1">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className={`w-3 h-1.5 rounded-full ${i <= (regimeData?.confluence || 0) ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-gray-700'}`} />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div className={`p-6 bg-gray-800/40 rounded-2xl border ${regimeData?.confluence_details?.trend ? 'border-blue-500/30' : 'border-gray-700'} transition-all`}>
+                            <h4 className={`text-sm font-black mb-4 uppercase flex items-center gap-2 ${regimeData?.confluence_details?.trend ? 'text-blue-400' : 'text-gray-500'}`}>
+                                <BarChart3 size={18} />
+                                1. Trend (The Gear)
+                                {regimeData?.confluence_details?.trend && <CheckCircle2 size={16} className="ml-auto" />}
+                            </h4>
+                            <p className="text-sm text-gray-300 leading-relaxed mb-4">
+                                Base identification using <strong className="text-white">EMA 50 & 200</strong>. Tells us if the machine is moving up or down.
+                            </p>
+                            <div className="text-[10px] uppercase font-mono text-gray-500">{regimeData?.confluence_details?.trend ? "Condition Met" : "Condition Failed"}</div>
+                        </div>
+
+                        <div className={`p-6 bg-gray-800/40 rounded-2xl border ${regimeData?.confluence_details?.momentum ? 'border-yellow-500/30' : 'border-gray-700'} transition-all`}>
+                            <h4 className={`text-sm font-black mb-4 uppercase flex items-center gap-2 ${regimeData?.confluence_details?.momentum ? 'text-yellow-400' : 'text-gray-500'}`}>
+                                <Gauge size={18} />
+                                2. Momentum (The Heat)
+                                {regimeData?.confluence_details?.momentum && <CheckCircle2 size={16} className="ml-auto" />}
+                            </h4>
+                            <p className="text-sm text-gray-300 leading-relaxed mb-4">
+                                Uses <strong className="text-white">RSI Relative Strength</strong> to distinguish quiet absorption from nervous retail churn.
+                            </p>
+                            <div className="text-[10px] uppercase font-mono text-gray-500">{regimeData?.confluence_details?.momentum ? "Condition Met" : "Condition Failed"}</div>
+                        </div>
+
+                        <div className={`p-6 bg-gray-800/40 rounded-2xl border ${regimeData?.confluence_details?.flow ? 'border-purple-500/30' : 'border-gray-700'} transition-all`}>
+                            <h4 className={`text-sm font-black mb-4 uppercase flex items-center gap-2 ${regimeData?.confluence_details?.flow ? 'text-purple-400' : 'text-gray-500'}`}>
+                                <Link size={18} />
+                                3. Flow (The Fuel)
+                                {regimeData?.confluence_details?.flow && <CheckCircle2 size={16} className="ml-auto" />}
+                            </h4>
+                            <p className="text-sm text-gray-300 leading-relaxed mb-4">
+                                Verified via <strong className="text-white">Volume SMAs</strong>. High flow confirms institutional commitment to the current phase.
+                            </p>
+                            <div className="text-[10px] uppercase font-mono text-gray-500">{regimeData?.confluence_details?.flow ? "Condition Met" : "Condition Failed"}</div>
+                        </div>
+                    </div>
+
+                    <div className="mt-12 p-6 bg-gray-800/50 border border-gray-700 rounded-2xl">
+                        <div className="flex items-start gap-4">
+                            <Info className="text-blue-400 flex-shrink-0 mt-1" />
+                            <div>
+                                <h4 className="text-sm font-bold text-white mb-1">Why Confluence Matters</h4>
+                                <p className="text-xs text-gray-400 leading-relaxed">
+                                    A high reliability score (3/3) indicates that Price, Volume, and Momentum are all telling the same story. This significantly increases the probability of the trend continuing. Low scores (1/3) suggest the move may be a false breakout or a trap.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const MarketIntelligence = ({ regimeData }) => {
     const [showGuide, setShowGuide] = useState(false);
+    const [showConfluence, setShowConfluence] = useState(false);
     const [showLogic, setShowLogic] = useState(true);
 
     return (
         <div className="animate-in fade-in duration-500 max-w-7xl mx-auto pb-12">
             <MacroLogicGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
+            <ConfluenceGuide isOpen={showConfluence} onClose={() => setShowConfluence(false)} regimeData={regimeData} />
 
             <div className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-gray-800 pb-8">
                 <div className="flex-1">
@@ -438,61 +529,14 @@ const MarketIntelligence = ({ regimeData }) => {
                         <div className="w-1 h-4 bg-green-500 rounded-full" />
                         <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">02. Phase Identification</h3>
                     </div>
+                    <button
+                        onClick={() => setShowConfluence(true)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 rounded-lg text-blue-300 text-[10px] font-bold transition-all"
+                    >
+                        <Layers size={14} /> CONFLUENCE LOGIC
+                    </button>
                 </div>
                 <MarketRegime activeRegime={regimeData?.regime} />
-
-                {/* Dynamic Confluence Explainer */}
-                <div className="mt-8 bg-gray-800/40 border border-gray-700/50 rounded-2xl overflow-hidden shadow-2xl">
-                    <div className="p-4 bg-gray-900/40 border-b border-gray-700/50 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Layers size={18} className="text-blue-400" />
-                            <span className="font-bold text-gray-200 uppercase tracking-widest text-xs font-mono">Confluence Logic: Why {regimeData?.regime}?</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-bold text-gray-500 uppercase">Reliability Score:</span>
-                            <div className="flex gap-1">
-                                {[1, 2, 3].map(i => (
-                                    <div key={i} className={`w-3 h-1.5 rounded-full ${i <= (regimeData?.confluence || 0) ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-gray-700'}`} />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="p-8">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-                            <div className={`transition-opacity duration-500 ${regimeData?.confluence_details?.trend ? 'opacity-100' : 'opacity-40'}`}>
-                                <h4 className={`text-xs font-black mb-3 uppercase flex items-center gap-2 ${regimeData?.confluence_details?.trend ? 'text-blue-400' : 'text-gray-500'}`}>
-                                    <BarChart3 size={16} />
-                                    1. Trend (The Gear)
-                                    {regimeData?.confluence_details?.trend && <CheckCircle2 size={14} className="ml-auto" />}
-                                </h4>
-                                <p className="text-sm text-gray-400 leading-relaxed">
-                                    Base identification using <strong className="text-gray-200">EMA 50 & 200</strong>. Tells us if the machine is moving up or down.
-                                </p>
-                            </div>
-                            <div className={`transition-opacity duration-500 ${regimeData?.confluence_details?.momentum ? 'opacity-100' : 'opacity-40'}`}>
-                                <h4 className={`text-xs font-black mb-3 uppercase flex items-center gap-2 ${regimeData?.confluence_details?.momentum ? 'text-yellow-400' : 'text-gray-500'}`}>
-                                    <Gauge size={16} />
-                                    2. Momentum (The Heat)
-                                    {regimeData?.confluence_details?.momentum && <CheckCircle2 size={14} className="ml-auto" />}
-                                </h4>
-                                <p className="text-sm text-gray-400 leading-relaxed">
-                                    Uses <strong className="text-gray-200">RSI Relative Strength</strong> to distinguish quiet absorption from nervous retail churn.
-                                </p>
-                            </div>
-                            <div className={`transition-opacity duration-500 ${regimeData?.confluence_details?.flow ? 'opacity-100' : 'opacity-40'}`}>
-                                <h4 className={`text-xs font-black mb-3 uppercase flex items-center gap-2 ${regimeData?.confluence_details?.flow ? 'text-purple-400' : 'text-gray-500'}`}>
-                                    <Link size={16} />
-                                    3. Flow (The Fuel)
-                                    {regimeData?.confluence_details?.flow && <CheckCircle2 size={14} className="ml-auto" />}
-                                </h4>
-                                <p className="text-sm text-gray-400 leading-relaxed">
-                                    Verified via <strong className="text-gray-200">Volume SMAs</strong>. High flow confirms institutional commitment to the current phase.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </section>
 
             {/* SECTION 3: STRATEGIC PLAYBOOK */}
