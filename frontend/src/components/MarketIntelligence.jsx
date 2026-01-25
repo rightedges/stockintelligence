@@ -415,12 +415,7 @@ const MarketIntelligence = ({ regimeData }) => {
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => setShowGuide(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/30 rounded-xl text-purple-300 text-xs font-bold transition-all"
-                    >
-                        <Zap size={16} /> LOGIC GUIDE
-                    </button>
+                    {/* Logic Guide moved to Section 3 */}
                 </div>
             </div>
 
@@ -503,9 +498,17 @@ const MarketIntelligence = ({ regimeData }) => {
             {/* SECTION 3: STRATEGIC PLAYBOOK */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
                 <section>
-                    <div className="flex items-center gap-2 mb-6 px-1">
-                        <div className="w-1 h-4 bg-purple-500 rounded-full" />
-                        <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">03. Macro Strategy</h3>
+                    <div className="flex items-center justify-between mb-6 px-1">
+                        <div className="flex items-center gap-2">
+                            <div className="w-1 h-4 bg-purple-500 rounded-full" />
+                            <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">03. Macro Strategy</h3>
+                        </div>
+                        <button
+                            onClick={() => setShowGuide(true)}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/30 rounded-lg text-purple-300 text-[10px] font-bold transition-all"
+                        >
+                            <Zap size={14} /> LOGIC GUIDE
+                        </button>
                     </div>
 
                     {regimeData?.suggestion && (
