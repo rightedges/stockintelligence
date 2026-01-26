@@ -238,16 +238,51 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                 if is_support:
                     levels.append({"price": float(df['Low'].iloc[i]), "type": "support", "date": df.index[i]})
             
+            
+            # --- Explicitly Add Recent Range (Last 30 Days) ---
+            # Fractals might miss the most recent high/low because of the window lag.
+            if len(df) > 2:
+                recent_df = df.iloc[-30:] # Look at last 30 bars
+                
+                # Recent Resistance
+                max_idx = recent_df['High'].idxmax()
+                recent_high = float(recent_df['High'].loc[max_idx])
+                
+                # Check if this high is close to an existing fractal level
+                is_duplicate = False
+                for l in levels:
+                    if l['type'] == 'resistance' and abs(l['price'] - recent_high) / recent_high < 0.01:
+                        is_duplicate = True
+                        break
+                
+                if not is_duplicate:
+                    levels.append({"price": recent_high, "type": "resistance", "date": max_idx})
+                
+                # Recent Support
+                min_idx = recent_df['Low'].idxmin()
+                recent_low = float(recent_df['Low'].loc[min_idx])
+                
+                is_duplicate = False
+                for l in levels:
+                    if l['type'] == 'support' and abs(l['price'] - recent_low) / recent_low < 0.01:
+                        is_duplicate = True
+                        break
+                
+                if not is_duplicate:
+                    levels.append({"price": recent_low, "type": "support", "date": min_idx})
+
             # Keep only the most recent and significant ones
-            # For simplicity, let's take the 2 most recent resistance and 2 most recent support
+            # Increased limit to 3 to assume better coverage
             res_levels = [l for l in levels if l['type'] == 'resistance']
             sup_levels = [l for l in levels if l['type'] == 'support']
             
             final_levels = []
             if res_levels:
-                final_levels.extend(sorted(res_levels, key=lambda x: x['date'], reverse=True)[:2])
+                final_levels.extend(sorted(res_levels, key=lambda x: x['date'], reverse=True)[:3])
             if sup_levels:
-                final_levels.extend(sorted(sup_levels, key=lambda x: x['date'], reverse=True)[:2])
+                final_levels.extend(sorted(sup_levels, key=lambda x: x['date'], reverse=True)[:3])
+            
+            return final_levels
             
             return final_levels
 
