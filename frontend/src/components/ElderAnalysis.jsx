@@ -6,7 +6,7 @@ import {
     HistogramSeries,
     CrosshairMode
 } from 'lightweight-charts';
-import { Zap, Info, Notebook, Camera, Calendar, Trash2, Search, AlertTriangle } from 'lucide-react';
+import { Zap, Info, Notebook, Camera, Calendar, Trash2, Search, AlertTriangle, Edit } from 'lucide-react';
 import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalEntry } from '../services/api';
 import { X } from 'lucide-react';
 
@@ -641,7 +641,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                                     className="text-gray-500 hover:text-blue-400 transition-colors p-1.5"
                                                     title="Edit Entry"
                                                 >
-                                                    <Search size={14} /> {/* Using Search as edit icon for consistency or find better */}
+                                                    <Edit size={14} />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteJournal(entry.id)}
