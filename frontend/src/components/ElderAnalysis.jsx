@@ -6,7 +6,7 @@ import {
     HistogramSeries,
     CrosshairMode
 } from 'lightweight-charts';
-import { Zap, Info, Notebook, Camera, Calendar, Trash2, Search } from 'lucide-react';
+import { Zap, Info, Notebook, Camera, Calendar, Trash2, Search, AlertTriangle } from 'lucide-react';
 import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalEntry } from '../services/api';
 import { X } from 'lucide-react';
 
@@ -416,6 +416,28 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                     </h3>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
+                        {/* MACD DIVERGENCE ALERT (Restored) */}
+                        {macdDivergence && (
+                            <div className={`col-span-1 lg:col-span-3 p-4 rounded-xl border-l-4 flex items-start gap-4 animate-in fade-in slide-in-from-top-2 duration-500 ${macdDivergence.type === 'bearish'
+                                ? 'bg-red-500/10 border-red-500'
+                                : 'bg-green-500/10 border-green-500'
+                                }`}>
+                                <div className={`p-2 rounded-full ${macdDivergence.type === 'bearish' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                                    <AlertTriangle size={24} />
+                                </div>
+                                <div>
+                                    <h4 className={`font-black uppercase tracking-widest text-sm mb-1 ${macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'}`}>
+                                        CRITICAL {macdDivergence.type} DIVERGENCE DETECTED
+                                    </h4>
+                                    <p className="text-gray-300 text-sm leading-relaxed">
+                                        {macdDivergence.type === 'bearish'
+                                            ? "Price is making a higher high while momentum (MACD) is weakening. A sharp reversal may be imminent. Tighten stops immediately."
+                                            : "Price is making a lower low while momentum (MACD) is strengthening. A bottom may be forming. Watch for entry triggers."}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         {/* COL 1: TIDE */}
                         <div className={`p-5 rounded-2xl border transition-all duration-300 ${tacticalAdvice?.type === 'LONG' ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
                             <div className="text-[10px] text-gray-500 uppercase font-black mb-3 tracking-widest flex items-center justify-between">
