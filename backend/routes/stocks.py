@@ -88,12 +88,18 @@ def add_stock(stock: Stock, session: Session = Depends(get_session)):
     # Verify symbol with yfinance (Use cache for info)
     info = get_cached(f"info_{stock.symbol}", ttl=86400) # Info can last 24h
     if not info:
-        ticker = yf.Ticker(stock.symbol)
-        info = ticker.info
-        set_cache(f"info_{stock.symbol}", info, use_pkl=False)
+        try:
+            ticker = yf.Ticker(stock.symbol)
+            info = ticker.info
+            set_cache(f"info_{stock.symbol}", info, use_pkl=False)
+        except Exception as e:
+            print(f"Error fetching info for {stock.symbol}: {e}")
+            info = {}
 
     if 'symbol' not in info and not info.get('regularMarketPrice'):
          # info check can be unreliable, but let's try to be smart
+         # If yfinance failed completely, we still allow adding the stock
+         # but maybe warn or just rely on manual entry/updates later
          pass 
 
     # Populate name if missing
