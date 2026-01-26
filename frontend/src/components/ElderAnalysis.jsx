@@ -408,22 +408,6 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             {/* Main Content Area (Left) */}
             <div className="flex-1 flex flex-col gap-6 w-full min-w-0">
 
-                <div className="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-2xl overflow-hidden relative">
-                    <div ref={chartContainerRef} className="w-full h-[900px] relative">
-                        {/* Pane Labels */}
-                        {!isWeekly && (
-                            <>
-                                <div className="absolute left-[65px] top-[58%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">MACD</div>
-                                <div className="absolute left-[65px] top-[74%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">Force (13)</div>
-                                <div className="absolute left-[65px] top-[88%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">Force (2)</div>
-                            </>
-                        )}
-                        {isWeekly && (
-                            <div className="absolute left-[65px] top-[75%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">MACD</div>
-                        )}
-                    </div>
-                </div>
-
                 <div className="bg-blue-600/10 border border-blue-500/30 p-8 rounded-3xl shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl -mr-20 -mt-20" />
                     <h3 className="font-black flex items-center gap-2 mb-6 text-white text-xl italic tracking-tighter">
@@ -521,6 +505,22 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                 </div>
                             )}
                         </div>
+                    </div>
+                </div>
+
+                <div className="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-2xl overflow-hidden relative">
+                    <div ref={chartContainerRef} className="w-full h-[900px] relative">
+                        {/* Pane Labels */}
+                        {!isWeekly && (
+                            <>
+                                <div className="absolute left-[65px] top-[58%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">MACD</div>
+                                <div className="absolute left-[65px] top-[74%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">Force (13)</div>
+                                <div className="absolute left-[65px] top-[88%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">Force (2)</div>
+                            </>
+                        )}
+                        {isWeekly && (
+                            <div className="absolute left-[65px] top-[75%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">MACD</div>
+                        )}
                     </div>
                 </div>
             </div>
