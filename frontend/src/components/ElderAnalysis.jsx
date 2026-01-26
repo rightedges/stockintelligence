@@ -16,7 +16,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
     const [journalEntries, setJournalEntries] = useState([]);
     const [note, setNote] = useState('');
     const [isSaving, setIsSaving] = useState(false);
-    const [showJournal, setShowJournal] = useState(false);
+    const [showJournal, setShowJournal] = useState(true);
     const [selectedImage, setSelectedImage] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [editingId, setEditingId] = useState(null);
