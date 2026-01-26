@@ -89,3 +89,81 @@ Access the dashboard at: `http://localhost:5173` (or `http://YOUR_LAN_IP:5173`)
 **"Unable to add stock"**
 *   Ensure your backend is running with `--host 0.0.0.0`.
 *   If running remotely (e.g., Proxmox), ensure the server has the latest code (`git pull`) and the database has been migrated.
+
+---
+
+## 🖥️ Proxmox / Linux Deployment (Ubuntu LXC)
+
+If you are running this suite on a headless server (e.g., Proxmox LXC container), follow these steps to ensure persistence and auto-start.
+
+### 1. Initial Setup
+```bash
+cd /opt
+git clone https://github.com/rightedges/stockintelligence.git stock-suite
+cd stock-suite
+
+# Backend
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Frontend
+cd ../frontend
+npm install
+# Note: In production, you might build static files, but for a personal tool, 'npm run dev' is fine
+```
+
+### 2. Auto-Start Daemon Scripts (Systemd)
+
+Create the following service files to ensure the app starts on boot.
+
+#### Backend Service (`/etc/systemd/system/stock-backend.service`)
+```ini
+[Unit]
+Description=Stock Suite Backend
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/opt/stock-suite/backend
+ExecStart=/opt/stock-suite/backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+#### Frontend Service (`/etc/systemd/system/stock-frontend.service`)
+```ini
+[Unit]
+Description=Stock Suite Frontend
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/opt/stock-suite/frontend
+ExecStart=/usr/bin/npm run dev -- --host 0.0.0.0
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### 3. Enable Services
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable stock-backend stock-frontend
+sudo systemctl start stock-backend stock-frontend
+```
+
+### 4. Updates
+Create a simple script `update.sh` in `/opt/stock-suite`:
+```bash
+#!/bin/bash
+git pull origin master
+sudo systemctl restart stock-backend
+# Frontend usually hot-reloads, but you can restart if needed:
+# sudo systemctl restart stock-frontend
+```
+chmod +x update.sh
