@@ -407,140 +407,6 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         <div className="flex flex-col lg:flex-row gap-6 items-start">
             {/* Main Content Area (Left) */}
             <div className="flex-1 flex flex-col gap-6 w-full min-w-0">
-                {/* Tactical Advice Card */}
-                {tacticalAdvice && (
-                    <div className={`p-6 rounded-2xl border-2 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 transition-all animate-in fade-in slide-in-from-top-4 duration-500 ${tacticalAdvice.style === 'success' ? 'bg-green-900/20 border-green-500/50' :
-                        tacticalAdvice.style === 'danger' ? 'bg-red-900/20 border-red-500/50' :
-                            'bg-amber-900/10 border-amber-500/30'
-                        }`}>
-                        <div className="flex items-center gap-4">
-                            <div className={`p-4 rounded-full ${tacticalAdvice.style === 'success' ? 'bg-green-500' :
-                                tacticalAdvice.style === 'danger' ? 'bg-red-500' :
-                                    'bg-amber-500'
-                                }`}>
-                                <Zap size={32} className="text-white fill-current" />
-                            </div>
-                            <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-black tracking-tighter shadow-sm ${tacticalAdvice.type === 'LONG' ? 'bg-blue-500 text-white' : 'bg-red-500 text-white'
-                                        }`}>
-                                        {tacticalAdvice.type} TRADE
-                                    </span>
-                                    <div className="text-[10px] uppercase font-bold tracking-widest text-gray-400">Tactical Decision ({timeframeLabel})</div>
-                                </div>
-                                <h2 className="text-3xl font-black italic tracking-tighter">
-                                    {timeframeLabel === 'Weekly' ? (tacticalAdvice.type === 'LONG' ? 'BULL TIDE (LONG ONLY)' : 'BEAR TIDE (SHORT/CASH)') : tacticalAdvice.recommendation}
-                                </h2>
-                                <p className="text-sm text-gray-300 mt-1 max-w-md whitespace-pre-line">
-                                    {(() => {
-                                        const isLong = tacticalAdvice.type === 'LONG';
-                                        const tideStatus = isLong ? 'rising' : 'falling';
-                                        const tideName = isLong ? 'Bull Tide' : 'Bear Tide';
-                                        const tideSource = timeframeLabel === 'Daily' ? 'Weekly' : timeframeLabel;
-                                        const tideText = `The ${tideSource} EMA 13 is currently ${tideStatus} (${tideName}). `;
-
-                                        const impulseName = currentImpulse === 'green' ? 'Green' : currentImpulse === 'red' ? 'Red' : 'Blue (Neutral)';
-                                        const impulseText = `The Impulse System is ${impulseName}. `;
-
-                                        const primaryAction = isLong ? (timeframeLabel === 'Weekly' ? 'buying' : 'long trades') : (timeframeLabel === 'Weekly' ? 'shorting' : 'short trades');
-
-                                        let actionText = "";
-                                        if (isLong) {
-                                            if (currentImpulse === 'red') {
-                                                actionText = `${primaryAction} are forbidden.`;
-                                            } else {
-                                                actionText = `only ${primaryAction} are allowed.`;
-                                            }
-                                        } else {
-                                            if (currentImpulse === 'green') {
-                                                actionText = `${primaryAction} are forbidden.`;
-                                            } else {
-                                                actionText = `only ${primaryAction} are allowed.`;
-                                            }
-                                        }
-
-                                        let analysisText = "";
-                                        if (timeframeLabel !== 'Weekly' && data && data.length > 0) {
-                                            const lastData = data[data.length - 1];
-                                            const prevData = data.length > 1 ? data[data.length - 2] : null;
-                                            const force2 = lastData.force_index_2;
-                                            const macdDiff = lastData.macd_diff;
-                                            const prevMacdDiff = prevData ? prevData.macd_diff : null;
-                                            const close = lastData.Close;
-                                            const upper = lastData.envelope_upper;
-                                            const lower = lastData.envelope_lower;
-
-                                            const forceStatus = force2 > 0 ? "Bulls dominate the short-term" : "Bears dominate the short-term";
-                                            const forceAdvice = isLong && force2 < 0 ? "pullback offers a value entry" : !isLong && force2 > 0 ? "rally offers a shorting entry" : "momentum is aligned with trend";
-
-                                            const isMacdRising = prevMacdDiff !== null ? macdDiff > prevMacdDiff : macdDiff > 0;
-                                            const macdStatus = isMacdRising ? "Rising MACD Histogram indicates increasing momentum" : "Falling MACD Histogram indicates weakening momentum";
-
-                                            let envelopeStatus = "";
-                                            if (close >= upper) envelopeStatus = " Price has hit the Upper Envelope (Overbought zone).";
-                                            else if (close <= lower) envelopeStatus = " Price has hit the Lower Envelope (Oversold zone).";
-
-                                            let recommendation = "";
-                                            if (isLong) {
-                                                if (currentImpulse === 'red') recommendation = "Stand aside. Long trades are CENSORED by the Impulse system.";
-                                                else if (force2 < 0) recommendation = "Value Entry: Place a BUY STOP above today's high to catch the bull trend resumption.";
-                                                else recommendation = "Wait for a short-term pullback to the EMA 13 'value zone' to find a high-probability entry.";
-                                            } else {
-                                                if (currentImpulse === 'green') recommendation = "Stand aside. Short trades are CENSORED by the Impulse system.";
-                                                else if (force2 > 0) recommendation = "Value Entry: Place a SELL STOP below today's low to catch the bear trend resumption.";
-                                                else recommendation = "Wait for a short-term rally back to the EMA 13 'value zone' before seeking new shorts.";
-                                            }
-
-                                            const envelopeWarning = (isLong && close >= upper) ? "\nWARNING: Price is at the 95% channel boundary; avoid new entries and consider partial profit-taking." : "";
-
-                                            let divergenceWarning = "";
-                                            if (macdDivergence) {
-                                                if (macdDivergence.type === 'bearish') {
-                                                    divergenceWarning = "\n\nCRITICAL WARNING: Bearish MACD Divergence detected! Price is making a higher high while momentum is weakening. A sharp reversal may be imminent.";
-                                                } else if (macdDivergence.type === 'bullish') {
-                                                    divergenceWarning = "\n\nCRITICAL SIGNAL: Bullish MACD Divergence detected! Price is making a lower low while momentum is strengthening. A bottom may be forming.";
-                                                }
-                                            }
-
-                                            analysisText = `\n\nIndicator Analysis: ${forceStatus} (${forceAdvice}). ${macdStatus}.${envelopeStatus}\nAction Recommendation: ${recommendation}${envelopeWarning}${divergenceWarning}`;
-                                        }
-
-                                        return `${tideText}${impulseText}Hence, ${actionText}${analysisText}`;
-                                    })()}
-                                </p>
-                            </div>
-                        </div>
-
-                        {timeframeLabel !== 'Weekly' && (
-                            <div className="flex flex-wrap gap-4 w-full md:w-auto">
-                                <div className="bg-black/40 p-4 rounded-xl border border-white/5 min-w-[120px] flex-1">
-                                    <div className="text-[9px] uppercase font-bold text-gray-500 mb-1">
-                                        {tacticalAdvice.type === 'LONG' ? 'Long' : 'Short'} {tacticalAdvice.recommendation.includes('BUY') || tacticalAdvice.recommendation.includes('SELL') ? 'Trigger' : 'Value Entry'}
-                                    </div>
-                                    <div className="text-xl font-bold text-blue-400 font-mono">${tacticalAdvice.entry || 'N/A'}</div>
-                                </div>
-                                <div className="bg-black/40 p-4 rounded-xl border border-white/5 min-w-[120px] flex-1">
-                                    <div className="text-[9px] uppercase font-bold text-gray-500 mb-1">{tacticalAdvice.type === 'LONG' ? 'Profit' : 'Cover'} Target</div>
-                                    <div className="text-xl font-bold text-green-400 font-mono">${tacticalAdvice.target || 'N/A'}</div>
-                                </div>
-                                <div className="bg-black/40 p-4 rounded-xl border border-white/5 min-w-[120px] flex-1">
-                                    <div className="text-[9px] uppercase font-bold text-gray-500 mb-1">{tacticalAdvice.type === 'LONG' ? 'Hard' : 'Short'} Stop</div>
-                                    <div className="text-xl font-bold text-red-400 font-mono">${tacticalAdvice.stop || 'N/A'}</div>
-                                </div>
-                                {tacticalAdvice.entry && tacticalAdvice.target && tacticalAdvice.stop && (
-                                    <div className="bg-black/40 p-4 rounded-xl border border-white/5 min-w-[120px] flex-1">
-                                        <div className="text-[9px] uppercase font-bold text-gray-500 mb-1">R/R Ratio</div>
-                                        <div className={`text-xl font-black font-mono italic ${(Math.abs(tacticalAdvice.target - tacticalAdvice.entry) / Math.abs(tacticalAdvice.entry - tacticalAdvice.stop)) >= 2 ? 'text-green-400' :
-                                            (Math.abs(tacticalAdvice.target - tacticalAdvice.entry) / Math.abs(tacticalAdvice.entry - tacticalAdvice.stop)) >= 1 ? 'text-amber-400' : 'text-red-400'
-                                            }`}>
-                                            {(Math.abs(tacticalAdvice.target - tacticalAdvice.entry) / Math.abs(tacticalAdvice.entry - tacticalAdvice.stop)).toFixed(2)}:1
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                )}
 
                 <div className="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-2xl overflow-hidden relative">
                     <div ref={chartContainerRef} className="w-full h-[900px] relative">
@@ -565,7 +431,8 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         TRIPLE SCREEN STRATEGY
                     </h3>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
+                        {/* COL 1: TIDE */}
                         <div className={`p-5 rounded-2xl border transition-all duration-300 ${tacticalAdvice?.type === 'LONG' ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
                             <div className="text-[10px] text-gray-500 uppercase font-black mb-3 tracking-widest flex items-center justify-between">
                                 SCREEN 1: THE TIDE (WEEKLY EMA 13)
@@ -573,43 +440,86 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                     {tacticalAdvice?.type === 'LONG' ? 'RISING' : 'FALLING'}
                                 </span>
                             </div>
-                            <p className="text-sm text-gray-200 leading-relaxed font-medium">
+                            <p className="text-sm text-gray-200 leading-relaxed font-medium mb-4">
                                 {tacticalAdvice?.type === 'LONG'
                                     ? "The Tide is rising. Only long positions are permitted. Look for value entries."
                                     : "The Tide is falling. Only short positions or cash are permitted."}
                             </p>
+                            <div className="p-3 bg-black/40 rounded-xl border border-white/5">
+                                <div className="text-[9px] text-gray-500 uppercase font-bold mb-1">Logic Binding</div>
+                                {tacticalAdvice?.type === 'LONG'
+                                    ? <span className="text-xs text-green-400 font-mono">Allowed: LONG / CASH</span>
+                                    : <span className="text-xs text-red-400 font-mono">Allowed: SHORT / CASH</span>
+                                }
+                            </div>
                         </div>
 
+                        {/* COL 2: WAVE */}
                         <div className={`p-5 rounded-2xl border transition-all duration-300 ${lastData?.force_index_2 < 0 ? 'bg-blue-500/10 border-blue-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
                             <div className="text-[10px] text-gray-500 uppercase font-black mb-3 tracking-widest flex items-center justify-between">
-                                SCREEN 2: THE WAVE (F2)
+                                SCREEN 2: THE WAVE (Daily F2)
                                 <span className={`px-2 py-0.5 rounded text-[8px] ${lastData?.force_index_2 < 0 ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white'}`}>
                                     {lastData?.force_index_2 < 0 ? 'NEGATIVE' : 'POSITIVE'}
                                 </span>
                             </div>
-                            <p className="text-sm text-gray-200 leading-relaxed font-medium">
+                            <p className="text-sm text-gray-200 leading-relaxed font-medium mb-4">
                                 {lastData?.force_index_2 < 0
                                     ? "A short-term pullback is in progress. Bulls should look for a buy stop entry."
                                     : "State of short-term strength. Bears should look for a sell stop entry if trend is down."}
                             </p>
-                        </div>
-                    </div>
-
-                    <div className="mt-8 p-6 bg-gray-950/60 rounded-2xl border border-blue-500/20 backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-6">
-                        <div className="flex-1">
-                            <div className="text-[10px] text-blue-400 uppercase font-black mb-1 tracking-widest italic">Tactical Synthesis</div>
-                            <p className="text-lg font-black text-white italic tracking-tight">
-                                {tacticalAdvice?.type === 'LONG'
-                                    ? (lastData?.force_index_2 < 0 ? "BUY SIGNAL: Market pullback offering a high-probability value entry." : "HOLD: Tide is bullish but wait for a short-term pullback (F2 < 0).")
-                                    : (lastData?.force_index_2 > 0 ? "SHORT SIGNAL: Market rally offering a high-probability shorting entry." : "HOLD: Tide is bearish but wait for a short-term rally (F2 > 0).")}
-                            </p>
-                        </div>
-                        <div className="w-full md:w-px h-px md:h-12 bg-gray-800" />
-                        <div className="flex-shrink-0 text-center md:text-right">
-                            <div className="text-[10px] text-gray-500 uppercase font-black mb-1 tracking-widest">Recommended Action</div>
-                            <div className={`text-2xl font-black italic tracking-tighter ${tacticalAdvice?.style === 'success' ? 'text-green-400' : 'text-red-400'}`}>
-                                {tacticalAdvice?.recommendation}
+                            <div className="p-3 bg-black/40 rounded-xl border border-white/5">
+                                <div className="text-[9px] text-gray-500 uppercase font-bold mb-1">State Analysis</div>
+                                <span className="text-xs text-blue-300 font-mono">
+                                    {lastData?.force_index_2 < 0 ? "Oversold (Value Zone)" : "Overbought (Premium Zone)"}
+                                </span>
                             </div>
+                        </div>
+
+                        {/* COL 3: TACTICAL SYNTHESIS */}
+                        <div className={`p-5 rounded-2xl border transition-all duration-300 ${tacticalAdvice?.style === 'success' ? 'bg-green-900/20 border-green-500/50' :
+                            tacticalAdvice?.style === 'danger' ? 'bg-red-900/20 border-red-500/50' :
+                                'bg-amber-900/20 border-amber-500/50'
+                            }`}>
+                            <div className="text-[10px] text-gray-500 uppercase font-black mb-3 tracking-widest flex items-center justify-between">
+                                SCREEN 3: EXECUTION
+                                <span className={`px-2 py-0.5 rounded text-[8px] font-black ${tacticalAdvice?.style === 'success' ? 'bg-green-500 text-white' :
+                                    tacticalAdvice?.style === 'danger' ? 'bg-red-500 text-white' : 'bg-amber-500 text-black'}`}>
+                                    {tacticalAdvice?.recommendation}
+                                </span>
+                            </div>
+
+                            {/* Main Decision */}
+                            <div className="mb-6">
+                                <p className="text-sm text-gray-200 leading-relaxed font-bold">
+                                    "{tacticalAdvice?.reason}"
+                                </p>
+                            </div>
+
+                            {/* Execution Grid */}
+                            {timeframeLabel !== 'Weekly' && tacticalAdvice && (
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="p-2 bg-black/40 rounded border border-white/5">
+                                        <div className="text-[8px] text-gray-500 uppercase font-bold">Entry Trigger</div>
+                                        <div className="text-sm font-mono font-bold text-blue-400">${tacticalAdvice.entry || 'N/A'}</div>
+                                    </div>
+                                    <div className="p-2 bg-black/40 rounded border border-white/5">
+                                        <div className="text-[8px] text-gray-500 uppercase font-bold">Stop Loss</div>
+                                        <div className="text-sm font-mono font-bold text-red-400">${tacticalAdvice.stop || 'N/A'}</div>
+                                    </div>
+                                    <div className="p-2 bg-black/40 rounded border border-white/5">
+                                        <div className="text-[8px] text-gray-500 uppercase font-bold">Profit Target</div>
+                                        <div className="text-sm font-mono font-bold text-green-400">${tacticalAdvice.target || 'N/A'}</div>
+                                    </div>
+                                    <div className="p-2 bg-black/40 rounded border border-white/5">
+                                        <div className="text-[8px] text-gray-500 uppercase font-bold">Risk/Reward</div>
+                                        <div className={`text-sm font-mono font-bold italic ${(Math.abs(tacticalAdvice.target - tacticalAdvice.entry) / Math.abs(tacticalAdvice.entry - tacticalAdvice.stop)) >= 2 ? 'text-green-400' : 'text-amber-400'}`}>
+                                            {tacticalAdvice.entry && tacticalAdvice.stop && tacticalAdvice.target
+                                                ? `${(Math.abs(tacticalAdvice.target - tacticalAdvice.entry) / Math.abs(tacticalAdvice.entry - tacticalAdvice.stop)).toFixed(2)}:1`
+                                                : 'N/A'}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
