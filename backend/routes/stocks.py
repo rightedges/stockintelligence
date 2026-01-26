@@ -475,21 +475,6 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                     "Real Estate": "XLRE",
                     "Communication Services": "XLC"
                 }
-
-                # Top ~10 Constituents per Sector (Approximation for Leaderboard)
-                sector_constituents = {
-                    "Technology": ["AAPL", "MSFT", "NVDA", "AVGO", "ORCL", "ADBE", "CRM", "AMD", "QCOM", "IBM"],
-                    "Energy": ["XOM", "CVX", "COP", "EOG", "SLB", "MPC", "PSX", "VLO", "WMB", "OKE"],
-                    "Financial Services": ["JPM", "V", "MA", "BAC", "WFC", "MS", "GS", "BLK", "C", "AXP"],
-                    "Healthcare": ["LLY", "UNH", "JNJ", "ABBV", "MRK", "TMO", "AMGN", "ISRG", "PFE", "ABT"],
-                    "Consumer Defensive": ["PG", "COST", "WMT", "KO", "PEP", "PM", "MO", "CL", "TGT", "K"],
-                    "Consumer Cyclical": ["AMZN", "TSLA", "HD", "MCD", "BKNG", "TJX", "SBUX", "NKE", "LOW", "LULU"],
-                    "Industrials": ["GE", "CAT", "UNP", "HON", "AMET", "LMT", "DE", "UPS", "BA", "RTX"],
-                    "Basic Materials": ["LIN", "SHW", "FCX", "APD", "ECL", "CTVA", "NEM", "DOW", "DD", "PPG"],
-                    "Utilities": ["NEE", "SO", "DUK", "SRE", "AEP", "PEG", "D", "EXC", "XEL", "ED"],
-                    "Real Estate": ["PLD", "AMT", "EQIX", "PSA", "O", "CCI", "DLR", "SPG", "VICI", "WELL"],
-                    "Communication Services": ["GOOGL", "META", "NFLX", "DIS", "TMUS", "CMCSA", "VZ", "T", "CHTR", "WBD"]
-                }
                 
                 sector_etfs = list(sectors.values())
                 cache_key_sectors = "sector_leadership_1mo"
@@ -506,44 +491,9 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                     for s_name, ticker in sectors.items():
                         if ticker in s_close.columns and len(s_close[ticker]) > 20:
                             ret = (s_close[ticker].iloc[-1] / s_close[ticker].iloc[-21]) - 1
-                            # Fetch leaders for this sector
-                            leaders = []
-                            try:
-                                tickers = sector_constituents.get(s_name, [])
-                                if tickers:
-                                    # Check cache for constituent data
-                                    cache_key_const = f"constituents_{s_name}_1mo"
-                                    c_data = get_cached(cache_key_const, ttl=14400)
-                                    if c_data is None:
-                                        c_data = yf.download(tickers, period="2mo", interval="1d", progress=False)
-                                        set_cache(cache_key_const, c_data)
-                                    
-                                    if not c_data.empty:
-                                        c_close = c_data['Close']
-                                        candidates = []
-                                        for t in tickers:
-                                            # Handle single vs multi-column if only 1 ticker returned (rare but possible)
-                                            series = c_close[t] if isinstance(c_close, pd.DataFrame) and t in c_close.columns else (c_close if isinstance(c_close, pd.Series) and c_close.name == t else None)
-                                            
-                                            if series is not None and len(series) > 20:
-                                                c_ret = (series.iloc[-1] / series.iloc[-21]) - 1
-                                                candidates.append({"symbol": t, "change": float(c_ret)})
-                                        
-                                        # Sort by return descending and take top 5
-                                        candidates.sort(key=lambda x: x["change"], reverse=True)
-                                        leaders = candidates[:5]
-                            except Exception as l_err:
-                                print(f"Error fetching leaders for {s_name}: {l_err}")
-
-                            sector_performance[s_name] = {
-                                "return": ret,
-                                "leaders": leaders
-                            }
+                            sector_performance[s_name] = ret
                 
-                leading_sector = "Unknown"
-                if sector_performance:
-                     # Find max by return value inside the dict
-                     leading_sector = max(sector_performance, key=lambda k: sector_performance[k]["return"])
+                leading_sector = max(sector_performance, key=sector_performance.get) if sector_performance else "Unknown"
                 
                 # Check if stock is in leading sector
                 info = yf.Ticker(symbol).info

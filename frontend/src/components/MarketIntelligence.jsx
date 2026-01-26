@@ -297,7 +297,7 @@ const SectorPerformance = ({ sectorAnalysis }) => {
     if (!sectorAnalysis?.sector_performance) return null;
 
     const performanceData = Object.entries(sectorAnalysis.sector_performance)
-        .sort(([, a], [, b]) => b.return - a.return);
+        .sort(([, a], [, b]) => b - a);
 
     return (
         <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 h-full shadow-inner">
@@ -305,11 +305,9 @@ const SectorPerformance = ({ sectorAnalysis }) => {
                 <BarChart3 className="text-green-400" />
                 Sector Leadership (1M)
             </h3>
-            <div className="space-y-4">
-                {performanceData.map(([sector, data]) => {
+            <div className="space-y-3">
+                {performanceData.map(([sector, performance]) => {
                     const isStockSector = sector === sectorAnalysis.stock_sector;
-                    const performance = data.return;
-                    const leaders = data.leaders || [];
                     const perfPercent = (performance * 100).toFixed(2);
                     const isPositive = performance >= 0;
 
@@ -324,7 +322,7 @@ const SectorPerformance = ({ sectorAnalysis }) => {
                                     {isPositive ? '+' : ''}{perfPercent}%
                                 </span>
                             </div>
-                            <div className="h-1.5 w-full bg-gray-900 rounded-full overflow-hidden flex mb-2">
+                            <div className="h-1.5 w-full bg-gray-900 rounded-full overflow-hidden flex">
                                 {isPositive ? (
                                     <>
                                         <div className="w-1/2" />
@@ -345,18 +343,6 @@ const SectorPerformance = ({ sectorAnalysis }) => {
                                     </>
                                 )}
                             </div>
-
-                            {/* Leaders List */}
-                            {leaders.length > 0 && (
-                                <div className="flex flex-wrap gap-2 pl-2 border-l-2 border-gray-800">
-                                    <span className="text-[9px] text-gray-600 font-bold uppercase tracking-wider py-0.5">Top 5:</span>
-                                    {leaders.map((l, idx) => (
-                                        <span key={l.symbol} className={`text-[9px] font-mono font-bold ${l.change >= 0 ? 'text-green-500/80' : 'text-red-500/80'}`}>
-                                            {l.symbol}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
                         </div>
                     );
                 })}
