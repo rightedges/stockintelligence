@@ -543,8 +543,7 @@ const MarketIntelligence = ({ regimeData }) => {
                 <div className="flex-1">
                     <h2 className="text-3xl font-black mb-2 text-white italic tracking-tighter">MARKET INTELLIGENCE</h2>
                     <p className="text-gray-400 text-sm max-w-2xl leading-relaxed">
-                        Fundamentals determine the tide; technicals dictate the swim.
-                        We use <span className="text-blue-400 font-bold">Multi-Confluence Scoring</span> to filter noise and isolate high-probability regimes.
+                        Fundamentals determine the tide; technicals dictate the swim. We use <span className="text-blue-400 font-bold">Multi-Confluence Scoring</span> to filter noise and isolate high-probability regimes.
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
