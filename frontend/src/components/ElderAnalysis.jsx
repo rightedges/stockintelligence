@@ -107,6 +107,21 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             });
         }
 
+        s.volume = chart.addSeries(HistogramSeries, {
+            priceScaleId: 'volume',
+            priceFormat: { type: 'volume' },
+            lastValueVisible: false,
+            priceLineVisible: false,
+        });
+
+        s.volumeSMA = chart.addSeries(LineSeries, {
+            priceScaleId: 'volume',
+            color: '#f59e0b', // Amber line for SMA
+            lineWidth: 1,
+            lastValueVisible: false,
+            priceLineVisible: false,
+        });
+
         s.macdHist = chart.addSeries(HistogramSeries, {
             priceScaleId: 'macd',
             lastValueVisible: false,
@@ -158,6 +173,14 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 visible: true
             });
         }
+
+        // Volume Scale (Overlay at bottom of price pane)
+        // Price pane bottom is 0.30 (Weekly) or 0.45 (Daily).
+        // We want volume to sit at the bottom of that pane.
+        chart.priceScale('volume').applyOptions({
+            scaleMargins: isWeekly ? { top: 0.55, bottom: 0.30 } : { top: 0.35, bottom: 0.45 },
+            visible: false, // Hide axis labels
+        });
 
         // Legends
         const legend = document.createElement('div');
@@ -256,7 +279,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         const s = seriesRef.current;
         const isWeekly = timeframeLabel === 'Weekly';
 
-        const candleData = [], ema13Data = [], ema26Data = [], upperData = [], lowerData = [], macdHistData = [], macdSignalData = [], force2Data = [], force13Data = [];
+        const candleData = [], ema13Data = [], ema26Data = [], upperData = [], lowerData = [], macdHistData = [], macdSignalData = [], force2Data = [], force13Data = [], volumeData = [], volumeSMAData = [];
 
         data.forEach(d => {
             const time = d.Date.split('T')[0];
@@ -290,6 +313,17 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             if (!isWeekly && d.force_index_13 !== undefined && d.force_index_13 !== null) {
                 force13Data.push({ time, value: d.force_index_13, color: d.force_index_13 >= 0 ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)' });
             }
+
+            if (d.Volume) {
+                volumeData.push({
+                    time,
+                    value: d.Volume,
+                    color: d.Close >= d.Open ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'
+                });
+            }
+            if (d.volume_sma_20) {
+                volumeSMAData.push({ time, value: d.volume_sma_20 });
+            }
         });
 
         s.candles.setData(candleData);
@@ -305,6 +339,8 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             s.force2.setData(force2Data);
             s.force13.setData(force13Data);
         }
+        s.volume.setData(volumeData);
+        s.volumeSMA.setData(volumeSMAData);
 
         // Support & Resistance Lines Cleanup
         if (s.candles) {
@@ -354,6 +390,8 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 <div style="display: flex; gap: 8px; margin-top: 2px;">
                     <span style="color: #60a5fa">EMA13 ${d.ema_13 !== undefined && d.ema_13 !== null ? d.ema_13.toFixed(2) : ''}</span>
                     ${!isWeekly ? `<span style="color: #f59e0b">EMA26 ${d.ema_26 !== undefined && d.ema_26 !== null ? d.ema_26.toFixed(2) : ''}</span>` : ''}
+                    <span style="color: #9ca3af">Vol ${(d.Volume / 1000000).toFixed(2)}M</span>
+                    <span style="color: #f59e0b">SMA(20) ${d.volume_sma_20 ? (d.volume_sma_20 / 1000000).toFixed(2) + 'M' : ''}</span>
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <span style="color: #34d399">MACD ${d.macd_diff !== undefined && d.macd_diff !== null ? d.macd_diff.toFixed(2) : ''}</span>
@@ -391,7 +429,9 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                     macd_diff: mh?.value,
                     macd_signal: ms?.value,
                     force_index_2: f2?.value,
-                    force_index_13: f13?.value
+                    force_index_13: f13?.value,
+                    Volume: s.volume ? param.seriesData.get(s.volume)?.value : last?.Volume,
+                    volume_sma_20: s.volumeSMA ? param.seriesData.get(s.volumeSMA)?.value : last?.volume_sma_20
                 });
             }
         };
