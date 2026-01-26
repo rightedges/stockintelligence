@@ -1,190 +1,91 @@
-# Techno-Fundamental Stock Analysis Suite
+# Stock Intelligence Suite (2026 Edition)
 
-A professional-grade stock analysis application that bridges the gap between **Technical Analysis** and **Market Logic**. This tool automates the "Top-Down" routine used by professional traders to ensure every trade is supported by broad market tides and sector leadership.
+**A professional-grade Techno-Fundamental analysis platform.** This tool automates the "Top-Down" trading routine, bridging the gap between broad market logic (Macro/Sector) and precision technical execution (Price/Action).
+
+---
 
 ## 🚀 Key Features
 
-### 1. Unified Technical Dashboard
-- **Single-Canvas Architecture**: Price, Volume SMA, and RSI are perfectly synchronized on a single time-axis.
-- **Stacked Scale Layout**: Professional multi-pane view optimized for precision entry/exit timing.
+### 1. 🧠 Market Intelligence Dashboard (The "Brain")
+*   **Regime Detection**: Automatically classifies stocks into Accumulation, Mark-Up, Distribution, or Mark-Down.
+*   **Macro Tides**: Monitors SPY (Risk), XLI (Growth), TIP (Inflation), and TNX (Liquidity) to interpret the "Why" behind moves.
+*   **Interactive Tour**: New to the platform? Click **"Start Tour"** in the Intelligence header for a guided walkthrough of the decision engine.
+*   **Confluence Score**: Instant 0-3 score rating the reliability of the current trend based on Volume, Momentum, and Price Structure.
 
-### 2. Market Intelligence Dashboard (The "Brain")
-The **Intelligence Tab** is the core of the application, transforming raw data into actionable "Market Logic."
+### 2. 📊 Alexander Elder Triple Screen Strategy
+*   **Top-Down Logic**:
+    *   **Screen 1 (The Tide)**: Weekly EMA 13 Slope. Determines the *allowed* direction (Long/Short/Cash).
+    *   **Screen 2 (The Wave)**: Daily Force Index (F2). Identifies contrarian value entries (pullbacks).
+    *   **Screen 3 (Execution)**: Dynamic Entry, Stop, and Target mapping.
+*   **Smart Strategy Panel**: Located at the **top of the view**, this panel consolidates all critical signals into a unified 3-column grid (Tide -> Wave -> Execution).
+*   **Divergence Alerts**: Prominent **Red/Green alerts** trigger automatically when MACD Divergence is detected, warning of imminent reversals.
 
-#### A. Automated Market Regime Detection
-The system automatically classifies the stock into one of the four market phases:
-*   **Accumulation**: Sideways consolidation; Smart money absorption.
-*   **Mark-Up**: Trending uptrend; Public participation.
-*   **Distribution**: Choppy sideways; Smart money offloading.
-*   **Mark-Down**: Trending downtrend; Panic selling.
-*   **Reliability Score**: Every signal is scored (High/Medium/Low) based on the confluence of **Trend** (EMAs), **Volatility** (ATR), and **Flow** (Volume/RSI).
+### 3. ⭐ Close Watchlist
+*   **Priority Sorting**: Click the **Star Icon** next to any stock in the sidebar.
+*   **Focus First**: Starred stocks are pinned to the top of your list, ensuring your best ideas are always visible.
 
-#### B. Automated Top-Down Routine
-An automated checklist verifying the 4 pillars of a high-probability trade:
-1.  **Macro**: Checks if the S&P 500 (SPY) is trending positive ("Risk-On").
-2.  **Sector**: Scans all 11 GICS Sector ETFs to ensure your stock is in the #1 leading market sector.
-3.  **Chart**: Verifies the stock is in a "Mark-Up" regime.
-4.  **Execution**: Checks for high-confluence technical triggers.
-
-#### C. Macro Tides & Strategic Playbook
-Automated tracking of the "Why" behind market moves:
-- **Growth (XLI)**: Monitored via Industrials performance.
-- **Inflation (TIP)**: Monitored via inflation-protected bond trends.
-- **Liquidity (^TNX)**: Monitored via 10-Year Treasury Yields.
-- **Strategic Playbook**: Synthesizes these tides into a specific recommendation (e.g., "Goldilocks Zone: Aggressively target High-Beta Tech").
-
-### 3. Alexander Elder Triple Screen System
-A rigorous technical implementation of Dr. Alexander Elder's Triple Screen strategy.
-
-#### A. Screen 1: The Tide (Weekly)
-- **Automatic Top-Down Filtering**: Uses the slope of the **Weekly EMA 13** to dictate trade direction, even when viewing daily charts.
-- **Binary Trend Logic**: Explicitly forbids buying in bear tides or shorting in bull tides.
-
-#### B. Screen 2: The Wave (Daily)
-- **Momentum Precision**: Monitors the **2-Day Force Index** for short-term pullbacks against the dominant weekly tide.
-- **Visual Histogram**: Multi-color Force Index for instant detection of momentum shifts.
-
-#### C. Screen 3: Tactical Execution
-- **Dynamic Action Box**: Processes Tide, Wave, and Impulse signals to generate specific Buy/Short Stop orders.
-- **Risk-Reward Analysis**: Real-time quantification of trade quality (Green for professional-grade setups >= 2:1).
-- **Impulse System**: Integrates EMA 13 and MACD-Histogram slopes to "censor" low-probability trades.
-
-#### D. Professional Trading Journal
-- **Digital Lab Assistant**: Capture full chart snapshots and log observations with a single click.
-- **Searchable History**: Integrated sidebar with full-text search for reviewing past trade logic and emotions.
+### 4. 📝 Context-Aware Trading Journal
+*   **Smart Templates**: Click "Elder Template" to inject a prompt tailored to your current view:
+    *   **Weekly View**: Injects a "Macro Tide" template (Big Picture focus).
+    *   **Daily View**: Injects a "Tactical Setup" template (Entry/Exit focus).
+*   **Snapshot Database**: Save rich screenshots with every note. Searchable history keeps your "Lesson Learned" database accessible.
 
 ---
 
-## 📈 How to Use the Intelligence Tab
+## 🛠️ Installation & Usage
 
-The Intelligence tab should be used to filter your technical setups. **Never trade a technical breakout if the Market Intelligence is "Risk-Off" or in a "Distribution" regime.**
+### Prerequisites
+*   **Python 3.9+**
+*   **Node.js 18+**
 
-### The Workflow:
-1.  **Select a Stock**: Start in the Technical tab to find a setup.
-2.  **Check the Tide**: Switch to the **Intelligence** tab. 
-    - Is the **Macro Tide** expanding?
-    - Is the **Strategic Playbook** suggesting your stock's sector?
-3.  **Verify the Routine**: Look at the **Automated Routine** box. 
-    - All boxes green? -> **High-Probability Trade.**
-    - Sector or Macro red? -> **High-Risk Trade (Consider skipping).**
-4.  **Observe Reliability**: Only size up if the **Reliability Badge** is "High."
+### 1. Backend Setup
+The backend utilizes SQLite and FastAPI. It must be bound to `0.0.0.0` to be accessible from other devices on your network.
 
----
-
-## 💡 Examples & Scenarios
-
-### Example 1: The "Goldilocks" Breakout
-*   **Technical Tab**: AAPL is breaking out of a 3-month range.
-*   **Intelligence Tab**: 
-    - **Regime**: Mark-Up (High Confidence).
-    - **Macro**: Risk-On (SPY > EMA 50).
-    - **Sector**: Technology is the leading sector.
-    - **Playbook**: "Goldilocks Zone: Target Tech."
-*   **Decision**: **Strong Buy.** All cylinders are firing.
-
-### Example 2: The "Bull Trap" (Stagflation)
-*   **Technical Tab**: TSLA shows an RSI oversold bounce. Looks like a "buy the dip" opportunity.
-*   **Intelligence Tab**:
-    - **Regime**: Distribution (Medium Confidence).
-    - **Macro**: Risk-Off.
-    - **Inflation**: Rising Pressure.
-    - **Sector**: Energy is leading; Technology is lagging.
-*   **Decision**: **Avoid / Short.** The technical bounce is fighting the macro tide and a distribution regime.
-
----
-
-## 🛠️ Installation & Setup
-
-### 1. Prerequisites
-- Python 3.9+
-- Node.js 18+
-
-### 2. Backend Setup
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # Windows: venv\\Scripts\\activate
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
+
+# CRITICAL: Use --host 0.0.0.0 to allow LAN access
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 3. Frontend Setup
+### 2. Frontend Setup
+The frontend is built with React + Vite.
+
 ```bash
 cd frontend
 npm install
-npm run dev
+
+# Expose to network
+npm run dev -- --host 0.0.0.0
 ```
 
-The app will be available at `http://localhost:5173`.
+Access the dashboard at: `http://localhost:5173` (or `http://YOUR_LAN_IP:5173`)
 
 ---
 
-## 🖥️ Proxmox / Linux Deployment
+## 📈 Professional Workflow
 
-### 1. Download & Initial Setup
-Clone the repository to your server (e.g., `/opt/stock-suite`):
-```bash
-cd /opt
-git clone https://github.com/YOUR_USERNAME/stock2026.git stock-suite
-cd stock-suite
+1.  **Build Your List**: Add stocks to the sidebar. Use the **Star** icon to pin your top focus tickers.
+2.  **Check the Weather**: Go to the **Intelligence** tab.
+    *   Is the Macro Tide "Risk-On"?
+    *   Is your stock's Sector leading?
+    *   *If NO, proceed with extreme caution.*
+3.  **Verify the Setup**: Switch to **Elder Daily**.
+    *   **Screen 1**: Is the Tide Green? (Longs allowed).
+    *   **Screen 2**: Is the Wave Negative? (Value entry available).
+    *   **Alerts**: Are there any "Critical Divergence" warnings?
+4.  **Plan the Trade**: Use the **Trading Journal** sidebar.
+    *   Click "Elder Template" to load the Daily checklist.
+    *   Validate your Entry, Stop, and R/R Ratio.
+    *   Save the plan.
 
-# Prep Backend
-cd backend && python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
+---
 
-# Prep Frontend
-cd ../frontend && npm install && npm run build
-```
+## 🧩 Troubleshooting
 
-### 2. Automatic Updates (Upgrade Script)
-To update the application from GitHub, create an `update.sh` script:
-```bash
-#!/bin/bash
-git pull origin main
-cd backend && source venv/bin/activate && pip install -r requirements.txt
-cd ../frontend && npm install && npm run build
-sudo systemctl restart stock-backend stock-frontend
-```
-
-### 3. Autostart with Systemd
-To ensure the app starts after every Proxmox/system reboot, create two service files.
-
-#### A. Backend Service (`/etc/systemd/system/stock-backend.service`)
-```ini
-[Unit]
-Description=Stock Suite Backend
-After=network.target
-
-[Service]
-User=youruser
-WorkingDirectory=/opt/stock-suite/backend
-ExecStart=/opt/stock-suite/backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-#### B. Frontend Service (`/etc/systemd/system/stock-frontend.service`)
-*Note: For production, it is recommended to serve the `dist` folder via Nginx. However, for a simple auto-start setup:*
-```ini
-[Unit]
-Description=Stock Suite Frontend
-After=network.target
-
-[Service]
-User=youruser
-WorkingDirectory=/opt/stock-suite/frontend
-ExecStart=/usr/bin/npm run dev -- --host 0.0.0.0
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-### 4. Enable Services
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable stock-backend stock-frontend
-sudo systemctl start stock-backend stock-frontend
-```
+**"Unable to add stock"**
+*   Ensure your backend is running with `--host 0.0.0.0`.
+*   If running remotely (e.g., Proxmox), ensure the server has the latest code (`git pull`) and the database has been migrated.
