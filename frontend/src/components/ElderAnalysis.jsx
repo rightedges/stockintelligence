@@ -36,19 +36,20 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
     const legendRef = useRef(null);
     const srLineRefs = useRef([]);
 
-    // Load Journal Entries
+    // Load Journal Entries (All Timeframes)
     useEffect(() => {
         if (!symbol) return;
         const fetchEntries = async () => {
             try {
-                const res = await getJournalEntries(symbol, timeframeLabel);
+                // Pass undefined/null for timeframe to fetch ALL entries
+                const res = await getJournalEntries(symbol);
                 setJournalEntries(res.data || []);
             } catch (err) {
                 console.error("Failed to fetch journal entries", err);
             }
         };
         fetchEntries();
-    }, [symbol, timeframeLabel]);
+    }, [symbol]); // Removed timeframeLabel to prevent filtering
 
     // Initialize Chart
     useEffect(() => {
