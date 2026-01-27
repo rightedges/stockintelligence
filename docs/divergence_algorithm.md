@@ -4,6 +4,16 @@ The Stock Intelligence Suite uses a custom "Wave-based" algorithm to detect reli
 
 ## 1. Wave Identification
 Instead of comparing raw daily slopes, the system segments the indicator data (MACD Histogram or Force Index) into **Waves**. A wave is defined as a contiguous sequence of values on one side of the zero-line.
+
+```mermaid
+graph LR
+    A["Wave 1 (Positive)"] -- Zero Cross --> B["Wave 2 (Negative)"]
+    B -- Zero Cross --> C["Wave 3 (Positive)"]
+    style A fill:#1a4d1a,stroke:#4ade80
+    style B fill:#4d1a1a,stroke:#f87171
+    style C fill:#1a4d1a,stroke:#4ade80
+```
+
 *   **Zero-Line Crossing**: A new wave starts whenever the indicator crosses the zero-line. This ensures that divergences are compared across distinct momentum shifts.
 
 ## 2. Extrema Extraction
@@ -18,12 +28,42 @@ The system compares the **current active wave** with the **most recent previous 
 
 ### 📉 Bearish Divergence (Reversal Signal)
 Occurs during an uptrend when price momentum is fading.
+
+```mermaid
+graph TD
+    subgraph Price
+    P1["Peak 1 (High)"] --- P2["Peak 2 (Higher High)"]
+    end
+    subgraph Indicator
+    I1["Peak 1 (High)"] --- I2["Peak 2 (Lower High)"]
+    end
+    P1 -.-> I1
+    P2 -.-> I2
+    linkStyle 0 stroke:#4ade80,stroke-width:2px;
+    linkStyle 1 stroke:#f87171,stroke-width:2px;
+```
+
 *   **Price Condition**: Current Peak High > Previous Peak High (A "Higher High" in price).
 *   **Indicator Condition**: Current Peak Value < Previous Peak Value (A "Lower High" in momentum/volume).
 *   **Confirmation**: There must be at least one complete negative wave (zero-crossing) between the two peaks.
 
 ### 📈 Bullish Divergence (Bottoming Signal)
 Occurs during a downtrend when selling pressure is exhausting.
+
+```mermaid
+graph TD
+    subgraph Price
+    T1["Trough 1 (Low)"] --- T2["Trough 2 (Lower Low)"]
+    end
+    subgraph Indicator
+    V1["Trough 1 (Low)"] --- V2["Trough 2 (Higher Low)"]
+    end
+    T1 -.-> V1
+    T2 -.-> V2
+    linkStyle 0 stroke:#f87171,stroke-width:2px;
+    linkStyle 1 stroke:#4ade80,stroke-width:2px;
+```
+
 *   **Price Condition**: Current Trough Low < Previous Trough Low (A "Lower Low" in price).
 *   **Indicator Condition**: Current Trough Value > Previous Trough Value (A "Higher Low" in momentum/volume).
 *   **Confirmation**: There must be at least one complete positive wave (zero-crossing) between the two troughs.
