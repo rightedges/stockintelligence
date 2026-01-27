@@ -712,25 +712,26 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                             )}
                         </div>
                     </div>
+                </div>
 
-                    <div className="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-2xl overflow-hidden relative">
-                        <div ref={chartContainerRef} className="w-full h-[900px] relative">
-                            {/* Pane Labels */}
-                            {!isWeekly && (
-                                <>
-                                    <div className="absolute left-[65px] top-[58%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">MACD</div>
-                                    <div className="absolute left-[65px] top-[74%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">Force (13)</div>
-                                    <div className="absolute left-[65px] top-[88%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">Force (2)</div>
-                                </>
-                            )}
-                            {isWeekly && (
-                                <div className="absolute left-[65px] top-[75%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">MACD</div>
-                            )}
-                        </div>
+                <div className="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-2xl overflow-hidden relative">
+                    <div ref={chartContainerRef} className="w-full h-[900px] relative">
+                        {/* Pane Labels */}
+                        {!isWeekly && (
+                            <>
+                                <div className="absolute left-[65px] top-[58%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">MACD</div>
+                                <div className="absolute left-[65px] top-[74%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">Force (13)</div>
+                                <div className="absolute left-[65px] top-[88%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">Force (2)</div>
+                            </>
+                        )}
+                        {isWeekly && (
+                            <div className="absolute left-[65px] top-[75%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">MACD</div>
+                        )}
+                    </div>
 
-                        {/* F13 Divergence Alert */}
-                        {/* This block will be removed/replaced by the new unified logic */}
-                        {/* {f13Divergence && (
+                    {/* F13 Divergence Alert */}
+                    {/* This block will be removed/replaced by the new unified logic */}
+                    {/* {f13Divergence && (
                         <div className={`mb-6 p-4 rounded-xl border flex items-start gap-4 shadow-lg ${f13Divergence.type === 'bearish'
                             ? 'bg-purple-900/30 border-purple-500/50 shadow-purple-900/10'
                             : 'bg-indigo-900/30 border-indigo-500/50 shadow-indigo-900/10'
@@ -751,173 +752,173 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                             </div>
                         </div>
                     )} */}
-                    </div>
                 </div>
+            </div>
 
-                {/* Sidebar Area (Right) */}
-                <div className="w-full lg:w-[450px] flex-shrink-0 flex flex-col gap-6 lg:sticky lg:top-6">
-                    {/* Quick Journal Input */}
-                    <div className="bg-gray-800 border-2 border-blue-500/20 p-6 rounded-2xl shadow-xl">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <Notebook className="text-blue-400" size={20} />
-                                <h3 className="text-lg font-bold text-white">Trading Journal</h3>
-                            </div>
+            {/* Sidebar Area (Right) */}
+            <div className="w-full lg:w-[450px] flex-shrink-0 flex flex-col gap-6 lg:sticky lg:top-6">
+                {/* Quick Journal Input */}
+                <div className="bg-gray-800 border-2 border-blue-500/20 p-6 rounded-2xl shadow-xl">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <Notebook className="text-blue-400" size={20} />
+                            <h3 className="text-lg font-bold text-white">Trading Journal</h3>
+                        </div>
+                        <button
+                            onClick={() => setShowJournal(!showJournal)}
+                            className="text-xs text-blue-400 hover:text-blue-300 font-bold uppercase tracking-widest"
+                        >
+                            {showJournal ? "Hide History" : `Show History (${journalEntries.length})`}
+                        </button>
+                    </div>
+
+                    <div className="flex flex-col gap-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search your notes..."
+                                className="w-full bg-gray-900 border border-gray-700 rounded-xl pl-10 pr-4 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition"
+                            />
+                        </div>
+                        <textarea
+                            value={note}
+                            onChange={(e) => setNote(e.target.value)}
+                            placeholder={`Record your ${timeframeLabel} observations, emotions, or logic here...`}
+                            className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition h-32 resize-none"
+                        />
+                        <div className="flex justify-between gap-2">
                             <button
-                                onClick={() => setShowJournal(!showJournal)}
-                                className="text-xs text-blue-400 hover:text-blue-300 font-bold uppercase tracking-widest"
+                                onClick={applyElderTemplate}
+                                className="bg-gray-700 hover:bg-gray-600 text-gray-200 px-4 py-2.5 rounded-xl font-bold text-sm transition-all"
                             >
-                                {showJournal ? "Hide History" : `Show History (${journalEntries.length})`}
+                                Elder Template
+                            </button>
+                            <button
+                                onClick={handleSaveJournal}
+                                disabled={isSaving || !note.trim()}
+                                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all transform active:scale-95"
+                            >
+                                {isSaving ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/20 border-t-white" />
+                                ) : (
+                                    <Camera size={18} />
+                                )}
+                                Record Snapshot & Note
                             </button>
                         </div>
+                    </div>
 
-                        <div className="flex flex-col gap-4">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Search your notes..."
-                                    className="w-full bg-gray-900 border border-gray-700 rounded-xl pl-10 pr-4 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition"
-                                />
-                            </div>
-                            <textarea
-                                value={note}
-                                onChange={(e) => setNote(e.target.value)}
-                                placeholder={`Record your ${timeframeLabel} observations, emotions, or logic here...`}
-                                className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition h-32 resize-none"
-                            />
-                            <div className="flex justify-between gap-2">
-                                <button
-                                    onClick={applyElderTemplate}
-                                    className="bg-gray-700 hover:bg-gray-600 text-gray-200 px-4 py-2.5 rounded-xl font-bold text-sm transition-all"
-                                >
-                                    Elder Template
-                                </button>
-                                <button
-                                    onClick={handleSaveJournal}
-                                    disabled={isSaving || !note.trim()}
-                                    className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all transform active:scale-95"
-                                >
-                                    {isSaving ? (
-                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/20 border-t-white" />
-                                    ) : (
-                                        <Camera size={18} />
-                                    )}
-                                    Record Snapshot & Note
-                                </button>
-                            </div>
-                        </div>
-
-                        {showJournal && journalEntries.length > 0 && (
-                            <div className="mt-8 pt-8 border-t border-gray-700/50 flex flex-col gap-6 max-h-[700px] overflow-y-auto pr-2 custom-scrollbar">
-                                {journalEntries
-                                    .filter(entry =>
-                                        entry.note.toLowerCase().includes(searchQuery.toLowerCase())
-                                    )
-                                    .map((entry, idx) => (
-                                        <div key={idx} className="bg-gray-900/80 border border-gray-700/50 rounded-2xl overflow-hidden group flex-shrink-0 shadow-lg">
-                                            <div className="p-3 border-b border-gray-700/50 bg-gray-950/40 flex items-center justify-between px-4">
-                                                <div className="flex items-center gap-3">
-                                                    <Calendar size={14} className="text-blue-400/60" />
-                                                    <span className="text-[11px] font-mono text-gray-400">
-                                                        {new Date(entry.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                                                    </span>
-                                                    <span className="text-[9px] px-1.5 py-0.5 bg-gray-900 text-blue-400 rounded font-black uppercase tracking-widest border border-blue-900/20">
-                                                        {entry.timeframe}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    {entry.snapshot && (
-                                                        <button
-                                                            onClick={() => setSelectedImage(entry.snapshot)}
-                                                            className="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg text-blue-400 transition-all flex items-center gap-1.5"
-                                                            title="View Chart Snapshot"
-                                                        >
-                                                            <Camera size={14} />
-                                                            <span className="text-[10px] font-bold uppercase tracking-wider">Chart</span>
-                                                        </button>
-                                                    )}
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingId(entry.id);
-                                                            setEditingNote(entry.note);
-                                                        }}
-                                                        className="text-gray-500 hover:text-blue-400 transition-colors p-1.5"
-                                                        title="Edit Entry"
-                                                    >
-                                                        <Edit size={14} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteJournal(entry.id)}
-                                                        className="text-gray-500 hover:text-red-400 transition-colors p-1.5"
-                                                        title="Delete Entry"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </div>
+                    {showJournal && journalEntries.length > 0 && (
+                        <div className="mt-8 pt-8 border-t border-gray-700/50 flex flex-col gap-6 max-h-[700px] overflow-y-auto pr-2 custom-scrollbar">
+                            {journalEntries
+                                .filter(entry =>
+                                    entry.note.toLowerCase().includes(searchQuery.toLowerCase())
+                                )
+                                .map((entry, idx) => (
+                                    <div key={idx} className="bg-gray-900/80 border border-gray-700/50 rounded-2xl overflow-hidden group flex-shrink-0 shadow-lg">
+                                        <div className="p-3 border-b border-gray-700/50 bg-gray-950/40 flex items-center justify-between px-4">
+                                            <div className="flex items-center gap-3">
+                                                <Calendar size={14} className="text-blue-400/60" />
+                                                <span className="text-[11px] font-mono text-gray-400">
+                                                    {new Date(entry.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                                                </span>
+                                                <span className="text-[9px] px-1.5 py-0.5 bg-gray-900 text-blue-400 rounded font-black uppercase tracking-widest border border-blue-900/20">
+                                                    {entry.timeframe}
+                                                </span>
                                             </div>
-                                            <div className="p-4 bg-gray-950/20">
-                                                {editingId === entry.id ? (
-                                                    <div className="flex flex-col gap-3">
-                                                        <textarea
-                                                            value={editingNote}
-                                                            onChange={(e) => setEditingNote(e.target.value)}
-                                                            className="w-full bg-gray-900 border border-blue-500/50 rounded-xl p-3 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition h-32 resize-none"
-                                                        />
-                                                        <div className="flex justify-end gap-2">
-                                                            <button
-                                                                onClick={() => setEditingId(null)}
-                                                                className="text-xs text-gray-400 hover:text-white font-bold uppercase tracking-widest px-2"
-                                                            >
-                                                                Cancel
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleUpdateJournal(entry.id)}
-                                                                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
-                                                            >
-                                                                Save Changes
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="text-sm text-gray-100 leading-relaxed font-medium whitespace-pre-line">
-                                                        {entry.note}
-                                                    </div>
+                                            <div className="flex items-center gap-2">
+                                                {entry.snapshot && (
+                                                    <button
+                                                        onClick={() => setSelectedImage(entry.snapshot)}
+                                                        className="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg text-blue-400 transition-all flex items-center gap-1.5"
+                                                        title="View Chart Snapshot"
+                                                    >
+                                                        <Camera size={14} />
+                                                        <span className="text-[10px] font-bold uppercase tracking-wider">Chart</span>
+                                                    </button>
                                                 )}
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingId(entry.id);
+                                                        setEditingNote(entry.note);
+                                                    }}
+                                                    className="text-gray-500 hover:text-blue-400 transition-colors p-1.5"
+                                                    title="Edit Entry"
+                                                >
+                                                    <Edit size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteJournal(entry.id)}
+                                                    className="text-gray-500 hover:text-red-400 transition-colors p-1.5"
+                                                    title="Delete Entry"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
                                             </div>
                                         </div>
-                                    ))}
-                            </div>
-                        )}
-                    </div>
+                                        <div className="p-4 bg-gray-950/20">
+                                            {editingId === entry.id ? (
+                                                <div className="flex flex-col gap-3">
+                                                    <textarea
+                                                        value={editingNote}
+                                                        onChange={(e) => setEditingNote(e.target.value)}
+                                                        className="w-full bg-gray-900 border border-blue-500/50 rounded-xl p-3 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition h-32 resize-none"
+                                                    />
+                                                    <div className="flex justify-end gap-2">
+                                                        <button
+                                                            onClick={() => setEditingId(null)}
+                                                            className="text-xs text-gray-400 hover:text-white font-bold uppercase tracking-widest px-2"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleUpdateJournal(entry.id)}
+                                                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                                        >
+                                                            Save Changes
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="text-sm text-gray-100 leading-relaxed font-medium whitespace-pre-line">
+                                                    {entry.note}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                        </div>
+                    )}
                 </div>
+            </div>
 
-                {/* Image Preview Modal */}
-                {
-                    selectedImage && (
-                        <div
-                            className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 md:p-12 animate-in fade-in duration-200"
+            {/* Image Preview Modal */}
+            {
+                selectedImage && (
+                    <div
+                        className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 md:p-12 animate-in fade-in duration-200"
+                        onClick={() => setSelectedImage(null)}
+                    >
+                        <button
+                            className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors"
                             onClick={() => setSelectedImage(null)}
                         >
-                            <button
-                                className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors"
-                                onClick={() => setSelectedImage(null)}
-                            >
-                                <X size={32} />
-                            </button>
-                            <img
-                                src={selectedImage}
-                                alt="Full size snapshot"
-                                className="max-h-full max-w-full object-contain rounded-lg shadow-2xl border border-white/10"
-                                onClick={(e) => e.stopPropagation()}
-                            />
-                        </div>
-                    )
-                }
-            </div>
+                            <X size={32} />
+                        </button>
+                        <img
+                            src={selectedImage}
+                            alt="Full size snapshot"
+                            className="max-h-full max-w-full object-contain rounded-lg shadow-2xl border border-white/10"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                )
+            }
         </div>
+        </div >
     );
 };
 

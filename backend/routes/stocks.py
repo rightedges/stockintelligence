@@ -762,7 +762,9 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
             return None
 
         macd_divergence = find_divergence(df, 'macd_diff')
-        f13_divergence = find_divergence(df, 'force_index_13')
+        f13_divergence = None
+        if interval != '1wk':
+             f13_divergence = find_divergence(df, 'force_index_13')
 
         # Convert index (Date) to listing
         df.reset_index(inplace=True)
