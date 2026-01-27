@@ -912,27 +912,30 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         </div>
 
                         {/* Image Preview Modal */}
-                        {selectedImage && (
-                            <div
-                                className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 md:p-12 animate-in fade-in duration-200"
-                                onClick={() => setSelectedImage(null)}
-                            >
-                                <button
-                                    className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors"
+                        {
+                            selectedImage && (
+                                <div
+                                    className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 md:p-12 animate-in fade-in duration-200"
                                     onClick={() => setSelectedImage(null)}
                                 >
-                                    <X size={32} />
-                                </button>
-                                <img
-                                    src={selectedImage}
-                                    alt="Full size snapshot"
-                                    className="max-h-full max-w-full object-contain rounded-lg shadow-2xl border border-white/10"
-                                    onClick={(e) => e.stopPropagation()}
-                                />
-                            </div>
-                        )}
+                                    <button
+                                        className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors"
+                                        onClick={() => setSelectedImage(null)}
+                                    >
+                                        <X size={32} />
+                                    </button>
+                                    <img
+                                        src={selectedImage}
+                                        alt="Full size snapshot"
+                                        className="max-h-full max-w-full object-contain rounded-lg shadow-2xl border border-white/10"
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
+                            )
+                        }
                     </div>
-                    );
+                </div>
+                );
 };
 
-                    export default ElderAnalysis;
+                export default ElderAnalysis;
