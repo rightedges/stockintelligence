@@ -9,9 +9,9 @@ Instead of comparing raw daily slopes, the system segments the indicator data (M
 graph LR
     A["Wave 1 (Positive)"] -- Zero Cross --> B["Wave 2 (Negative)"]
     B -- Zero Cross --> C["Wave 3 (Positive)"]
-    style A fill:#1a4d1a,stroke:#4ade80
-    style B fill:#4d1a1a,stroke:#f87171
-    style C fill:#1a4d1a,stroke:#4ade80
+    style A fill:#166534,stroke:#4ade80,color:#fff
+    style B fill:#991b1b,stroke:#f87171,color:#fff
+    style C fill:#166534,stroke:#4ade80,color:#fff
 ```
 
 *   **Zero-Line Crossing**: A new wave starts whenever the indicator crosses the zero-line. This ensures that divergences are compared across distinct momentum shifts.
@@ -39,8 +39,12 @@ graph TD
     end
     P1 -.-> I1
     P2 -.-> I2
-    linkStyle 0 stroke:#4ade80,stroke-width:2px;
-    linkStyle 1 stroke:#f87171,stroke-width:2px;
+    style P1 fill:#1f2937,color:#fff
+    style P2 fill:#1f2937,color:#fff
+    style I1 fill:#1f2937,color:#fff
+    style I2 fill:#1f2937,color:#fff
+    linkStyle 0 stroke:#22c55e,stroke-width:3px;
+    linkStyle 1 stroke:#ef4444,stroke-width:3px;
 ```
 
 *   **Price Condition**: Current Peak High > Previous Peak High (A "Higher High" in price).
@@ -60,8 +64,12 @@ graph TD
     end
     T1 -.-> V1
     T2 -.-> V2
-    linkStyle 0 stroke:#f87171,stroke-width:2px;
-    linkStyle 1 stroke:#4ade80,stroke-width:2px;
+    style T1 fill:#1f2937,color:#fff
+    style T2 fill:#1f2937,color:#fff
+    style V1 fill:#1f2937,color:#fff
+    style V2 fill:#1f2937,color:#fff
+    linkStyle 0 stroke:#ef4444,stroke-width:3px;
+    linkStyle 1 stroke:#22c55e,stroke-width:3px;
 ```
 
 *   **Price Condition**: Current Trough Low < Previous Trough Low (A "Lower Low" in price).
