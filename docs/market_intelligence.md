@@ -23,6 +23,9 @@ The system first looks at the **SPY (S&P 500)** relative to its **50-day EMA**.
 *   **Risk-On**: SPY > EMA50. The environment is favorable for growth and momentum strategies.
 *   **Risk-Off**: SPY < EMA50. The environment is defensive; technical setups are prone to failure.
 
+#### 💡 Why it matters:
+Trading against the broad market is like swimming against a tsunami. Layer 1 protects your capital by providing a "Go/No-Go" signal. When the market is **Risk-Off**, even the best technical setups have a significantly higher failure rate.
+
 ---
 
 ### Layer 2: Macro Tides (The "Currents")
@@ -34,12 +37,8 @@ The engine monitors three critical proxies to determine the current economic "cl
 | **Inflation** | **TIP** (Inflation Bonds) | TIP < EMA50 = Rising Pressure | **Rising**: Favor Commodities/Energy/Staples. |
 | **Liquidity** | **^TNX** (10Y Yields) | TNX < EMA50 = Easing | **Easing**: Favor Small Caps/Forward Tech/Financials. |
 
-#### Strategic Playbooks
-By combining these tides, the system identifies a **Macro Playbook**:
-*   **Goldilocks Zone**: Expanding Growth + Easing Liquidity. (High-Beta Tech/Growth focus).
-*   **Stagflation Risk**: Slowing Growth + Rising Inflation. (Energy/Commodities/Staples focus).
-*   **Late Cycle Expansion**: Expanding Growth + Tightening Liquidity. (Financials/Value focus).
-*   **Early Cycle Recovery**: Slowing Growth + Easing Liquidity. (Small Caps/Growth focus).
+#### 💡 Why it matters:
+Institutional "Smart Money" moves based on these three pillars. By identifying the **Macro Playbook**, the system tells you which "Neighborhood" of the market is currently backed by economic tailwinds. It helps you avoid "fighting the fed" or buying growth stocks in a high-inflation, tightening environment.
 
 ---
 
@@ -51,26 +50,25 @@ Using the 50-day and 200-day EMAs, the system classifies the stock into one of S
 3.  **Mark-Down (Stage 4)**: Price < EMA50 < EMA200. Established downtrend.
 4.  **Accumulation (Stage 1)**: Price > EMA50 while Averages are flat/bottoming. Smart money absorption.
 
-#### Confluence Score (0-3)
-A reliability rating is assigned based on the alignment of three independent layers:
-*   **Trend**: Is the stock in a Mark-Up/Down phase?
-*   **Momentum**: Is the RSI > 50 (Bullish) or < 50 (Bearish)?
-*   **Flow (Volume)**: Is current volume higher than the 20-day average?
+#### 💡 Why it matters:
+Most retail traders lose money by buying "Stage 4" (Mark-Down) stocks thinking they are a bargain. Layer 3 forces you to trade only in **Stage 2** (Uptrend) or **Stage 1** (Accumulation), ensuring you are aligned with the technical path of least resistance.
 
 ---
 
 ### Layer 4: Sector Leadership & Alignment
-The engine calculates the 1-month relative performance of all major S&P sectors (XLK, XLE, XLF, etc.) and compares the stock's own sector against the **Macro Playbook**.
+The engine calculates the 1-month relative performance of all major S&P sectors and compares the stock's own sector against the active **Macro Playbook**.
 
-*   **Aligned**: Stock is in a sector favored by the current Macro tides (e.g., Tech in Goldilocks).
-*   **Unaligned**: Stock is trending, but its sector is fighting macro headwinds.
+#### 💡 Why it matters:
+A stock that is outperforming its sector is strong; a stock that is in a sector outperforming the S&P 500 is **market-leading**. This layer ensures you aren't just buying a good company, but a company that is currently in a "Leading Sector," which provides a critical extra layer of momentum.
 
 ---
 
 ## 🎯 The Final Strategic Decision
-The system harmonizes all layers into a final instruction. Examples:
+The system harmonizes all layers into a final instruction.
 
-*   **Strong Buy**: All cylinders are firing. (Mark-Up + Risk-On + Aligned Sector + High Confluence).
-*   **Avoid / Short**: Low-conviction technicals fighting a Stagflationary or Deflationary macro tide.
-*   **Speculative Bullish**: Strong individual trend, but the sector lacks macro tailwinds.
-*   **Wait for Entry**: Macro is favorable, but the technical trend (Mark-Up) has not yet triggered.
+*   **Strong Buy**: High-probability confluence where Trend, Sector, and Macro are all aligned.
+*   **Avoid / Short**: Technical signals are weak AND the macro environment is hostile.
+*   **Speculative Bullish**: Strong individual trend, but lacks institutional (Macro) backing.
+
+### 💡 The Big Picture
+By the time you reach the "Final Decision," the engine has filtered out thousands of low-probability noise signals, leaving you with only the trades where the **Weather**, the **Currents**, the **Map**, and the **Neighborhood** are all in your favor.
