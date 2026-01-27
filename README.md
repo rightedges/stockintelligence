@@ -114,33 +114,6 @@ npm install
 # Note: In production, you might build static files, but for a personal tool, 'npm run dev' is fine
 ```
 
-### 2. Auto-Start Daemon Scripts (Systemd)
-
-Create the following service files to ensure the app starts on boot.
-
-#### Backend Service (`/etc/systemd/system/stock-backend.service`)
-```ini
-[Unit]
-Description=Stock Suite Backend
-After=network.target
-
-[Service]
-User=root
-WorkingDirectory=/opt/stock-suite/backend
-ExecStart=/opt/stock-suite/backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-#### Frontend Service (`/etc/systemd/system/stock-frontend.service`)
-```ini
-[Unit]
-Description=Stock Suite Frontend
-After=network.target
-
-[Service]
 User=root
 WorkingDirectory=/opt/stock-suite/frontend
 ExecStart=/usr/bin/npm run dev -- --host 0.0.0.0
