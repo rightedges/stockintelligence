@@ -122,6 +122,45 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             priceLineVisible: false,
         });
 
+        // Divergence Trendlines
+        // MACD Divergence Lines
+        s.divMacdPrice = chart.addSeries(LineSeries, {
+            color: 'rgba(255, 165, 0, 0.8)', // Orange
+            lineWidth: 2,
+            lineStyle: 0, // Solid
+            lastValueVisible: false,
+            priceLineVisible: false,
+            crosshairMarkerVisible: false
+        });
+        s.divMacdInd = chart.addSeries(LineSeries, {
+            priceScaleId: 'macd',
+            color: 'rgba(255, 165, 0, 0.8)',
+            lineWidth: 2,
+            lineStyle: 0,
+            lastValueVisible: false,
+            priceLineVisible: false,
+            crosshairMarkerVisible: false
+        });
+
+        // F13 Divergence Lines
+        s.divF13Price = chart.addSeries(LineSeries, {
+            color: '#a855f7', // Purple
+            lineWidth: 2,
+            lineStyle: 0,
+            lastValueVisible: false,
+            priceLineVisible: false,
+            crosshairMarkerVisible: false
+        });
+        s.divF13Ind = chart.addSeries(LineSeries, {
+            priceScaleId: 'force13',
+            color: '#a855f7',
+            lineWidth: 2,
+            lineStyle: 0,
+            lastValueVisible: false,
+            priceLineVisible: false,
+            crosshairMarkerVisible: false
+        });
+
         s.macdHist = chart.addSeries(HistogramSeries, {
             priceScaleId: 'macd',
             lastValueVisible: false,
@@ -341,6 +380,50 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         }
         s.volume.setData(volumeData);
         s.volumeSMA.setData(volumeSMAData);
+
+        // Render Divergence Trendlines
+        if (macdDivergence && data[macdDivergence.idx1] && data[macdDivergence.idx2]) {
+            const p1 = data[macdDivergence.idx1];
+            const p2 = data[macdDivergence.idx2];
+            const time1 = p1.Date.split('T')[0];
+            const time2 = p2.Date.split('T')[0];
+            const color = macdDivergence.type === 'bearish' ? '#ef4444' : '#22c55e'; // Red/Green matches signals better? Or stick to Orange/Blue? Using Red/Green for clarity.
+
+            s.divMacdPrice.applyOptions({ color });
+            s.divMacdInd.applyOptions({ color });
+
+            // Price Line: Connect Highs (Bearish) or Lows (Bullish)
+            const priceVal1 = macdDivergence.type === 'bearish' ? p1.High : p1.Low;
+            const priceVal2 = macdDivergence.type === 'bearish' ? p2.High : p2.Low;
+            s.divMacdPrice.setData([{ time: time1, value: priceVal1 }, { time: time2, value: priceVal2 }]);
+
+            // Indicator Line
+            s.divMacdInd.setData([{ time: time1, value: p1.macd_diff }, { time: time2, value: p2.macd_diff }]);
+        } else {
+            s.divMacdPrice.setData([]);
+            s.divMacdInd.setData([]);
+        }
+
+        if (f13Divergence && data[f13Divergence.idx1] && data[f13Divergence.idx2]) {
+            const p1 = data[f13Divergence.idx1];
+            const p2 = data[f13Divergence.idx2];
+            const time1 = p1.Date.split('T')[0];
+            const time2 = p2.Date.split('T')[0];
+            const color = f13Divergence.type === 'bearish' ? '#a855f7' : '#6366f1'; // Purple/Indigo
+
+            s.divF13Price.applyOptions({ color });
+            s.divF13Ind.applyOptions({ color });
+
+            const priceVal1 = f13Divergence.type === 'bearish' ? p1.High : p1.Low;
+            const priceVal2 = f13Divergence.type === 'bearish' ? p2.High : p2.Low;
+            s.divF13Price.setData([{ time: time1, value: priceVal1 }, { time: time2, value: priceVal2 }]);
+
+            // F13 Data
+            s.divF13Ind.setData([{ time: time1, value: p1.force_index_13 }, { time: time2, value: p2.force_index_13 }]);
+        } else {
+            s.divF13Price.setData([]);
+            s.divF13Ind.setData([]);
+        }
 
         // Support & Resistance Lines Cleanup
         if (s.candles) {
