@@ -539,6 +539,87 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         TRIPLE SCREEN STRATEGY
                     </h3>
 
+
+                    {/* Divergence Alerts (Unified - Top Banner) */}
+                    {(() => {
+                        const isDual = macdDivergence && f13Divergence && macdDivergence.type === f13Divergence.type;
+
+                        // 1. Dual Divergence (Top Priority)
+                        if (isDual) {
+                            return (
+                                <div className={`mb-8 p-5 rounded-2xl border-l-4 flex items-start gap-4 shadow-xl animate-in fade-in slide-in-from-top-2 duration-500 ${macdDivergence.type === 'bearish'
+                                    ? 'bg-red-900/40 border-red-500/60 shadow-red-900/20'
+                                    : 'bg-green-900/40 border-green-500/60 shadow-green-900/20'
+                                    }`}>
+                                    <div className={`p-3 rounded-xl ${macdDivergence.type === 'bearish' ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
+                                        <AlertTriangle size={28} className={macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'} />
+                                    </div>
+                                    <div>
+                                        <h4 className={`font-black uppercase tracking-widest text-sm mb-1 ${macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'}`}>
+                                            CRITICAL DUAL {macdDivergence.type} DIVERGENCE (MACD + F13)
+                                        </h4>
+                                        <p className="text-gray-200 text-sm leading-relaxed font-medium">
+                                            {macdDivergence.type === 'bearish'
+                                                ? "Price is making higher highs while BOTH Momentum (MACD) and Volume Pressure (F13) are weakening. This represents a highly confirmed reversal signal. Tighten stops immediately."
+                                                : "Price is making lower lows while BOTH Momentum (MACD) and Volume Pressure (F13) are strengthening. This represents a highly confirmed bottoming signal. Watch for entry triggers."}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        // 2. Individual MACD Divergence
+                        if (macdDivergence) {
+                            return (
+                                <div className={`mb-8 p-4 rounded-xl border-l-4 flex items-start gap-4 shadow-lg animate-in fade-in slide-in-from-top-2 duration-500 ${macdDivergence.type === 'bearish'
+                                    ? 'bg-red-900/30 border-red-500/40 shadow-red-900/10'
+                                    : 'bg-green-900/30 border-green-500/40 shadow-green-900/10'
+                                    }`}>
+                                    <div className={`p-2 rounded-lg ${macdDivergence.type === 'bearish' ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
+                                        <AlertTriangle size={24} className={macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'} />
+                                    </div>
+                                    <div>
+                                        <h4 className={`font-black uppercase tracking-widest text-sm mb-1 ${macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'}`}>
+                                            CRITICAL {macdDivergence.type} DIVERGENCE DETECTED
+                                        </h4>
+                                        <p className="text-gray-300 text-sm leading-relaxed">
+                                            {macdDivergence.type === 'bearish'
+                                                ? "Price is making a higher high while momentum (MACD) is weakening. A sharp reversal may be imminent."
+                                                : "Price is making a lower low while momentum (MACD) is strengthening. A bottom may be forming."}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        // 3. Individual F13 Divergence
+                        if (f13Divergence) {
+                            return (
+                                <div className={`mb-8 p-4 rounded-xl border-l-4 flex items-start gap-4 shadow-lg animate-in fade-in slide-in-from-top-2 duration-500 ${f13Divergence.type === 'bearish'
+                                    ? 'bg-purple-900/30 border-purple-500/50 shadow-purple-900/10'
+                                    : 'bg-indigo-900/30 border-indigo-500/50 shadow-indigo-900/10'
+                                    }`}>
+                                    <div className={`p-2 rounded-lg ${f13Divergence.type === 'bearish' ? 'bg-purple-500/20' : 'bg-indigo-500/20'}`}>
+                                        <Zap size={24} className={f13Divergence.type === 'bearish' ? 'text-purple-400' : 'text-indigo-400'} />
+                                    </div>
+                                    <div>
+                                        <h4 className={`text-sm font-black uppercase tracking-wider mb-1 ${f13Divergence.type === 'bearish' ? 'text-purple-400' : 'text-indigo-400'}`}>
+                                            F13 {f13Divergence.type} DIVERGENCE DETECTED
+                                        </h4>
+                                        <p className="text-sm text-gray-300 leading-relaxed">
+                                            Force Index (13) is diverging from Price action.
+                                            {f13Divergence.type === 'bearish'
+                                                ? " Smart money volume is fading on highs."
+                                                : " Selling pressure is exhausting on lows."}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        return null;
+                    })()}
+
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
 
                         {/* COL 1: TIDE */}
@@ -629,85 +710,6 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                     </div>
                                 </div>
                             )}
-                            {/* Divergence Alerts (Unified) */}
-                            {(() => {
-                                const isDual = macdDivergence && f13Divergence && macdDivergence.type === f13Divergence.type;
-
-                                // 1. Dual Divergence (Top Priority)
-                                if (isDual) {
-                                    return (
-                                        <div className={`mb-6 p-5 rounded-2xl border flex items-start gap-4 shadow-xl ${macdDivergence.type === 'bearish'
-                                            ? 'bg-red-900/40 border-red-500/60 shadow-red-900/20'
-                                            : 'bg-green-900/40 border-green-500/60 shadow-green-900/20'
-                                            }`}>
-                                            <div className={`p-3 rounded-xl ${macdDivergence.type === 'bearish' ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
-                                                <AlertTriangle size={28} className={macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'} />
-                                            </div>
-                                            <div>
-                                                <h4 className={`font-black uppercase tracking-widest text-sm mb-1 ${macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'}`}>
-                                                    CRITICAL DUAL {macdDivergence.type} DIVERGENCE (MACD + F13)
-                                                </h4>
-                                                <p className="text-gray-200 text-sm leading-relaxed font-medium">
-                                                    {macdDivergence.type === 'bearish'
-                                                        ? "Price is making higher highs while BOTH Momentum (MACD) and Volume Pressure (F13) are weakening. This represents a highly confirmed reversal signal. Tighten stops immediately."
-                                                        : "Price is making lower lows while BOTH Momentum (MACD) and Volume Pressure (F13) are strengthening. This represents a highly confirmed bottoming signal. Watch for entry triggers."}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    );
-                                }
-
-                                // 2. Individual MACD Divergence
-                                if (macdDivergence) {
-                                    return (
-                                        <div className={`mb-6 p-4 rounded-xl border flex items-start gap-4 shadow-lg ${macdDivergence.type === 'bearish'
-                                            ? 'bg-red-900/30 border-red-500/40 shadow-red-900/10'
-                                            : 'bg-green-900/30 border-green-500/40 shadow-green-900/10'
-                                            }`}>
-                                            <div className={`p-2 rounded-lg ${macdDivergence.type === 'bearish' ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
-                                                <AlertTriangle size={24} className={macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'} />
-                                            </div>
-                                            <div>
-                                                <h4 className={`font-black uppercase tracking-widest text-sm mb-1 ${macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'}`}>
-                                                    CRITICAL {macdDivergence.type} DIVERGENCE DETECTED
-                                                </h4>
-                                                <p className="text-gray-300 text-sm leading-relaxed">
-                                                    {macdDivergence.type === 'bearish'
-                                                        ? "Price is making a higher high while momentum (MACD) is weakening. A sharp reversal may be imminent."
-                                                        : "Price is making a lower low while momentum (MACD) is strengthening. A bottom may be forming."}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    );
-                                }
-
-                                // 3. Individual F13 Divergence (Only show if no MACD or not dual, handled by return above)
-                                if (f13Divergence) {
-                                    return (
-                                        <div className={`mb-6 p-4 rounded-xl border flex items-start gap-4 shadow-lg ${f13Divergence.type === 'bearish'
-                                            ? 'bg-purple-900/30 border-purple-500/50 shadow-purple-900/10'
-                                            : 'bg-indigo-900/30 border-indigo-500/50 shadow-indigo-900/10'
-                                            }`}>
-                                            <div className={`p-2 rounded-lg ${f13Divergence.type === 'bearish' ? 'bg-purple-500/20' : 'bg-indigo-500/20'}`}>
-                                                <Zap size={24} className={f13Divergence.type === 'bearish' ? 'text-purple-400' : 'text-indigo-400'} />
-                                            </div>
-                                            <div>
-                                                <h4 className={`text-sm font-black uppercase tracking-wider mb-1 ${f13Divergence.type === 'bearish' ? 'text-purple-400' : 'text-indigo-400'}`}>
-                                                    F13 {f13Divergence.type} DIVERGENCE DETECTED
-                                                </h4>
-                                                <p className="text-sm text-gray-300 leading-relaxed">
-                                                    Force Index (13) is diverging from Price action.
-                                                    {f13Divergence.type === 'bearish'
-                                                        ? " Smart money volume is fading on highs."
-                                                        : " Selling pressure is exhausting on lows."}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    );
-                                }
-
-                                return null;
-                            })()}
                         </div>
                     </div>
 
