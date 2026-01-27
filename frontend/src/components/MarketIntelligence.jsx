@@ -561,102 +561,120 @@ const MarketIntelligence = ({ regimeData }) => {
                 </div>
             </div>
 
-            {/* SECTION 1: MARKET CONTEXT */}
-            <section id="tour-context" className="mb-12">
-                <div className="flex items-center gap-2 mb-6 px-1">
-                    <div className="w-1 h-4 bg-blue-500 rounded-full" />
-                    <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">01. Market Context (Macro Tides)</h3>
-                </div>
-                <div className="w-full">
-                    <MacroIndicators macroData={regimeData?.macro_tides} />
-                </div>
-            </section>
-
-            {/* SECTION 2: MACRO STRATEGY */}
-            <section id="tour-strategy" className="mb-12">
-                <div className="flex items-center justify-between mb-6 px-1">
-                    <div className="flex items-center gap-2">
-                        <div className="w-1 h-4 bg-purple-500 rounded-full" />
-                        <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">02. Macro Strategy</h3>
-                    </div>
-                    <button
-                        onClick={() => setShowGuide(true)}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/30 rounded-lg text-purple-300 text-[10px] font-bold transition-all"
-                    >
-                        <Zap size={14} /> LOGIC GUIDE
-                    </button>
-                </div>
-
-                {regimeData?.suggestion && (
-                    <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 p-8 rounded-3xl shadow-2xl relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
-                            <Zap size={120} className="text-purple-400" />
-                        </div>
-                        <div className="flex items-center gap-2 mb-6">
-                            <div className="p-2 bg-purple-500/20 rounded-lg">
-                                <Zap className="text-purple-400" size={24} />
-                            </div>
-                            <h3 className="text-xl font-black text-white uppercase tracking-tight italic">Macro Strategic Playbook</h3>
-                        </div>
-                        <div className="text-2xl font-black text-purple-300 mb-2 tracking-tighter italic">{regimeData.suggestion.title}</div>
-                        <p className="text-gray-300 mb-8 pr-12 leading-relaxed">{regimeData.suggestion.action}</p>
-                        <div className="flex flex-wrap gap-2">
-                            {regimeData.suggestion.focus.split(', ').map(sector => (
-                                <span key={sector} className="px-3 py-1.5 bg-purple-900/40 border border-purple-700/30 rounded-xl text-[10px] uppercase font-black text-purple-200 tracking-widest">
-                                    {sector}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </section>
-
-            {/* SECTION 3: SECTOR LEADERSHIP */}
-            <section id="tour-leadership" className="mb-12">
-                <div className="flex items-center gap-2 mb-6 px-1">
-                    <div className="w-1 h-4 bg-green-500 rounded-full" />
-                    <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">03. Sector Leadership (Relative Performance)</h3>
-                </div>
-                <div className="w-full">
-                    <SectorPerformance sectorAnalysis={regimeData?.sector_analysis} />
-                </div>
-            </section>
-
-            {/* SECTION 4: PHASE IDENTIFICATION */}
-            <section id="tour-phase" className="mb-12">
-                <div className="flex items-center justify-between mb-6 px-1">
-                    <div className="flex items-center gap-2">
+            {/* ROW 1: CONTEXT & STRATEGY */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                {/* SECTION 1: MARKET CONTEXT */}
+                <section id="tour-context">
+                    <div className="flex items-center gap-2 mb-4 px-1">
                         <div className="w-1 h-4 bg-blue-500 rounded-full" />
-                        <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">04. Phase Identification</h3>
+                        <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">01. Market Context</h3>
                     </div>
-                    <div className="flex items-center gap-3">
-                        {regimeData?.confluence !== undefined && (
-                            <div className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-widest ${regimeData.confidence === 'High' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
-                                regimeData.confidence === 'Medium' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' :
-                                    'bg-red-500/10 border-red-500/30 text-red-400'
-                                }`}>
-                                {regimeData.confluence}/3 Score
-                            </div>
-                        )}
+                    <MacroIndicators macroData={regimeData?.macro_tides} />
+                </section>
+
+                {/* SECTION 2: MACRO STRATEGY */}
+                <section id="tour-strategy">
+                    <div className="flex items-center justify-between mb-4 px-1">
+                        <div className="flex items-center gap-2">
+                            <div className="w-1 h-4 bg-purple-500 rounded-full" />
+                            <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">02. Macro Strategy</h3>
+                        </div>
                         <button
-                            onClick={() => setShowConfluence(true)}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 rounded-lg text-blue-300 text-[10px] font-bold transition-all"
+                            onClick={() => setShowGuide(true)}
+                            className="flex items-center gap-2 px-3 py-1 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/30 rounded-lg text-purple-300 text-[10px] font-bold transition-all"
                         >
-                            <Layers size={14} /> CONFLUENCE LOGIC
+                            <Zap size={14} /> LOGIC
                         </button>
                     </div>
-                </div>
-                <MarketRegime activeRegime={regimeData?.regime} />
-            </section>
 
-            {/* SECTION 5: AUTOMATED ROUTINE */}
-            <section id="tour-routine" className="mb-12">
-                <div className="flex items-center gap-2 mb-6 px-1">
+                    {regimeData?.suggestion && (
+                        <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 p-6 rounded-2xl shadow-xl relative overflow-hidden group h-[280px] flex flex-col justify-center">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
+                                <Zap size={80} className="text-purple-400" />
+                            </div>
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="p-1.5 bg-purple-500/20 rounded-lg">
+                                    <Zap className="text-purple-400" size={20} />
+                                </div>
+                                <h3 className="text-lg font-black text-white uppercase tracking-tight italic">Strategic Playbook</h3>
+                            </div>
+                            <div className="text-xl font-black text-purple-300 mb-1 tracking-tighter italic">{regimeData.suggestion.title}</div>
+                            <p className="text-xs text-gray-300 mb-6 pr-8 leading-relaxed line-clamp-3">{regimeData.suggestion.action}</p>
+                            <div className="flex flex-wrap gap-1.5">
+                                {regimeData.suggestion.focus.split(', ').map(sector => (
+                                    <span key={sector} className="px-2 py-1 bg-purple-900/40 border border-purple-700/30 rounded-lg text-[9px] uppercase font-black text-purple-200 tracking-widest">
+                                        {sector}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </section>
+            </div>
+
+            {/* ROW 2: LEADERSHIP & PHASE */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                {/* SECTION 3: SECTOR LEADERSHIP */}
+                <section id="tour-leadership">
+                    <div className="flex items-center gap-2 mb-4 px-1">
+                        <div className="w-1 h-4 bg-green-500 rounded-full" />
+                        <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">03. Sector Leadership</h3>
+                    </div>
+                    <SectorPerformance sectorAnalysis={regimeData?.sector_analysis} />
+                </section>
+
+                {/* SECTION 4: PHASE IDENTIFICATION */}
+                <section id="tour-phase">
+                    <div className="flex items-center justify-between mb-4 px-1">
+                        <div className="flex items-center gap-2">
+                            <div className="w-1 h-4 bg-blue-500 rounded-full" />
+                            <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">04. Phase</h3>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {regimeData?.confluence !== undefined && (
+                                <div className={`px-2 py-1 rounded border text-[9px] font-bold uppercase tracking-widest ${regimeData.confidence === 'High' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
+                                    regimeData.confidence === 'Medium' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' :
+                                        'bg-red-500/10 border-red-500/30 text-red-400'
+                                    }`}>
+                                    {regimeData.confluence}/3 Score
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 h-[280px]">
+                        {["Accumulation", "Mark-Up", "Distribution", "Mark-Down"].map(regime => {
+                            const r = [
+                                { key: "Accumulation", icon: <ShieldCheck size={14} className="text-blue-400" /> },
+                                { key: "Mark-Up", icon: <ArrowUpRight size={14} className="text-green-400" /> },
+                                { key: "Distribution", icon: <AlertTriangle size={14} className="text-yellow-400" /> },
+                                { key: "Mark-Down", icon: <Zap size={14} className="text-red-400" /> }
+                            ].find(f => f.key === regime);
+                            const isActive = regimeData?.regime?.includes(regime);
+                            return (
+                                <div key={regime} className={`p-3 rounded-xl border flex flex-col justify-center transition-all ${isActive ? 'bg-blue-600/20 border-blue-500 ring-1 ring-blue-500/20' : 'bg-gray-800 border-gray-700 opacity-50'}`}>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        {r.icon}
+                                        <span className="text-xs font-bold">{regime}</span>
+                                    </div>
+                                    <div className="text-[10px] text-gray-500 truncate">{isActive ? "ACTIVE PHASE" : "Inactive"}</div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </section>
+            </div>
+
+            {/* ROW 3: ROUTINE (Full Width but compact) */}
+            <section id="tour-routine" className="mb-8">
+                <div className="flex items-center gap-2 mb-4 px-1">
                     <div className="w-1 h-4 bg-yellow-500 rounded-full" />
                     <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">05. Automated Routine</h3>
                 </div>
-                <div className="w-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-800/30 p-4 rounded-2xl border border-gray-700">
                     <TopDownRoutine regimeData={regimeData} />
+                    <div className="flex flex-col justify-center p-4 bg-gray-900/40 rounded-xl border border-gray-800 text-[11px] text-gray-400 leading-relaxed italic">
+                        "Fundamentals determine the tide; technicals dictate the swim. This routine ensures your individual trades are backed by institutional currents."
+                    </div>
                 </div>
             </section>
 
