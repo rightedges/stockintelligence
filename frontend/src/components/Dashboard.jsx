@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { getStocks, addStock, deleteStock, getAnalysis, toggleWatchStock } from '../services/api';
+import { getStocks, addStock, deleteStock, getAnalysis, toggleWatchStock, scanStocks } from '../services/api';
 import StockChart from './StockChart';
 import MarketIntelligence from './MarketIntelligence';
 import ElderAnalysis from './ElderAnalysis';
-import { Plus, Trash2, TrendingUp, Activity, Brain, LineChart, Star } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, Activity, Brain, LineChart, Star, Zap } from 'lucide-react';
 
 const Dashboard = () => {
     const [stocks, setStocks] = useState([]);
