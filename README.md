@@ -10,7 +10,7 @@
 *   **Regime Detection**: Automatically classifies stocks into Accumulation, Mark-Up, Distribution, or Mark-Down.
 *   **Macro Tides**: Monitors SPY (Risk), XLI (Growth), TIP (Inflation), and TNX (Liquidity) to interpret the "Why" behind moves.
 *   **Interactive Tour**: New to the platform? Click **"Start Tour"** in the Intelligence header for a guided walkthrough of the decision engine.
-*   **Confluence Score**: Instant 0-3 score rating the reliability of the current trend based on Volume, Momentum, and Price Structure.
+*   **Confluence Score**: Instant 0-3 score rating the reliability of the current trend. [See Market Intelligence Logic Details](./docs/market_intelligence.md).
 
 ### 2. 📊 Alexander Elder Triple Screen Strategy
 *   **Top-Down Logic**:
