@@ -16,6 +16,7 @@ const Dashboard = () => {
     const [f13Divergence, setF13Divergence] = useState(null);
     const [newSymbol, setNewSymbol] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isScanning, setIsScanning] = useState(false);
     const [view, setView] = useState('weekly'); // 'weekly', 'elder' (daily), or 'intelligence'
 
     useEffect(() => {
@@ -120,19 +121,27 @@ const Dashboard = () => {
                     <button
                         onClick={async (e) => {
                             e.stopPropagation();
-                            // Simple visual feedback could be improved but scanning is async
+                            if (isScanning) return;
+                            setIsScanning(true);
                             try {
                                 await scanStocks();
-                                loadStocks(); // Refresh logic
+                                await loadStocks();
                             } catch (err) {
                                 console.error("Scan failed", err);
+                            } finally {
+                                setIsScanning(false);
                             }
                         }}
-                        className="ml-auto text-xs bg-gray-700 hover:bg-purple-600 text-gray-300 hover:text-white px-2 py-1 rounded flex items-center gap-1 transition-all"
+                        disabled={isScanning}
+                        className={`ml-auto text-xs px-2 py-1 rounded flex items-center gap-1 transition-all ${isScanning ? 'bg-purple-600 font-bold animate-pulse' : 'bg-gray-700 hover:bg-purple-600 text-gray-300 hover:text-white'}`}
                         title="Scan Watchlist for Recent Divergences"
                     >
-                        <Zap size={12} />
-                        SCAN
+                        {isScanning ? (
+                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-white/20 border-t-white" />
+                        ) : (
+                            <Zap size={12} />
+                        )}
+                        {isScanning ? "SCANNING..." : "SCAN"}
                     </button>
                 </div>
 
