@@ -100,27 +100,32 @@ const DashboardTour = ({ isOpen, onClose }) => {
             target: "header"
         },
         {
-            title: "01. The Weather (Macro)",
+            title: "01. Market Context",
             desc: "First, we check the ocean conditions. Are we in a 'Risk-On' expansion or a 'Risk-Off' contraction? This dictates our exposure.",
             target: "tour-context"
         },
         {
-            title: "02. The Map (Phase)",
-            desc: "Next, we locate the stock. Is it Accumulating (Buying), Marking Up (Holding), or Distributing (Selling)? Use 'Confluence Logic' to verify.",
-            target: "tour-phase"
-        },
-        {
-            title: "03. The Playbook (Strategy)",
+            title: "02. Macro Strategy",
             desc: "Based on the Macro Regime, this is your high-level strategy. Should you be buying Tech, shorting Energy, or sitting in Cash?",
             target: "tour-strategy"
         },
         {
-            title: "04. Pre-Flight Check (Routine)",
+            title: "03. Sector Leadership",
+            desc: "We verify if the stock is in a leading sector. Strength in the sector provides a powerful tailwind for individual stocks.",
+            target: "tour-leadership"
+        },
+        {
+            title: "04. Phase Identification",
+            desc: "Next, we locate the stock's phase. Is it Accumulating (Buying), Marking Up (Holding), or Distributing (Selling)? Use 'Confluence Logic' to verify.",
+            target: "tour-phase"
+        },
+        {
+            title: "05. Automated Routine",
             desc: "An automated checklist comparing your stock against the S&P 500. All green lights? You're clear for takeoff.",
             target: "tour-routine"
         },
         {
-            title: "05. The Decision (Synthesis)",
+            title: "06. Final Decision",
             desc: "The final verdict. We combine all data into a single 'Go/No-Go' recommendation with a confidence reliability score.",
             target: "tour-decision"
         }
@@ -562,18 +567,67 @@ const MarketIntelligence = ({ regimeData }) => {
                     <div className="w-1 h-4 bg-blue-500 rounded-full" />
                     <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">01. Market Context (Macro Tides)</h3>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="w-full">
                     <MacroIndicators macroData={regimeData?.macro_tides} />
+                </div>
+            </section>
+
+            {/* SECTION 2: MACRO STRATEGY */}
+            <section id="tour-strategy" className="mb-12">
+                <div className="flex items-center justify-between mb-6 px-1">
+                    <div className="flex items-center gap-2">
+                        <div className="w-1 h-4 bg-purple-500 rounded-full" />
+                        <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">02. Macro Strategy</h3>
+                    </div>
+                    <button
+                        onClick={() => setShowGuide(true)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/30 rounded-lg text-purple-300 text-[10px] font-bold transition-all"
+                    >
+                        <Zap size={14} /> LOGIC GUIDE
+                    </button>
+                </div>
+
+                {regimeData?.suggestion && (
+                    <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 p-8 rounded-3xl shadow-2xl relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
+                            <Zap size={120} className="text-purple-400" />
+                        </div>
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="p-2 bg-purple-500/20 rounded-lg">
+                                <Zap className="text-purple-400" size={24} />
+                            </div>
+                            <h3 className="text-xl font-black text-white uppercase tracking-tight italic">Macro Strategic Playbook</h3>
+                        </div>
+                        <div className="text-2xl font-black text-purple-300 mb-2 tracking-tighter italic">{regimeData.suggestion.title}</div>
+                        <p className="text-gray-300 mb-8 pr-12 leading-relaxed">{regimeData.suggestion.action}</p>
+                        <div className="flex flex-wrap gap-2">
+                            {regimeData.suggestion.focus.split(', ').map(sector => (
+                                <span key={sector} className="px-3 py-1.5 bg-purple-900/40 border border-purple-700/30 rounded-xl text-[10px] uppercase font-black text-purple-200 tracking-widest">
+                                    {sector}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </section>
+
+            {/* SECTION 3: SECTOR LEADERSHIP */}
+            <section id="tour-leadership" className="mb-12">
+                <div className="flex items-center gap-2 mb-6 px-1">
+                    <div className="w-1 h-4 bg-green-500 rounded-full" />
+                    <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">03. Sector Leadership (Relative Performance)</h3>
+                </div>
+                <div className="w-full">
                     <SectorPerformance sectorAnalysis={regimeData?.sector_analysis} />
                 </div>
             </section>
 
-            {/* SECTION 2: PHASE IDENTIFICATION */}
+            {/* SECTION 4: PHASE IDENTIFICATION */}
             <section id="tour-phase" className="mb-12">
                 <div className="flex items-center justify-between mb-6 px-1">
                     <div className="flex items-center gap-2">
-                        <div className="w-1 h-4 bg-green-500 rounded-full" />
-                        <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">02. Phase Identification</h3>
+                        <div className="w-1 h-4 bg-blue-500 rounded-full" />
+                        <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">04. Phase Identification</h3>
                     </div>
                     <div className="flex items-center gap-3">
                         {regimeData?.confluence !== undefined && (
@@ -595,60 +649,22 @@ const MarketIntelligence = ({ regimeData }) => {
                 <MarketRegime activeRegime={regimeData?.regime} />
             </section>
 
-            {/* SECTION 3: STRATEGIC PLAYBOOK */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-                <section id="tour-strategy">
-                    <div className="flex items-center justify-between mb-6 px-1">
-                        <div className="flex items-center gap-2">
-                            <div className="w-1 h-4 bg-purple-500 rounded-full" />
-                            <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">03. Macro Strategy</h3>
-                        </div>
-                        <button
-                            onClick={() => setShowGuide(true)}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/30 rounded-lg text-purple-300 text-[10px] font-bold transition-all"
-                        >
-                            <Zap size={14} /> LOGIC GUIDE
-                        </button>
-                    </div>
-
-                    {regimeData?.suggestion && (
-                        <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 p-8 rounded-3xl shadow-2xl relative overflow-hidden group h-full">
-                            <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
-                                <Zap size={120} className="text-purple-400" />
-                            </div>
-                            <div className="flex items-center gap-2 mb-6">
-                                <div className="p-2 bg-purple-500/20 rounded-lg">
-                                    <Zap className="text-purple-400" size={24} />
-                                </div>
-                                <h3 className="text-xl font-black text-white uppercase tracking-tight italic">Macro Strategic Playbook</h3>
-                            </div>
-                            <div className="text-2xl font-black text-purple-300 mb-2 tracking-tighter italic">{regimeData.suggestion.title}</div>
-                            <p className="text-gray-300 mb-8 pr-12 leading-relaxed">{regimeData.suggestion.action}</p>
-                            <div className="flex flex-wrap gap-2">
-                                {regimeData.suggestion.focus.split(', ').map(sector => (
-                                    <span key={sector} className="px-3 py-1.5 bg-purple-900/40 border border-purple-700/30 rounded-xl text-[10px] uppercase font-black text-purple-200 tracking-widest">
-                                        {sector}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </section>
-
-                <section id="tour-routine">
-                    <div className="flex items-center gap-2 mb-6 px-1">
-                        <div className="w-1 h-4 bg-yellow-500 rounded-full" />
-                        <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">04. Automated Routine</h3>
-                    </div>
+            {/* SECTION 5: AUTOMATED ROUTINE */}
+            <section id="tour-routine" className="mb-12">
+                <div className="flex items-center gap-2 mb-6 px-1">
+                    <div className="w-1 h-4 bg-yellow-500 rounded-full" />
+                    <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">05. Automated Routine</h3>
+                </div>
+                <div className="w-full">
                     <TopDownRoutine regimeData={regimeData} />
-                </section>
-            </div>
+                </div>
+            </section>
 
-            {/* SECTION 4: FINAL SYNTHESIS */}
+            {/* SECTION 6: FINAL DECISION */}
             <section id="tour-decision" className="mb-12">
                 <div className="flex items-center gap-2 mb-6 px-1">
                     <div className="w-1 h-4 bg-red-500 rounded-full" />
-                    <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">05. Final Synthesis & Decision</h3>
+                    <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">06. Final Synthesis & Decision</h3>
                 </div>
                 {regimeData && (
                     <div className="bg-gradient-to-br from-blue-900/20 to-gray-900 border border-blue-500/30 rounded-[2.5rem] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden">
