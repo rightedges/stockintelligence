@@ -14,14 +14,26 @@ graph TD
     B --> C["Layer 3: Market Regime (Phases)"]
     C --> D["Layer 4: Sector Leadership"]
     D --> E["Final Strategic Decision"]
+
+    style A fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style B fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style C fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style D fill:#1e3a8a,stroke:#3b82f6,color:#fff
+    style E fill:#166534,stroke:#4ade80,color:#fff
 ```
 
 ---
 
 ### Layer 1: Global Macro Trend (The "Weather")
 The system first looks at the **SPY (S&P 500)** relative to its **50-day EMA**. 
-*   **Risk-On**: SPY > EMA50. The environment is favorable for growth and momentum strategies.
-*   **Risk-Off**: SPY < EMA50. The environment is defensive; technical setups are prone to failure.
+
+```mermaid
+graph LR
+    A["SPY > EMA50"] --> B["Risk-On: Bullish Environment"]
+    C["SPY < EMA50"] --> D["Risk-Off: Defensive Environment"]
+    style B fill:#166534,stroke:#4ade80,color:#fff
+    style D fill:#991b1b,stroke:#f87171,color:#fff
+```
 
 #### 💡 Why it matters:
 Trading against the broad market is like swimming against a tsunami. Layer 1 protects your capital by providing a "Go/No-Go" signal. When the market is **Risk-Off**, even the best technical setups have a significantly higher failure rate.
@@ -31,27 +43,58 @@ Trading against the broad market is like swimming against a tsunami. Layer 1 pro
 ### Layer 2: Macro Tides (The "Currents")
 The engine monitors three critical proxies to determine the current economic "climate."
 
-| Current | Proxy | Logic | Impact |
-| :--- | :--- | :--- | :--- |
-| **Growth** | **XLI** (Industrials) | XLI > EMA50 = Expanding | **Expanding**: Favor Tech/Growth/Cyclicals. |
-| **Inflation** | **TIP** (Inflation Bonds) | TIP < EMA50 = Rising Pressure | **Rising**: Favor Commodities/Energy/Staples. |
-| **Liquidity** | **^TNX** (10Y Yields) | TNX < EMA50 = Easing | **Easing**: Favor Small Caps/Forward Tech/Financials. |
+```mermaid
+graph TD
+    subgraph "The Three Pillars"
+    G["Growth (XLI)"]
+    I["Inflation (TIP)"]
+    L["Liquidity (^TNX)"]
+    end
+    G --> P["Macro Playbook Selection"]
+    I --> P
+    L --> P
+    style G fill:#1f2937,color:#fff
+    style I fill:#1f2937,color:#fff
+    style L fill:#1f2937,color:#fff
+    style P fill:#5b21b6,stroke:#a78bfa,color:#fff
+```
+
+#### Strategic Playbooks
+By combining these tides, the system identifies the active macro regime:
+
+| Playbook | Tides | User Focus |
+| :--- | :--- | :--- |
+| **Goldilocks Zone** | Expanding + Easing | High-Beta Tech & Growth |
+| **Stagflation Risk** | Slowing + Rising Inflation | Energy, Staples, & Gold |
+| **Late Cycle** | Expanding + Tightening | Financials & Value |
+| **Recovery** | Slowing + Easing | Small Caps & Forward Tech |
 
 #### 💡 Why it matters:
-Institutional "Smart Money" moves based on these three pillars. By identifying the **Macro Playbook**, the system tells you which "Neighborhood" of the market is currently backed by economic tailwinds. It helps you avoid "fighting the fed" or buying growth stocks in a high-inflation, tightening environment.
+Institutional "Smart Money" moves based on these three pillars. Layer 2 tells you which "Neighborhood" of the market is currently backed by economic tailwinds, helping you avoid "fighting the fed."
 
 ---
 
 ### Layer 3: Market Regime Detection (The "Map")
-Using the 50-day and 200-day EMAs, the system classifies the stock into one of Stan Weinstein's classic market phases:
+Using the 50-day and 200-day EMAs, the system classifies the stock into its technical stage:
 
-1.  **Mark-Up (Stage 2)**: Price > EMA50 > EMA200. Established uptrend.
-2.  **Distribution (Stage 3)**: Price < EMA50 while Averages are flat/topping. Topping behavior.
-3.  **Mark-Down (Stage 4)**: Price < EMA50 < EMA200. Established downtrend.
-4.  **Accumulation (Stage 1)**: Price > EMA50 while Averages are flat/bottoming. Smart money absorption.
+```mermaid
+graph LR
+    subgraph "Bullish Stages"
+    S1["Accumulation (Stage 1)"]
+    S2["Mark-Up (Stage 2)"]
+    end
+    subgraph "Bearish Stages"
+    S3["Distribution (Stage 3)"]
+    S4["Mark-Down (Stage 4)"]
+    end
+    style S1 fill:#166534,stroke:#4ade80,color:#fff
+    style S2 fill:#166534,stroke:#4ade80,color:#fff
+    style S3 fill:#991b1b,stroke:#f87171,color:#fff
+    style S4 fill:#991b1b,stroke:#f87171,color:#fff
+```
 
 #### 💡 Why it matters:
-Most retail traders lose money by buying "Stage 4" (Mark-Down) stocks thinking they are a bargain. Layer 3 forces you to trade only in **Stage 2** (Uptrend) or **Stage 1** (Accumulation), ensuring you are aligned with the technical path of least resistance.
+Most retail traders lose money by buying "Stage 4" (Mark-Down) stocks thinking they are a bargain. Layer 3 forces you to trade only in **Stage 2** (Uptrend) or **Stage 1** (Accumulation), aligning you with the technical path of least resistance.
 
 ---
 
@@ -59,16 +102,18 @@ Most retail traders lose money by buying "Stage 4" (Mark-Down) stocks thinking t
 The engine calculates the 1-month relative performance of all major S&P sectors and compares the stock's own sector against the active **Macro Playbook**.
 
 #### 💡 Why it matters:
-A stock that is outperforming its sector is strong; a stock that is in a sector outperforming the S&P 500 is **market-leading**. This layer ensures you aren't just buying a good company, but a company that is currently in a "Leading Sector," which provides a critical extra layer of momentum.
+A stock in a sector outperforming the S&P 500 is **market-leading**. This layer ensures you aren't just buying a good company, but one currently in a "Leading Sector" with institutional momentum.
 
 ---
 
 ## 🎯 The Final Strategic Decision
 The system harmonizes all layers into a final instruction.
 
-*   **Strong Buy**: High-probability confluence where Trend, Sector, and Macro are all aligned.
-*   **Avoid / Short**: Technical signals are weak AND the macro environment is hostile.
-*   **Speculative Bullish**: Strong individual trend, but lacks institutional (Macro) backing.
+```mermaid
+graph LR
+    Con["Confluence: Trend + Momentum + Flow"] --> Dec["Final Strategic Recommendation"]
+    style Dec fill:#1e3a8a,stroke:#3b82f6,color:#fff
+```
 
 ### 💡 The Big Picture
 By the time you reach the "Final Decision," the engine has filtered out thousands of low-probability noise signals, leaving you with only the trades where the **Weather**, the **Currents**, the **Map**, and the **Neighborhood** are all in your favor.
