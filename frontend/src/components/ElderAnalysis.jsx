@@ -918,7 +918,6 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 )
             }
         </div>
-        </div >
     );
 };
 
