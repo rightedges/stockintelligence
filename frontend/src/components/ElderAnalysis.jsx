@@ -10,7 +10,7 @@ import { Zap, Info, Notebook, Camera, Calendar, Trash2, Search, AlertTriangle, E
 import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalEntry } from '../services/api';
 import { X } from 'lucide-react';
 
-const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDivergence, timeframeLabel = 'Daily' }) => {
+const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDivergence, f13Divergence, timeframeLabel = 'Daily' }) => {
     const chartContainerRef = useRef();
     const [persistenceKey, setPersistenceKey] = useState(null);
     const [journalEntries, setJournalEntries] = useState([]);
@@ -585,6 +585,29 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                             <div className="absolute left-[65px] top-[75%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">MACD</div>
                         )}
                     </div>
+
+                    {/* F13 Divergence Alert */}
+                    {f13Divergence && (
+                        <div className={`mb-6 p-4 rounded-xl border flex items-start gap-4 shadow-lg ${f13Divergence.type === 'bearish'
+                            ? 'bg-purple-900/30 border-purple-500/50 shadow-purple-900/10'
+                            : 'bg-indigo-900/30 border-indigo-500/50 shadow-indigo-900/10'
+                            }`}>
+                            <div className={`p-2 rounded-lg ${f13Divergence.type === 'bearish' ? 'bg-purple-500/20' : 'bg-indigo-500/20'}`}>
+                                <Zap size={24} className={f13Divergence.type === 'bearish' ? 'text-purple-400' : 'text-indigo-400'} />
+                            </div>
+                            <div>
+                                <h4 className={`text-sm font-black uppercase tracking-wider mb-1 ${f13Divergence.type === 'bearish' ? 'text-purple-400' : 'text-indigo-400'}`}>
+                                    Critical F13 {f13Divergence.type} Divergence
+                                </h4>
+                                <p className="text-sm text-gray-300 leading-relaxed">
+                                    Force Index (13) is diverging from Price action.
+                                    {f13Divergence.type === 'bearish'
+                                        ? " Price is making higher highs while Force Index marks lower highs. Smart money volume is fading."
+                                        : " Price is making lower lows while Force Index marks higher lows. Selling pressure is exhausting."}
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

@@ -13,6 +13,7 @@ const Dashboard = () => {
     const [srLevels, setSrLevels] = useState([]);
     const [elderTactics, setElderTactics] = useState(null);
     const [macdDivergence, setMacdDivergence] = useState(null);
+    const [f13Divergence, setF13Divergence] = useState(null);
     const [newSymbol, setNewSymbol] = useState('');
     const [loading, setLoading] = useState(false);
     const [view, setView] = useState('weekly'); // 'weekly', 'elder' (daily), or 'intelligence'
@@ -65,6 +66,7 @@ const Dashboard = () => {
             setSrLevels(res.data.sr_levels || []);
             setElderTactics(res.data.elder_tactics || null);
             setMacdDivergence(res.data.macd_divergence || null);
+            setF13Divergence(res.data.f13_divergence || null);
         } catch (err) {
             console.error("Failed to load analysis", err);
         } finally {
@@ -212,9 +214,9 @@ const Dashboard = () => {
                     ) : view === 'intelligence' ? (
                         <MarketIntelligence regimeData={regimeData} />
                     ) : view === 'elder' ? (
-                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} timeframeLabel="Daily" />
+                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} f13Divergence={f13Divergence} timeframeLabel="Daily" />
                     ) : view === 'weekly' ? (
-                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} timeframeLabel="Weekly" />
+                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} f13Divergence={f13Divergence} timeframeLabel="Weekly" />
                     ) : (
                         <div className="flex items-center justify-center h-full text-gray-500">
                             Select a stock to view analysis

@@ -691,10 +691,12 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
 
         # Prepare response
         # --- MACD Divergence Detection (Wave-based) ---
-        def find_divergence(df):
+        # --- Divergence Detection (Generic) ---
+        def find_divergence(df, indicator_col):
             if len(df) < 50: return None
             
-            hist = df['macd_diff'].values
+            
+            hist = df[indicator_col].values
             prices = df['High'].values # Use Highs for Bearish
             lows = df['Low'].values # Use Lows for Bullish
             
@@ -759,7 +761,8 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
             
             return None
 
-        macd_divergence = find_divergence(df)
+        macd_divergence = find_divergence(df, 'macd_diff')
+        f13_divergence = find_divergence(df, 'force_index_13')
 
         # Convert index (Date) to listing
         df.reset_index(inplace=True)
@@ -802,7 +805,8 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
             },
             "sr_levels": sr_levels,
             "elder_tactics": elder_tactics,
-            "macd_divergence": macd_divergence
+            "macd_divergence": macd_divergence,
+            "f13_divergence": f13_divergence
         }
 
     except Exception as e:
