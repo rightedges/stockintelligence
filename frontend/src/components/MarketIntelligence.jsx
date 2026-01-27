@@ -639,6 +639,12 @@ const MarketIntelligence = ({ regimeData }) => {
                                     {regimeData.confluence}/3 Score
                                 </div>
                             )}
+                            <button
+                                onClick={() => setShowConfluence(true)}
+                                className="flex items-center gap-2 px-2 py-1 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/30 rounded-lg text-blue-300 text-[9px] font-bold transition-all"
+                            >
+                                <Layers size={10} /> DETAILS
+                            </button>
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3 h-[280px]">
@@ -650,13 +656,27 @@ const MarketIntelligence = ({ regimeData }) => {
                                 { key: "Mark-Down", icon: <Zap size={14} className="text-red-400" /> }
                             ].find(f => f.key === regime);
                             const isActive = regimeData?.regime?.includes(regime);
+                            const info = [
+                                { key: "Accumulation", strategy: "Buy at support; use oscillators." },
+                                { key: "Mark-Up", strategy: "Trend follow; buy EMA pullbacks." },
+                                { key: "Distribution", strategy: "Sell at resistance; use oscillators." },
+                                { key: "Mark-Down", strategy: "Risk management; short rallies or cash." }
+                            ].find(f => f.key === regime);
+
                             return (
                                 <div key={regime} className={`p-3 rounded-xl border flex flex-col justify-center transition-all ${isActive ? 'bg-blue-600/20 border-blue-500 ring-1 ring-blue-500/20' : 'bg-gray-800 border-gray-700 opacity-50'}`}>
                                     <div className="flex items-center gap-2 mb-1">
                                         {r.icon}
                                         <span className="text-xs font-bold">{regime}</span>
                                     </div>
-                                    <div className="text-[10px] text-gray-500 truncate">{isActive ? "ACTIVE PHASE" : "Inactive"}</div>
+                                    {isActive ? (
+                                        <div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-500">
+                                            <div className="text-[9px] text-blue-400 font-bold uppercase mb-1 tracking-tight">Active Strategy</div>
+                                            <div className="text-[10px] text-gray-200 leading-tight font-medium italic">{info.strategy}</div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-[10px] text-gray-500 truncate">Inactive Phase</div>
+                                    )}
                                 </div>
                             )
                         })}
