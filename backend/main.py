@@ -3,7 +3,7 @@ import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, Session, text
 from database import engine
 
 # Create the database tables
@@ -14,6 +14,18 @@ def create_db_and_tables():
 async def lifespan(app: FastAPI):
     # Startup
     create_db_and_tables()
+    
+    # Auto-migration for divergence_status
+    try:
+        with Session(engine) as session:
+            session.exec(text("ALTER TABLE stock ADD COLUMN divergence_status TEXT"))
+            session.commit()
+            print("Migrated: Added divergence_status column")
+    except Exception as e:
+        # Check if error is because column exists
+        if "duplicate column name" not in str(e).lower():
+            print(f"Migration note: {e}")
+
     yield
     # Shutdown
 

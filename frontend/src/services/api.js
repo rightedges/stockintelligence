@@ -21,4 +21,7 @@ export const getTemplates = () => api.get('/templates/');
 export const addTemplate = (template) => api.post('/templates/', template);
 export const deleteTemplate = (id) => api.delete(`/templates/${id}`);
 
+
+export const scanStocks = () => api.post('/stocks/scan');
+
 export default api;

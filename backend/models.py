@@ -8,6 +8,7 @@ class Stock(SQLModel, table=True):
     sector: Optional[str] = None
     exchange: Optional[str] = None
     is_watched: bool = Field(default=False)
+    divergence_status: Optional[str] = None # 'bullish', 'bearish', 'dual_bullish', 'dual_bearish'
 
 class StockPublic(Stock):
     impulse: Optional[str] = None

@@ -117,6 +117,23 @@ const Dashboard = () => {
                 <div className="p-4 border-b border-gray-700 font-bold text-xl flex items-center gap-2">
                     <TrendingUp className="text-green-500" />
                     StockAI
+                    <button
+                        onClick={async (e) => {
+                            e.stopPropagation();
+                            // Simple visual feedback could be improved but scanning is async
+                            try {
+                                await scanStocks();
+                                loadStocks(); // Refresh logic
+                            } catch (err) {
+                                console.error("Scan failed", err);
+                            }
+                        }}
+                        className="ml-auto text-xs bg-gray-700 hover:bg-purple-600 text-gray-300 hover:text-white px-2 py-1 rounded flex items-center gap-1 transition-all"
+                        title="Scan Watchlist for Recent Divergences"
+                    >
+                        <Zap size={12} />
+                        SCAN
+                    </button>
                 </div>
 
                 {/* Add Stock */}
@@ -151,6 +168,14 @@ const Dashboard = () => {
                                             'bg-blue-500'
                                         }`}></div>
                                     <div className="font-bold">{stock.symbol}</div>
+                                    {/* Divergence Icon */}
+                                    {stock.divergence_status && (
+                                        <div className={`ml-2 p-0.5 rounded-full ${stock.divergence_status.includes('bearish') ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}
+                                            title={`${stock.divergence_status.replace('_', ' ').toUpperCase()} Divergence Detected`}
+                                        >
+                                            <Zap size={12} fill="currentColor" />
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="text-xs text-gray-400 truncate w-32">{stock.name || '-'}</div>
                             </div>
