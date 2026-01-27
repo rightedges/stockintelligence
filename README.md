@@ -18,7 +18,7 @@
     *   **Screen 2 (The Wave)**: Daily Force Index (F2). Identifies contrarian value entries (pullbacks).
     *   **Screen 3 (Execution)**: Dynamic Entry, Stop, and Target mapping.
 *   **Smart Strategy Panel**: Located at the **top of the view**, this panel consolidates all critical signals into a unified 3-column grid (Tide -> Wave -> Execution).
-*   **Divergence Alerts**: Prominent **Red/Green alerts** trigger automatically when MACD Divergence is detected, warning of imminent reversals.
+*   **Divergence Alerts**: Prominent **Red/Green alerts** trigger automatically when MACD or Force Index divergences are detected. [See Divergence Algorithm Details](./docs/divergence_algorithm.md).
 
 ### 3. ⭐ Close Watchlist
 *   **Priority Sorting**: Click the **Star Icon** next to any stock in the sidebar.
