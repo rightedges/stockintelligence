@@ -459,8 +459,6 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                 final_levels.extend(sorted(sup_levels, key=lambda x: x['date'], reverse=True)[:3])
             
             return final_levels
-            
-            return final_levels
 
         sr_levels = find_levels(df.tail(120)) # Look at last 120 candles
 
@@ -927,20 +925,30 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
             segments.append(current_seg)
             
             # 2. Extract extrema for each segment
+            valid_segments = []
             for seg in segments:
                 idxs = seg["indices"]
+                # Skip segments that are entirely NaNs
+                if pd.isna(hist[idxs]).all():
+                    continue
+                
                 if seg["type"] == "pos":
-                    peak_idx = idxs[0] + hist[idxs].argmax()
+                    peak_idx = idxs[0] + pd.Series(hist[idxs]).idxmax()
                     seg["extrema_idx"] = int(peak_idx)
                     seg["extrema_val"] = float(hist[peak_idx])
                     # Use segment max High
-                    seg["price_at_extrema"] = float(prices[idxs].max())
+                    subset_prices = prices[idxs]
+                    seg["price_at_extrema"] = float(pd.Series(subset_prices).max())
                 else:
-                    trough_idx = idxs[0] + hist[idxs].argmin()
+                    trough_idx = idxs[0] + pd.Series(hist[idxs]).idxmin()
                     seg["extrema_idx"] = int(trough_idx)
                     seg["extrema_val"] = float(hist[trough_idx])
                     # Use segment min Low
-                    seg["price_at_extrema"] = float(lows[idxs].min())
+                    subset_lows = lows[idxs]
+                    seg["price_at_extrema"] = float(pd.Series(subset_lows).min())
+                valid_segments.append(seg)
+            
+            segments = valid_segments
 
             # 3. Detect Bearish Divergence Lookback (Dynamic S2 & Stricter Bridge)
             pos_segs = [s for s in segments if s["type"] == "pos" and len(s["indices"]) > 1]
@@ -1063,9 +1071,5 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
         }
 
     except Exception as e:
-        import traceback
-        with open("error_log.txt", "a") as f:
-            f.write(f"\n--- Error analyzing {symbol} ---\n")
-            traceback.print_exc(file=f)
         print(f"Error analyzing {symbol}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
