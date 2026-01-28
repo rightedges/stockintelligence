@@ -1092,5 +1092,9 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
         return clean_nans(response)
 
     except Exception as e:
+        import traceback
+        with open("error_log.txt", "a") as f:
+            f.write(f"\n--- [DEBUG] Error analyzing {symbol} (Remote) ---\n")
+            traceback.print_exc(file=f)
         print(f"Error analyzing {symbol}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
