@@ -101,7 +101,7 @@ A divergence signal is considered **cancelled** or invalidated if any of the fol
 *   **Time Decay**: If more than **40 bars** pass between the two extrema, the signals are considered "decoupled" and no longer part of the same market structure.
 *   **Price Breakout**: If the price continues to trend decisively against the signal before the "tick back" confirmation, the pattern is usually abandoned by the algorithm.
 
-## 7. Recency & Freshness
-To ensure the suite provides actionable data, the algorithm applies two layers of filtering:
-*   **SCAN Freshness (1 Week)**: In the master scanner and dashboard alerts, a signal is only reported if the most recent extrema (S2) occurred within the last **5 trading bars**. This ensures you only see "fresh" opportunities.
-*   **Chart History (1 Month)**: When viewing an individual stock, the algorithm will draw and display historical divergences up to **30 bars** old to provide context for recent price action.
+## 7. Recency & Freshness (1-Week Limit)
+To ensure the suite remains focused on actionable, high-conviction opportunities, the algorithm applies a strict freshness filter:
+*   **5-Bar Recency**: A divergence signal is only reported (in the SCAN, on the dashboard, and as "Critical" chart alerts) if the most recent extrema (S2) occurred within the last **5 trading bars** (1 week).
+*   **Expired Patterns**: Patterns older than 5 days are considered "already played out" and are hidden to keep the daily screen clean and focused on current price risks.

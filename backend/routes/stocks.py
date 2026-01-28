@@ -906,7 +906,7 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
             if len(pos_segs) >= 2:
                 for j in range(1, min(len(pos_segs), 3)):
                     s2 = pos_segs[-j]
-                    if (len(hist) - 1 - s2["extrema_idx"]) < 30:
+                    if (len(hist) - 1 - s2["extrema_idx"]) < 5:
                         is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
                         indicator_ticked_down = hist[-1] < s2["extrema_val"] if is_confirmed else False
                         
@@ -934,7 +934,7 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
             if len(neg_segs) >= 2:
                 for j in range(1, min(len(neg_segs), 3)):
                     s2 = neg_segs[-j]
-                    if (len(hist) - 1 - s2["extrema_idx"]) < 30:
+                    if (len(hist) - 1 - s2["extrema_idx"]) < 5:
                         is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
                         indicator_ticked_up = hist[-1] > s2["extrema_val"] if is_confirmed else False
                         
