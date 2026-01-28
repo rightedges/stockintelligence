@@ -190,35 +190,42 @@ def scan_stocks(session: Session = Depends(get_session)):
                         seg["extrema_val"] = float(hist[trough_idx])
                         seg["price_at_extrema"] = float(lows[trough_idx])
                         
-                # Bearish Lookback (Dynamic S2)
+                # Bearish Lookback (Dynamic S2 & Stricter Bridge)
                 pos_segs = [s for s in segments if s["type"] == "pos" and len(s["indices"]) > 1]
                 if len(pos_segs) >= 2:
-                    # Check top 3 most recent segments as potential s2
-                    for j in range(1, min(len(pos_segs), 4)):
+                    # Check top 2 most recent segments as potential s2 (latest or previous)
+                    for j in range(1, min(len(pos_segs), 3)):
                         s2 = pos_segs[-j]
                         if (len(hist) - 1 - s2["extrema_idx"]) < 30:
                             is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
                             indicator_ticked_down = hist[-1] < s2["extrema_val"] if is_confirmed else False
                             
-                            # Older segments are inherently confirmed by a zero crossing
                             if j > 1:
                                 is_confirmed = True
                                 indicator_ticked_down = True
 
                             if is_confirmed and indicator_ticked_down:
-                                for k in range(1, min(len(pos_segs) - (j-1), 5)):
+                                # Stricter historical lookback (Elder Standard: usually immediate previous wave)
+                                for k in range(1, min(len(pos_segs) - (j-1), 4)):
                                     s1 = pos_segs[-j - k]
-                                    price_condition = s2["price_at_extrema"] >= (s1["price_at_extrema"] * 0.98)
-                                    if price_condition and s2["extrema_val"] < s1["extrema_val"]:
-                                        s1_idx = segments.index(s1)
-                                        s2_idx = segments.index(s2)
-                                        if any(segments[m]["type"] == "neg" for m in range(s1_idx + 1, s2_idx)):
-                                            return "bearish"
+                                    s1_idx_in_all = segments.index(s1)
+                                    s2_idx_in_all = segments.index(s2)
+                                    
+                                    # 1. Bridge Constraint: Max 3 intervening waves (e.g. crossing one major cycle)
+                                    bridge_waves = s2_idx_in_all - s1_idx_in_all - 1
+                                    # 2. Distance Constraint: Max 60 bars (3 months)
+                                    distance_bars = s2["extrema_idx"] - s1["extrema_idx"]
+                                    
+                                    if bridge_waves <= 3 and distance_bars <= 60:
+                                        price_condition = s2["price_at_extrema"] >= (s1["price_at_extrema"] * 0.98)
+                                        if price_condition and s2["extrema_val"] < s1["extrema_val"]:
+                                            if any(segments[m]["type"] == "neg" for m in range(s1_idx_in_all + 1, s2_idx_in_all)):
+                                                return "bearish"
                 
-                # Bullish Lookback (Dynamic S2)
+                # Bullish Lookback (Dynamic S2 & Stricter Bridge)
                 neg_segs = [s for s in segments if s["type"] == "neg" and len(s["indices"]) > 1]
                 if len(neg_segs) >= 2:
-                    for j in range(1, min(len(neg_segs), 4)):
+                    for j in range(1, min(len(neg_segs), 3)):
                         s2 = neg_segs[-j]
                         if (len(hist) - 1 - s2["extrema_idx"]) < 30:
                             is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
@@ -229,14 +236,19 @@ def scan_stocks(session: Session = Depends(get_session)):
                                 indicator_ticked_up = True
 
                             if is_confirmed and indicator_ticked_up:
-                                for k in range(1, min(len(neg_segs) - (j-1), 5)):
+                                for k in range(1, min(len(neg_segs) - (j-1), 4)):
                                     s1 = neg_segs[-j - k]
-                                    price_condition = s2["price_at_extrema"] <= (s1["price_at_extrema"] * 1.02)
-                                    if price_condition and s2["extrema_val"] > s1["extrema_val"]:
-                                         s1_idx = segments.index(s1)
-                                         s2_idx = segments.index(s2)
-                                         if any(segments[m]["type"] == "pos" for m in range(s1_idx + 1, s2_idx)):
-                                             return "bullish"
+                                    s1_idx_in_all = segments.index(s1)
+                                    s2_idx_in_all = segments.index(s2)
+                                    
+                                    bridge_waves = s2_idx_in_all - s1_idx_in_all - 1
+                                    distance_bars = s2["extrema_idx"] - s1["extrema_idx"]
+
+                                    if bridge_waves <= 3 and distance_bars <= 60:
+                                        price_condition = s2["price_at_extrema"] <= (s1["price_at_extrema"] * 1.02)
+                                        if price_condition and s2["extrema_val"] > s1["extrema_val"]:
+                                             if any(segments[m]["type"] == "pos" for m in range(s1_idx_in_all + 1, s2_idx_in_all)):
+                                                 return "bullish"
                 return None
 
             macd_div = check_div_scan(df, 'macd_diff')
@@ -885,10 +897,10 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                     seg["extrema_val"] = float(hist[trough_idx])
                     seg["price_at_extrema"] = float(lows[trough_idx])
 
-            # 3. Detect Bearish Divergence Lookback (Dynamic S2)
+            # 3. Detect Bearish Divergence Lookback (Dynamic S2 & Stricter Bridge)
             pos_segs = [s for s in segments if s["type"] == "pos" and len(s["indices"]) > 1]
             if len(pos_segs) >= 2:
-                for j in range(1, min(len(pos_segs), 4)):
+                for j in range(1, min(len(pos_segs), 3)):
                     s2 = pos_segs[-j]
                     if (len(hist) - 1 - s2["extrema_idx"]) < 30:
                         is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
@@ -899,19 +911,23 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                             indicator_ticked_down = True
 
                         if is_confirmed and indicator_ticked_down:
-                            for k in range(1, min(len(pos_segs) - (j-1), 5)):
+                            for k in range(1, min(len(pos_segs) - (j-1), 4)):
                                 s1 = pos_segs[-j - k]
-                                price_condition = s2["price_at_extrema"] >= (s1["price_at_extrema"] * 0.98)
-                                if price_condition and s2["extrema_val"] < s1["extrema_val"]:
-                                    s1_idx = segments.index(s1)
-                                    s2_idx = segments.index(s2)
-                                    if any(segments[m]["type"] == "neg" for m in range(s1_idx + 1, s2_idx)):
-                                        return {"type": "bearish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
+                                s1_idx_all = segments.index(s1)
+                                s2_idx_all = segments.index(s2)
+                                bridge_count = s2_idx_all - s1_idx_all - 1
+                                distance_count = s2["extrema_idx"] - s1["extrema_idx"]
 
-            # 4. Detect Bullish Divergence Lookback (Dynamic S2)
+                                if bridge_count <= 3 and distance_count <= 60:
+                                    price_condition = s2["price_at_extrema"] >= (s1["price_at_extrema"] * 0.98)
+                                    if price_condition and s2["extrema_val"] < s1["extrema_val"]:
+                                        if any(segments[m]["type"] == "neg" for m in range(s1_idx_all + 1, s2_idx_all)):
+                                            return {"type": "bearish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
+
+            # 4. Detect Bullish Divergence Lookback (Dynamic S2 & Stricter Bridge)
             neg_segs = [s for s in segments if s["type"] == "neg" and len(s["indices"]) > 1]
             if len(neg_segs) >= 2:
-                for j in range(1, min(len(neg_segs), 4)):
+                for j in range(1, min(len(neg_segs), 3)):
                     s2 = neg_segs[-j]
                     if (len(hist) - 1 - s2["extrema_idx"]) < 30:
                         is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
@@ -922,14 +938,18 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                             indicator_ticked_up = True
 
                         if is_confirmed and indicator_ticked_up:
-                            for k in range(1, min(len(neg_segs) - (j-1), 5)):
+                            for k in range(1, min(len(neg_segs) - (j-1), 4)):
                                 s1 = neg_segs[-j - k]
-                                price_condition = s2["price_at_extrema"] <= (s1["price_at_extrema"] * 1.02)
-                                if price_condition and s2["extrema_val"] > s1["extrema_val"]:
-                                    s1_idx = segments.index(s1)
-                                    s2_idx = segments.index(s2)
-                                    if any(segments[m]["type"] == "pos" for m in range(s1_idx + 1, s2_idx)):
-                                        return {"type": "bullish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
+                                s1_idx_all = segments.index(s1)
+                                s2_idx_all = segments.index(s2)
+                                bridge_count = s2_idx_all - s1_idx_all - 1
+                                distance_count = s2["extrema_idx"] - s1["extrema_idx"]
+
+                                if bridge_count <= 3 and distance_count <= 60:
+                                    price_condition = s2["price_at_extrema"] <= (s1["price_at_extrema"] * 1.02)
+                                    if price_condition and s2["extrema_val"] > s1["extrema_val"]:
+                                        if any(segments[m]["type"] == "pos" for m in range(s1_idx_all + 1, s2_idx_all)):
+                                            return {"type": "bullish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
             
             return None
 

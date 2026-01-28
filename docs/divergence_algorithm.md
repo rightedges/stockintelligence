@@ -27,7 +27,12 @@ For each wave, the algorithm extracts two critical data points:
 The system compares the **current active wave** with a **previous historical wave** of the same polarity.
 
 ### 🔍 Multi-Segment Lookback (Noise Resistance)
-To protect against market "noise" and minor indicator fluctuations, the algorithm does not just look at the *immediate* previous wave. It searches back through the last **4 previous waves** of the same polarity to find a valid divergence pair. This ensures that a large, significant divergence isn't hidden by a tiny indicator "bump."
+To protect against market "noise" and minor indicator fluctuations, the algorithm searches back through recent historical waves.
+
+### ⛓️ Elder's Constraints (Cycle Filtering)
+To ensure the divergence is logically consistent and doesn't cross multiple unrelated market cycles:
+*   **Bridge Wave Limit**: A divergence can only cross a maximum of **3 intervening waves** (zero-crossings). This prevents linking two distant price peaks that are separated by significant momentum shifts.
+*   **Distance Limit**: The two extrema must occur within **60 bars** (approx. 3 months for Daily charts) of each other.
 
 ### 📉 Bearish Divergence (Reversal Signal)
 Occurs during an uptrend when price momentum is fading.
