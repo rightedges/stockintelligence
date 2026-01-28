@@ -24,7 +24,10 @@ For each wave, the algorithm extracts two critical data points:
     *   For **Troughs** (Negative Indicator): Low Price is recorded.
 
 ## 3. Divergence Comparison Logic
-The system compares the **current active wave** with the **most recent previous wave** of the same polarity.
+The system compares the **current active wave** with a **previous historical wave** of the same polarity.
+
+### 🔍 Multi-Segment Lookback (Noise Resistance)
+To protect against market "noise" and minor indicator fluctuations, the algorithm does not just look at the *immediate* previous wave. It searches back through the last **4 previous waves** of the same polarity to find a valid divergence pair. This ensures that a large, significant divergence isn't hidden by a tiny indicator "bump."
 
 ### 📉 Bearish Divergence (Reversal Signal)
 Occurs during an uptrend when price momentum is fading.
@@ -47,7 +50,8 @@ graph TD
     linkStyle 1 stroke:#ef4444,stroke-width:3px;
 ```
 
-*   **Price Condition**: Current Peak High > Previous Peak High (A "Higher High" in price).
+*   **Price Condition**: Current Peak High >= (Previous Peak High * 0.98). 
+    *   *Note: Includes "Higher Highs" and "Equal Highs" (Double Tops) within a 2% tolerance.*
 *   **Indicator Condition**: Current Peak Value < Previous Peak Value (A "Lower High" in momentum/volume).
 *   **Confirmation**: There must be at least one complete negative wave (zero-crossing) between the two peaks.
 
@@ -72,12 +76,18 @@ graph TD
     linkStyle 1 stroke:#22c55e,stroke-width:3px;
 ```
 
-*   **Price Condition**: Current Trough Low < Previous Trough Low (A "Lower Low" in price).
+*   **Price Condition**: Current Trough Low <= (Previous Trough Low * 1.02).
+    *   *Note: Includes "Lower Lows" and "Equal Lows" (Double Bottoms) within a 2% tolerance.*
 *   **Indicator Condition**: Current Trough Value > Previous Trough Value (A "Higher Low" in momentum/volume).
 *   **Confirmation**: There must be at least one complete positive wave (zero-crossing) between the two troughs.
+
+## 4. Signal Confirmation (Zero-Lag Prevention)
+To prevent "premature" signals that might trigger on the very day a peak is forming (and then disappear if price continues to trend), the system requires:
+*   **1-Bar Lag**: The extrema (peak/trough) must be at least one candle in the past.
+*   **Reversal Confirmation**: The indicator must have explicitly "ticked" back toward the zero-line from its extrema (Ticked down for Bearish, Ticked up for Bullish).
 
 ## 4. Dual Divergence (High Confluence)
 A **Dual Divergence** alert is triggered when both **MACD (Momentum)** and **Force Index 13 (Volume Pressure)** detect the same type of divergence simultaneously. This represents a powerful confluence of fading momentum and decreasing smart-money participation, making it one of the most reliable signals in the suite.
 
-## 5. Recency Filter
-To ensure relevance, an alert is only displayed if the extrema of the current wave occurred within the last **10-15 bars** (depending on the specific indicator).
+## 6. Recency Filter
+To ensure relevance, an alert is only displayed if the extrema of the current wave occurred within the last **30 bars** (Daily) or **20 bars** (Weekly). This allows the system to capture established patterns formed over the preceding month.
