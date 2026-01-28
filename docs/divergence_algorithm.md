@@ -91,8 +91,17 @@ To prevent "premature" signals that might trigger on the very day a peak is form
 *   **1-Bar Lag**: The extrema (peak/trough) must be at least one candle in the past.
 *   **Reversal Confirmation**: The indicator must have explicitly "ticked" back toward the zero-line from its extrema (Ticked down for Bearish, Ticked up for Bullish).
 
-## 4. Dual Divergence (High Confluence)
-A **Dual Divergence** alert is triggered when both **MACD (Momentum)** and **Force Index 13 (Volume Pressure)** detect the same type of divergence simultaneously. This represents a powerful confluence of fading momentum and decreasing smart-money participation, making it one of the most reliable signals in the suite.
+## 5. Dual Divergence (High Confluence)
+A **Dual Divergence** alert is triggered when both **MACD (Momentum)** and **Force Index 13 (Volume Pressure)** detect the same type of divergence simultaneously. This represents a powerful confluence of fading momentum and decreasing institutional participation.
 
-## 6. Recency Filter
-To ensure relevance, an alert is only displayed if the extrema of the current wave occurred within the last **30 bars** (Daily) or **20 bars** (Weekly). This allows the system to capture established patterns formed over the preceding month.
+## 6. Signal Cancellation (Invalidation)
+A divergence signal is considered **cancelled** or invalidated if any of the following occur:
+*   **Momentum New High/Low**: If the current wave's indicator value exceeds the previous peak (Bearish) or drops below the previous trough (Bullish), the "momentum exhaustion" has failed, and the divergence is void.
+*   **Cycle Breakup**: If the indicator crosses the zero-line more than once between the two peaks/troughs (Bridge > 1), the pattern is considered too complex/unreliable and is ignored.
+*   **Time Decay**: If more than **40 bars** pass between the two extrema, the signals are considered "decoupled" and no longer part of the same market structure.
+*   **Price Breakout**: If the price continues to trend decisively against the signal before the "tick back" confirmation, the pattern is usually abandoned by the algorithm.
+
+## 7. Recency & Freshness
+To ensure the suite provides actionable data, the algorithm applies two layers of filtering:
+*   **SCAN Freshness (1 Week)**: In the master scanner and dashboard alerts, a signal is only reported if the most recent extrema (S2) occurred within the last **5 trading bars**. This ensures you only see "fresh" opportunities.
+*   **Chart History (1 Month)**: When viewing an individual stock, the algorithm will draw and display historical divergences up to **30 bars** old to provide context for recent price action.
