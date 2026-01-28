@@ -1040,12 +1040,27 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                 return [clean_nans(i) for i in obj]
             elif isinstance(obj, dict):
                 return {k: clean_nans(v) for k, v in obj.items()}
-            elif isinstance(obj, (float, int)):
+            
+            # Scalar - first check for NaN/Nat
+            try:
                 if pd.isna(obj):
                     return None
-                return obj
-            elif hasattr(obj, 'isoformat'):
+            except:
+                pass
+
+            # Handle Datetime/Timestamp
+            if hasattr(obj, 'isoformat'):
                 return obj.isoformat()
+            
+            # Handle Numpy Scalars (convert to native python)
+            if hasattr(obj, 'item') and not isinstance(obj, (list, dict, str)):
+                try:
+                    val = obj.item()
+                    if pd.isna(val): return None
+                    return val
+                except:
+                    return obj
+
             return obj
 
         response = {
