@@ -29,6 +29,13 @@ def calculate_indicators(df):
     df['ema_50'] = ta.trend.ema_indicator(df['Close'], window=50)
     df['ema_200'] = ta.trend.ema_indicator(df['Close'], window=200)
 
+    # Oscillators for Screen 2
+    df['williams_r'] = ta.momentum.williams_r(df['High'], df['Low'], df['Close'], lbp=14)
+    # Stochastic
+    stoch = ta.momentum.StochasticOscillator(df['High'], df['Low'], df['Close'], window=14, smooth_window=3)
+    df['stoch_k'] = stoch.stoch()
+    df['stoch_d'] = stoch.stoch_signal()
+
     # 95% Envelope Logic (Elder's Auto-Envelope)
     window = 100
     dist = (df['High'] - df['ema_22']).abs() / df['ema_22']
@@ -803,12 +810,27 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                 print(f"Error fetching Weekly Tide for {symbol}: {wk_err}")
                 # Fallback to daily slope if weekly fails
 
+        # 2. Strategy Synthesis (Triple Screen)
         force2 = df['force_index_2'].iloc[-1]
+        wr = df['williams_r'].iloc[-1]
+        stoch_k = df['stoch_k'].iloc[-1]
         impulse_color = df['impulse'].iloc[-1]
         
-        # 2. Strategy Synthesis
+        # Screen 2: The Wave (Oscillator Streaks)
+        f2_streak = 0
+        f2_vals = df['force_index_2'].values
+        if force2 > 0:
+            for v in reversed(f2_vals):
+                if v > 0: f2_streak += 1
+                else: break
+        else:
+            for v in reversed(f2_vals):
+                if v < 0: f2_streak += 1
+                else: break
+
         elder_recommendation = "WAIT"
         tactic_reason = "No high-confluence setup detected."
+        ripple_msg = "Waiting for setup."
         entry_price = None
         target_price = None
         stop_price = None
@@ -816,45 +838,64 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
         u_envelope = df['envelope_upper'].iloc[-1]
         l_envelope = df['envelope_lower'].iloc[-1]
 
-        # BUY Logic: Rising Tide (Weekly if Daily view) + Negative Force Index 2 (Wave)
-        if tide_slope > 0:
-            entry_price = float(df['High'].iloc[-1]) if force2 < 0 else float(df['ema_13'].iloc[-1])
+        if tide_slope > 0: # Bull Tide
+            # Entry/Stop calculation (Screen 3: The Ripple)
+            # Buy Stop at High + wiggle, Stop at EMA 26
+            entry_price = float(df['High'].iloc[-1])
             target_price = float(u_envelope)
             stop_price = float(df['ema_26'].iloc[-1])
             
             if impulse_color == "red":
                 elder_recommendation = "WAIT (CENSORED)"
                 tactic_reason = f"{tide_label} Tide is active, but Impulse System is RED. Long trades are forbidden."
+                ripple_msg = "Stay in cash or preserve existing shorts. No new longs allowed."
             elif force2 < 0:
                 elder_recommendation = "BUY"
-                tactic_reason = f"{tide_label} EMA 13 is rising (Bull Tide); 2-day pullback detected. Impulse allows entry."
+                tactic_reason = f"{tide_label} Bull Tide; {f2_streak}-day pullback detected. Oscillator confluence is active."
+                ripple_msg = f"Place BUY STOP at ${entry_price:.2f} (today's high). If not filled tomorrow, lower to tomorrow's high."
             else:
                 elder_recommendation = "HOLD / ADD"
-                tactic_reason = f"{tide_label} Tide is intact. Optimal entry is near the EMA 13 value zone."
+                tactic_reason = f"{tide_label} Tide is intact. Momentum is with the bulls."
+                ripple_msg = "Wait for a Force Index dip below zero before adding new size."
         
-        # SELL Logic: Falling Tide (Weekly if Daily view) + Positive Force Index 2 (Wave)
-        elif tide_slope < 0:
-            entry_price = float(df['Low'].iloc[-1]) if force2 > 0 else float(df['ema_13'].iloc[-1])
+        elif tide_slope < 0: # Bear Tide
+            # Sell Stop at Low - wiggle, Stop at EMA 26
+            entry_price = float(df['Low'].iloc[-1])
             target_price = float(l_envelope)
             stop_price = float(df['ema_26'].iloc[-1])
 
             if impulse_color == "green":
                 elder_recommendation = "WAIT (CENSORED)"
                 tactic_reason = f"{tide_label} Tide is active, but Impulse System is GREEN. Short trades are forbidden."
+                ripple_msg = "Liquidate shorts and wait for a blue/red impulse before re-entering."
             elif force2 > 0:
                 elder_recommendation = "SELL / SHORT"
-                tactic_reason = f"{tide_label} EMA 13 is falling (Bear Tide); rally detected. Impulse allows entry."
+                tactic_reason = f"{tide_label} Bear Tide; {f2_streak}-day counter-rally detected. Bears are looking for an entry."
+                ripple_msg = f"Place SELL STOP at ${entry_price:.2f} (today's low). Protect with stop at ${stop_price:.2f}."
             else:
                 elder_recommendation = "AVOID / PROTECT"
-                tactic_reason = f"{tide_label} Tide is intact. Trend is down; look for exit opportunities near EMA 13."
+                tactic_reason = f"{tide_label} Tide is intact. Momentum is with the bears."
+                ripple_msg = "Wait for a Force Index rally above zero before initiating new shorts."
+
+        # Screen 2 Detailed Metadata
+        screen2_data = {
+            "force_index_2": float(force2),
+            "f2_streak": f2_streak,
+            "williams_r": float(wr),
+            "stoch_k": float(stoch_k),
+            "status": "Oversold" if wr < -80 else "Overbought" if wr > -20 else "Neutral",
+            "wave_intensity": "High" if abs(force2) > df['force_index_2'].tail(20).std() * 2 else "Normal"
+        }
 
         elder_tactics = {
             "type": "LONG" if tide_slope > 0 else "SHORT",
             "recommendation": elder_recommendation,
             "reason": tactic_reason,
+            "ripple_msg": ripple_msg,
             "entry": round(entry_price, 2) if entry_price else None,
             "target": round(target_price, 2) if target_price else None,
             "stop": round(stop_price, 2) if stop_price else None,
+            "screen2": screen2_data,
             "style": "success" if elder_recommendation in ["BUY", "HOLD / ADD"] else "danger" if elder_recommendation in ["SELL / SHORT", "AVOID / PROTECT"] else "warning"
         }
 

@@ -646,22 +646,39 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         </div>
 
                         {/* COL 2: WAVE */}
-                        <div className={`p-5 rounded-2xl border transition-all duration-300 ${lastData?.force_index_2 < 0 ? 'bg-blue-500/10 border-blue-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
+                        <div className={`p-5 rounded-2xl border transition-all duration-300 ${tacticalAdvice?.screen2?.force_index_2 < 0 ? 'bg-blue-500/10 border-blue-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
                             <div className="text-[10px] text-gray-500 uppercase font-black mb-3 tracking-widest flex items-center justify-between">
-                                SCREEN 2: THE WAVE (Daily F2)
-                                <span className={`px-2 py-0.5 rounded text-[8px] ${lastData?.force_index_2 < 0 ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white'}`}>
-                                    {lastData?.force_index_2 < 0 ? 'NEGATIVE' : 'POSITIVE'}
+                                SCREEN 2: THE WAVE (OSCILLATORS)
+                                <span className={`px-2 py-0.5 rounded text-[8px] ${tacticalAdvice?.screen2?.force_index_2 < 0 ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white'}`}>
+                                    {tacticalAdvice?.screen2?.force_index_2 < 0 ? 'BEARS CONTROL' : 'BULLS CONTROL'}
                                 </span>
                             </div>
-                            <p className="text-sm text-gray-200 leading-relaxed font-medium mb-4">
-                                {lastData?.force_index_2 < 0
-                                    ? "A short-term pullback is in progress. Bulls should look for a buy stop entry."
-                                    : "State of short-term strength. Bears should look for a sell stop entry if trend is down."}
-                            </p>
+
+                            <div className="flex flex-col gap-2 mb-4">
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="text-gray-400 italic">Force Index (2)</span>
+                                    <span className={tacticalAdvice?.screen2?.force_index_2 < 0 ? 'text-blue-400 font-bold' : 'text-amber-400 font-bold'}>
+                                        {tacticalAdvice?.screen2?.force_index_2?.toFixed(0)} ({tacticalAdvice?.screen2?.f2_streak}d)
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="text-gray-400 italic">Williams %R (14)</span>
+                                    <span className={tacticalAdvice?.screen2?.williams_r < -80 ? 'text-green-400 font-bold' : tacticalAdvice?.screen2?.williams_r > -20 ? 'text-red-400 font-bold' : 'text-gray-200'}>
+                                        {tacticalAdvice?.screen2?.williams_r?.toFixed(1)}%
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="text-gray-400 italic">Stochastic %K</span>
+                                    <span className={tacticalAdvice?.screen2?.stoch_k < 20 ? 'text-green-400 font-bold' : tacticalAdvice?.screen2?.stoch_k > 80 ? 'text-red-400 font-bold' : 'text-gray-200'}>
+                                        {tacticalAdvice?.screen2?.stoch_k?.toFixed(1)}
+                                    </span>
+                                </div>
+                            </div>
+
                             <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                                <div className="text-[9px] text-gray-500 uppercase font-bold mb-1">State Analysis</div>
-                                <span className="text-xs text-blue-300 font-mono">
-                                    {lastData?.force_index_2 < 0 ? "Oversold (Value Zone)" : "Overbought (Premium Zone)"}
+                                <div className="text-[9px] text-gray-500 uppercase font-bold mb-1">Tactical State</div>
+                                <span className={`text-xs font-mono ${tacticalAdvice?.screen2?.status === 'Oversold' ? 'text-green-400' : tacticalAdvice?.screen2?.status === 'Overbought' ? 'text-red-400' : 'text-blue-300'}`}>
+                                    {tacticalAdvice?.screen2?.status} {tacticalAdvice?.screen2?.wave_intensity === 'High' ? '(Extremely Volatile)' : ''}
                                 </span>
                             </div>
                         </div>
@@ -681,9 +698,15 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
                             {/* Main Decision */}
                             <div className="mb-6">
-                                <p className="text-sm text-gray-200 leading-relaxed font-bold">
+                                <p className="text-sm text-gray-200 leading-relaxed font-bold italic mb-2">
                                     "{tacticalAdvice?.reason}"
                                 </p>
+                                <div className="p-3 bg-black/30 rounded-xl border border-white/5">
+                                    <div className="text-[9px] text-gray-500 uppercase font-bold mb-1">Screen 3: The Ripple</div>
+                                    <p className="text-xs text-blue-100 leading-snug">
+                                        {tacticalAdvice?.ripple_msg}
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Execution Grid */}
