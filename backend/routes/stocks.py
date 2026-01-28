@@ -215,6 +215,8 @@ def scan_stocks(session: Session = Depends(get_session)):
                                     s2_idx_in_all = segments.index(s2)
                                     
                                     # Strict Elder Standard: Exactly 1 intervening wave & narrow window
+                                    bridge_waves = s2_idx_in_all - s1_idx_in_all - 1
+                                    distance_bars = s2["extrema_idx"] - s1["extrema_idx"]
                                     if bridge_waves == 1 and distance_bars <= 40:
                                         # Tightened tolerance to 0.5% for Double Tops
                                         price_condition = s2["price_at_extrema"] >= (s1["price_at_extrema"] * 0.995)
@@ -241,6 +243,8 @@ def scan_stocks(session: Session = Depends(get_session)):
                                     s1_idx_in_all = segments.index(s1)
                                     s2_idx_in_all = segments.index(s2)
                                     
+                                    bridge_waves = s2_idx_in_all - s1_idx_in_all - 1
+                                    distance_bars = s2["extrema_idx"] - s1["extrema_idx"]
                                     if bridge_waves == 1 and distance_bars <= 40:
                                         # Tightened tolerance to 0.5% for Double Bottoms
                                         price_condition = s2["price_at_extrema"] <= (s1["price_at_extrema"] * 1.005)
@@ -914,6 +918,7 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                             for k in range(1, min(len(pos_segs) - (j-1), 4)):
                                 s1 = pos_segs[-j - k]
                                 s1_idx_all = segments.index(s1)
+                                s2_idx_all = segments.index(s2)
                                 bridge_count = s2_idx_all - s1_idx_all - 1
                                 distance_count = s2["extrema_idx"] - s1["extrema_idx"]
 
@@ -941,6 +946,7 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                             for k in range(1, min(len(neg_segs) - (j-1), 4)):
                                 s1 = neg_segs[-j - k]
                                 s1_idx_all = segments.index(s1)
+                                s2_idx_all = segments.index(s2)
                                 bridge_count = s2_idx_all - s1_idx_all - 1
                                 distance_count = s2["extrema_idx"] - s1["extrema_idx"]
 
