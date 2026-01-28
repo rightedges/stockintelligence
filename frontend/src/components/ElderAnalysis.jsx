@@ -621,7 +621,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         return null;
                     })()}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
+                    <div className={`grid grid-cols-1 ${isWeekly ? '' : 'lg:grid-cols-3'} gap-8 relative z-10`}>
 
                         {/* COL 1: TIDE */}
                         <div className={`p-5 rounded-2xl border transition-all duration-300 ${tacticalAdvice?.type === 'LONG' ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
@@ -645,96 +645,100 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                             </div>
                         </div>
 
-                        {/* COL 2: WAVE */}
-                        <div className={`p-5 rounded-2xl border transition-all duration-300 ${tacticalAdvice?.screen2?.force_index_2 < 0 ? 'bg-blue-500/10 border-blue-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
-                            <div className="text-[10px] text-gray-500 uppercase font-black mb-3 tracking-widest flex items-center justify-between">
-                                SCREEN 2: THE WAVE (OSCILLATORS)
-                                <span className={`px-2 py-0.5 rounded text-[8px] ${tacticalAdvice?.screen2?.force_index_2 < 0 ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white'}`}>
-                                    {tacticalAdvice?.screen2?.force_index_2 < 0 ? 'BEARS CONTROL' : 'BULLS CONTROL'}
-                                </span>
-                            </div>
-
-                            <div className="flex flex-col gap-2 mb-4">
-                                <div className="flex items-center justify-between text-xs">
-                                    <span className="text-gray-400 italic">Force Index (2)</span>
-                                    <span className={tacticalAdvice?.screen2?.force_index_2 < 0 ? 'text-blue-400 font-bold' : 'text-amber-400 font-bold'}>
-                                        {tacticalAdvice?.screen2?.force_index_2?.toFixed(0)} ({tacticalAdvice?.screen2?.f2_streak}d)
-                                    </span>
-                                </div>
-                                <div className="flex items-center justify-between text-xs">
-                                    <span className="text-gray-400 italic">Williams %R (14)</span>
-                                    <span className={tacticalAdvice?.screen2?.williams_r < -80 ? 'text-green-400 font-bold' : tacticalAdvice?.screen2?.williams_r > -20 ? 'text-red-400 font-bold' : 'text-gray-200'}>
-                                        {tacticalAdvice?.screen2?.williams_r?.toFixed(1)}%
-                                    </span>
-                                </div>
-                                <div className="flex items-center justify-between text-xs">
-                                    <span className="text-gray-400 italic">Stochastic %K</span>
-                                    <span className={tacticalAdvice?.screen2?.stoch_k < 20 ? 'text-green-400 font-bold' : tacticalAdvice?.screen2?.stoch_k > 80 ? 'text-red-400 font-bold' : 'text-gray-200'}>
-                                        {tacticalAdvice?.screen2?.stoch_k?.toFixed(1)}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                                <div className="text-[9px] text-gray-500 uppercase font-bold mb-1">Tactical State</div>
-                                <span className={`text-xs font-mono ${tacticalAdvice?.screen2?.status === 'Oversold' ? 'text-green-400' : tacticalAdvice?.screen2?.status === 'Overbought' ? 'text-red-400' : 'text-blue-300'}`}>
-                                    {tacticalAdvice?.screen2?.status} {tacticalAdvice?.screen2?.wave_intensity === 'High' ? '(Extremely Volatile)' : ''}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* COL 3: TACTICAL SYNTHESIS */}
-                        <div className={`p-5 rounded-2xl border transition-all duration-300 ${tacticalAdvice?.style === 'success' ? 'bg-green-900/20 border-green-500/50' :
-                            tacticalAdvice?.style === 'danger' ? 'bg-red-900/20 border-red-500/50' :
-                                'bg-amber-900/20 border-amber-500/50'
-                            }`}>
-                            <div className="text-[10px] text-gray-500 uppercase font-black mb-3 tracking-widest flex items-center justify-between">
-                                SCREEN 3: EXECUTION
-                                <span className={`px-2 py-0.5 rounded text-[8px] font-black ${tacticalAdvice?.style === 'success' ? 'bg-green-500 text-white' :
-                                    tacticalAdvice?.style === 'danger' ? 'bg-red-500 text-white' : 'bg-amber-500 text-black'}`}>
-                                    {tacticalAdvice?.recommendation}
-                                </span>
-                            </div>
-
-                            {/* Main Decision */}
-                            <div className="mb-6">
-                                <p className="text-sm text-gray-200 leading-relaxed font-bold italic mb-2">
-                                    "{tacticalAdvice?.reason}"
-                                </p>
-                                <div className="p-3 bg-black/30 rounded-xl border border-white/5">
-                                    <div className="text-[9px] text-gray-500 uppercase font-bold mb-1">Screen 3: The Ripple</div>
-                                    <p className="text-xs text-blue-100 leading-snug">
-                                        {tacticalAdvice?.ripple_msg}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Execution Grid */}
-                            {timeframeLabel !== 'Weekly' && tacticalAdvice && (
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="p-2 bg-black/40 rounded border border-white/5">
-                                        <div className="text-[8px] text-gray-500 uppercase font-bold">Entry Trigger</div>
-                                        <div className="text-sm font-mono font-bold text-blue-400">${tacticalAdvice.entry || 'N/A'}</div>
+                        {!isWeekly && (
+                            <>
+                                {/* COL 2: WAVE */}
+                                <div className={`p-5 rounded-2xl border transition-all duration-300 ${tacticalAdvice?.screen2?.force_index_2 < 0 ? 'bg-blue-500/10 border-blue-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
+                                    <div className="text-[10px] text-gray-500 uppercase font-black mb-3 tracking-widest flex items-center justify-between">
+                                        SCREEN 2: THE WAVE (OSCILLATORS)
+                                        <span className={`px-2 py-0.5 rounded text-[8px] ${tacticalAdvice?.screen2?.force_index_2 < 0 ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white'}`}>
+                                            {tacticalAdvice?.screen2?.force_index_2 < 0 ? 'BEARS CONTROL' : 'BULLS CONTROL'}
+                                        </span>
                                     </div>
-                                    <div className="p-2 bg-black/40 rounded border border-white/5">
-                                        <div className="text-[8px] text-gray-500 uppercase font-bold">Stop Loss</div>
-                                        <div className="text-sm font-mono font-bold text-red-400">${tacticalAdvice.stop || 'N/A'}</div>
-                                    </div>
-                                    <div className="p-2 bg-black/40 rounded border border-white/5">
-                                        <div className="text-[8px] text-gray-500 uppercase font-bold">Profit Target</div>
-                                        <div className="text-sm font-mono font-bold text-green-400">${tacticalAdvice.target || 'N/A'}</div>
-                                    </div>
-                                    <div className="p-2 bg-black/40 rounded border border-white/5">
-                                        <div className="text-[8px] text-gray-500 uppercase font-bold">Risk/Reward</div>
-                                        <div className={`text-sm font-mono font-bold italic ${(Math.abs(tacticalAdvice.target - tacticalAdvice.entry) / Math.abs(tacticalAdvice.entry - tacticalAdvice.stop)) >= 2 ? 'text-green-400' : 'text-amber-400'}`}>
-                                            {tacticalAdvice.entry && tacticalAdvice.stop && tacticalAdvice.target
-                                                ? `${(Math.abs(tacticalAdvice.target - tacticalAdvice.entry) / Math.abs(tacticalAdvice.entry - tacticalAdvice.stop)).toFixed(2)}:1`
-                                                : 'N/A'}
+
+                                    <div className="flex flex-col gap-2 mb-4">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-gray-400 italic">Force Index (2)</span>
+                                            <span className={tacticalAdvice?.screen2?.force_index_2 < 0 ? 'text-blue-400 font-bold' : 'text-amber-400 font-bold'}>
+                                                {tacticalAdvice?.screen2?.force_index_2?.toFixed(0)} ({tacticalAdvice?.screen2?.f2_streak}d)
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-gray-400 italic">Williams %R (14)</span>
+                                            <span className={tacticalAdvice?.screen2?.williams_r < -80 ? 'text-green-400 font-bold' : tacticalAdvice?.screen2?.williams_r > -20 ? 'text-red-400 font-bold' : 'text-gray-200'}>
+                                                {tacticalAdvice?.screen2?.williams_r?.toFixed(1)}%
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-gray-400 italic">Stochastic %K</span>
+                                            <span className={tacticalAdvice?.screen2?.stoch_k < 20 ? 'text-green-400 font-bold' : tacticalAdvice?.screen2?.stoch_k > 80 ? 'text-red-400 font-bold' : 'text-gray-200'}>
+                                                {tacticalAdvice?.screen2?.stoch_k?.toFixed(1)}
+                                            </span>
                                         </div>
                                     </div>
+
+                                    <div className="p-3 bg-black/40 rounded-xl border border-white/5">
+                                        <div className="text-[9px] text-gray-500 uppercase font-bold mb-1">Tactical State</div>
+                                        <span className={`text-xs font-mono ${tacticalAdvice?.screen2?.status === 'Oversold' ? 'text-green-400' : tacticalAdvice?.screen2?.status === 'Overbought' ? 'text-red-400' : 'text-blue-300'}`}>
+                                            {tacticalAdvice?.screen2?.status} {tacticalAdvice?.screen2?.wave_intensity === 'High' ? '(Extremely Volatile)' : ''}
+                                        </span>
+                                    </div>
                                 </div>
-                            )}
-                        </div>
+
+                                {/* COL 3: TACTICAL SYNTHESIS */}
+                                <div className={`p-5 rounded-2xl border transition-all duration-300 ${tacticalAdvice?.style === 'success' ? 'bg-green-900/20 border-green-500/50' :
+                                    tacticalAdvice?.style === 'danger' ? 'bg-red-900/20 border-red-500/50' :
+                                        'bg-amber-900/20 border-amber-500/50'
+                                    }`}>
+                                    <div className="text-[10px] text-gray-500 uppercase font-black mb-3 tracking-widest flex items-center justify-between">
+                                        SCREEN 3: EXECUTION
+                                        <span className={`px-2 py-0.5 rounded text-[8px] font-black ${tacticalAdvice?.style === 'success' ? 'bg-green-500 text-white' :
+                                            tacticalAdvice?.style === 'danger' ? 'bg-red-500 text-white' : 'bg-amber-500 text-black'}`}>
+                                            {tacticalAdvice?.recommendation}
+                                        </span>
+                                    </div>
+
+                                    {/* Main Decision */}
+                                    <div className="mb-6">
+                                        <p className="text-sm text-gray-200 leading-relaxed font-bold italic mb-2">
+                                            "{tacticalAdvice?.reason}"
+                                        </p>
+                                        <div className="p-3 bg-black/30 rounded-xl border border-white/5">
+                                            <div className="text-[9px] text-gray-500 uppercase font-bold mb-1">Screen 3: The Ripple</div>
+                                            <p className="text-xs text-blue-100 leading-snug">
+                                                {tacticalAdvice?.ripple_msg}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Execution Grid */}
+                                    {tacticalAdvice && (
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="p-2 bg-black/40 rounded border border-white/5">
+                                                <div className="text-[8px] text-gray-500 uppercase font-bold">Entry Trigger</div>
+                                                <div className="text-sm font-mono font-bold text-blue-400">${tacticalAdvice.entry || 'N/A'}</div>
+                                            </div>
+                                            <div className="p-2 bg-black/40 rounded border border-white/5">
+                                                <div className="text-[8px] text-gray-500 uppercase font-bold">Stop Loss</div>
+                                                <div className="text-sm font-mono font-bold text-red-400">${tacticalAdvice.stop || 'N/A'}</div>
+                                            </div>
+                                            <div className="p-2 bg-black/40 rounded border border-white/5">
+                                                <div className="text-[8px] text-gray-500 uppercase font-bold">Profit Target</div>
+                                                <div className="text-sm font-mono font-bold text-green-400">${tacticalAdvice.target || 'N/A'}</div>
+                                            </div>
+                                            <div className="p-2 bg-black/40 rounded border border-white/5">
+                                                <div className="text-[8px] text-gray-500 uppercase font-bold">Risk/Reward</div>
+                                                <div className={`text-sm font-mono font-bold italic ${(Math.abs(tacticalAdvice.target - tacticalAdvice.entry) / Math.abs(tacticalAdvice.entry - tacticalAdvice.stop)) >= 2 ? 'text-green-400' : 'text-amber-400'}`}>
+                                                    {tacticalAdvice.entry && tacticalAdvice.stop && tacticalAdvice.target
+                                                        ? `${(Math.abs(tacticalAdvice.target - tacticalAdvice.entry) / Math.abs(tacticalAdvice.entry - tacticalAdvice.stop)).toFixed(2)}:1`
+                                                        : 'N/A'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -752,30 +756,6 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                             <div className="absolute left-[65px] top-[75%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">MACD</div>
                         )}
                     </div>
-
-                    {/* F13 Divergence Alert */}
-                    {/* This block will be removed/replaced by the new unified logic */}
-                    {/* {f13Divergence && (
-                        <div className={`mb-6 p-4 rounded-xl border flex items-start gap-4 shadow-lg ${f13Divergence.type === 'bearish'
-                            ? 'bg-purple-900/30 border-purple-500/50 shadow-purple-900/10'
-                            : 'bg-indigo-900/30 border-indigo-500/50 shadow-indigo-900/10'
-                            }`}>
-                            <div className={`p-2 rounded-lg ${f13Divergence.type === 'bearish' ? 'bg-purple-500/20' : 'bg-indigo-500/20'}`}>
-                                <Zap size={24} className={f13Divergence.type === 'bearish' ? 'text-purple-400' : 'text-indigo-400'} />
-                            </div>
-                            <div>
-                                <h4 className={`text-sm font-black uppercase tracking-wider mb-1 ${f13Divergence.type === 'bearish' ? 'text-purple-400' : 'text-indigo-400'}`}>
-                                    Critical F13 {f13Divergence.type} Divergence
-                                </h4>
-                                <p className="text-sm text-gray-300 leading-relaxed">
-                                    Force Index (13) is diverging from Price action.
-                                    {f13Divergence.type === 'bearish'
-                                        ? " Price is making higher highs while Force Index marks lower highs. Smart money volume is fading."
-                                        : " Price is making lower lows while Force Index marks higher lows. Selling pressure is exhausting."}
-                                </p>
-                            </div>
-                        </div>
-                    )} */}
                 </div>
             </div>
 
@@ -835,89 +815,91 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         </div>
                     </div>
 
-                    {showJournal && journalEntries.length > 0 && (
-                        <div className="mt-8 pt-8 border-t border-gray-700/50 flex flex-col gap-6 max-h-[700px] overflow-y-auto pr-2 custom-scrollbar">
-                            {journalEntries
-                                .filter(entry =>
-                                    entry.note.toLowerCase().includes(searchQuery.toLowerCase())
-                                )
-                                .map((entry, idx) => (
-                                    <div key={idx} className="bg-gray-900/80 border border-gray-700/50 rounded-2xl overflow-hidden group flex-shrink-0 shadow-lg">
-                                        <div className="p-3 border-b border-gray-700/50 bg-gray-950/40 flex items-center justify-between px-4">
-                                            <div className="flex items-center gap-3">
-                                                <Calendar size={14} className="text-blue-400/60" />
-                                                <span className="text-[11px] font-mono text-gray-400">
-                                                    {new Date(entry.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                                                </span>
-                                                <span className="text-[9px] px-1.5 py-0.5 bg-gray-900 text-blue-400 rounded font-black uppercase tracking-widest border border-blue-900/20">
-                                                    {entry.timeframe}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {entry.snapshot && (
+                    {
+                        showJournal && journalEntries.length > 0 && (
+                            <div className="mt-8 pt-8 border-t border-gray-700/50 flex flex-col gap-6 max-h-[700px] overflow-y-auto pr-2 custom-scrollbar">
+                                {journalEntries
+                                    .filter(entry =>
+                                        entry.note.toLowerCase().includes(searchQuery.toLowerCase())
+                                    )
+                                    .map((entry, idx) => (
+                                        <div key={idx} className="bg-gray-900/80 border border-gray-700/50 rounded-2xl overflow-hidden group flex-shrink-0 shadow-lg">
+                                            <div className="p-3 border-b border-gray-700/50 bg-gray-950/40 flex items-center justify-between px-4">
+                                                <div className="flex items-center gap-3">
+                                                    <Calendar size={14} className="text-blue-400/60" />
+                                                    <span className="text-[11px] font-mono text-gray-400">
+                                                        {new Date(entry.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                                                    </span>
+                                                    <span className="text-[9px] px-1.5 py-0.5 bg-gray-900 text-blue-400 rounded font-black uppercase tracking-widest border border-blue-900/20">
+                                                        {entry.timeframe}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {entry.snapshot && (
+                                                        <button
+                                                            onClick={() => setSelectedImage(entry.snapshot)}
+                                                            className="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg text-blue-400 transition-all flex items-center gap-1.5"
+                                                            title="View Chart Snapshot"
+                                                        >
+                                                            <Camera size={14} />
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider">Chart</span>
+                                                        </button>
+                                                    )}
                                                     <button
-                                                        onClick={() => setSelectedImage(entry.snapshot)}
-                                                        className="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg text-blue-400 transition-all flex items-center gap-1.5"
-                                                        title="View Chart Snapshot"
+                                                        onClick={() => {
+                                                            setEditingId(entry.id);
+                                                            setEditingNote(entry.note);
+                                                        }}
+                                                        className="text-gray-500 hover:text-blue-400 transition-colors p-1.5"
+                                                        title="Edit Entry"
                                                     >
-                                                        <Camera size={14} />
-                                                        <span className="text-[10px] font-bold uppercase tracking-wider">Chart</span>
+                                                        <Edit size={14} />
                                                     </button>
+                                                    <button
+                                                        onClick={() => handleDeleteJournal(entry.id)}
+                                                        className="text-gray-500 hover:text-red-400 transition-colors p-1.5"
+                                                        title="Delete Entry"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="p-4 bg-gray-950/20">
+                                                {editingId === entry.id ? (
+                                                    <div className="flex flex-col gap-3">
+                                                        <textarea
+                                                            value={editingNote}
+                                                            onChange={(e) => setEditingNote(e.target.value)}
+                                                            className="w-full bg-gray-900 border border-blue-500/50 rounded-xl p-3 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition h-32 resize-none"
+                                                        />
+                                                        <div className="flex justify-end gap-2">
+                                                            <button
+                                                                onClick={() => setEditingId(null)}
+                                                                className="text-xs text-gray-400 hover:text-white font-bold uppercase tracking-widest px-2"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleUpdateJournal(entry.id)}
+                                                                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                                            >
+                                                                Save Changes
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-sm text-gray-100 leading-relaxed font-medium whitespace-pre-line">
+                                                        {entry.note}
+                                                    </div>
                                                 )}
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingId(entry.id);
-                                                        setEditingNote(entry.note);
-                                                    }}
-                                                    className="text-gray-500 hover:text-blue-400 transition-colors p-1.5"
-                                                    title="Edit Entry"
-                                                >
-                                                    <Edit size={14} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteJournal(entry.id)}
-                                                    className="text-gray-500 hover:text-red-400 transition-colors p-1.5"
-                                                    title="Delete Entry"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
                                             </div>
                                         </div>
-                                        <div className="p-4 bg-gray-950/20">
-                                            {editingId === entry.id ? (
-                                                <div className="flex flex-col gap-3">
-                                                    <textarea
-                                                        value={editingNote}
-                                                        onChange={(e) => setEditingNote(e.target.value)}
-                                                        className="w-full bg-gray-900 border border-blue-500/50 rounded-xl p-3 text-sm text-gray-200 focus:outline-none focus:border-blue-500 transition h-32 resize-none"
-                                                    />
-                                                    <div className="flex justify-end gap-2">
-                                                        <button
-                                                            onClick={() => setEditingId(null)}
-                                                            className="text-xs text-gray-400 hover:text-white font-bold uppercase tracking-widest px-2"
-                                                        >
-                                                            Cancel
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleUpdateJournal(entry.id)}
-                                                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
-                                                        >
-                                                            Save Changes
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="text-sm text-gray-100 leading-relaxed font-medium whitespace-pre-line">
-                                                    {entry.note}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                        </div>
-                    )}
-                </div>
-            </div>
+                                    ))}
+                            </div>
+                        )
+                    }
+                </div >
+            </div >
 
             {/* Image Preview Modal */}
             {
@@ -941,7 +923,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                     </div>
                 )
             }
-        </div>
+        </div >
     );
 };
 
