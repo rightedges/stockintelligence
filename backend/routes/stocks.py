@@ -202,12 +202,22 @@ def scan_stocks(session: Session = Depends(get_session)):
                     # We'll stick to: if latest peak was effectively recent.
                     
                     if (len(hist) - 1 - s2["extrema_idx"]) < 10: # Peak within last 10 bars
-                         if s2["price_at_extrema"] > s1["price_at_extrema"] and s2["extrema_val"] < s1["extrema_val"]:
-                             # Check Intervening
-                             s1_idx = segments.index(s1)
-                             s2_idx = segments.index(s2)
-                             if any(segments[i]["type"] == "neg" for i in range(s1_idx + 1, s2_idx)):
-                                 return "bearish"
+                        # STRICTER CONFIRMATION:
+                        # 1. Price must be higher than prev wave peak
+                        # 2. Indicator must be lower than prev wave peak
+                        # 3. MUST HAVE CONFIRMATION: The indicator must have ticked down from its peak
+                        # 4. MUST HAVE LAG: At least 1 bar after the peak to confirm it's a peak
+                        
+                        is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
+                        indicator_ticked_down = hist[-1] < s2["extrema_val"]
+                        
+                        if is_confirmed and indicator_ticked_down:
+                            if s2["price_at_extrema"] > s1["price_at_extrema"] and s2["extrema_val"] < s1["extrema_val"]:
+                                # Check Intervening
+                                s1_idx = segments.index(s1)
+                                s2_idx = segments.index(s2)
+                                if any(segments[i]["type"] == "neg" for i in range(s1_idx + 1, s2_idx)):
+                                    return "bearish"
                 
                 # Bullish
                 neg_segs = [s for s in segments if s["type"] == "neg" and len(s["indices"]) > 2]
@@ -215,11 +225,15 @@ def scan_stocks(session: Session = Depends(get_session)):
                     s2 = neg_segs[-1]
                     s1 = neg_segs[-2]
                     if (len(hist) - 1 - s2["extrema_idx"]) < 10:
-                        if s2["price_at_extrema"] < s1["price_at_extrema"] and s2["extrema_val"] > s1["extrema_val"]:
-                             s1_idx = segments.index(s1)
-                             s2_idx = segments.index(s2)
-                             if any(segments[i]["type"] == "pos" for i in range(s1_idx + 1, s2_idx)):
-                                 return "bullish"
+                        is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
+                        indicator_ticked_up = hist[-1] > s2["extrema_val"]
+                        
+                        if is_confirmed and indicator_ticked_up:
+                            if s2["price_at_extrema"] < s1["price_at_extrema"] and s2["extrema_val"] > s1["extrema_val"]:
+                                 s1_idx = segments.index(s1)
+                                 s2_idx = segments.index(s2)
+                                 if any(segments[i]["type"] == "pos" for i in range(s1_idx + 1, s2_idx)):
+                                     return "bullish"
                 return None
 
             macd_div = check_div_scan(df, 'macd_diff')
@@ -876,13 +890,17 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                 
                 # Must be recent (last segment extrema within 15 bars)
                 if (len(hist) - 1 - s2["extrema_idx"]) < 20:
-                    if s2["price_at_extrema"] > s1["price_at_extrema"] and s2["extrema_val"] < s1["extrema_val"]:
-                        # Ensure there was a negative wave in between
-                        # Find if any negative segment exists between s1 and s2
-                        s1_idx = segments.index(s1)
-                        s2_idx = segments.index(s2)
-                        if any(segments[i]["type"] == "neg" for i in range(s1_idx + 1, s2_idx)):
-                            return {"type": "bearish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
+                    # Confirmation logic
+                    is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
+                    indicator_ticked_down = hist[-1] < s2["extrema_val"]
+                    
+                    if is_confirmed and indicator_ticked_down:
+                        if s2["price_at_extrema"] > s1["price_at_extrema"] and s2["extrema_val"] < s1["extrema_val"]:
+                            # Ensure there was a negative wave in between
+                            s1_idx = segments.index(s1)
+                            s2_idx = segments.index(s2)
+                            if any(segments[i]["type"] == "neg" for i in range(s1_idx + 1, s2_idx)):
+                                return {"type": "bearish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
 
             # 4. Detect Bullish Divergence (Price Lower Low, MACD Higher Low)
             neg_segs = [s for s in segments if s["type"] == "neg" and len(s["indices"]) > 2]
@@ -891,11 +909,15 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                 s1 = neg_segs[-2]
                 
                 if (len(hist) - 1 - s2["extrema_idx"]) < 20:
-                    if s2["price_at_extrema"] < s1["price_at_extrema"] and s2["extrema_val"] > s1["extrema_val"]:
-                        s1_idx = segments.index(s1)
-                        s2_idx = segments.index(s2)
-                        if any(segments[i]["type"] == "pos" for i in range(s1_idx + 1, s2_idx)):
-                            return {"type": "bullish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
+                    is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
+                    indicator_ticked_up = hist[-1] > s2["extrema_val"]
+                    
+                    if is_confirmed and indicator_ticked_up:
+                        if s2["price_at_extrema"] < s1["price_at_extrema"] and s2["extrema_val"] > s1["extrema_val"]:
+                            s1_idx = segments.index(s1)
+                            s2_idx = segments.index(s2)
+                            if any(segments[i]["type"] == "pos" for i in range(s1_idx + 1, s2_idx)):
+                                return {"type": "bullish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
             
             return None
 
