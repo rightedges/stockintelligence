@@ -705,8 +705,12 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                 leading_sector = max(sector_performance, key=sector_performance.get) if sector_performance else "Unknown"
                 
                 # Check if stock is in leading sector
-                info = yf.Ticker(symbol).info
-                stock_sector = info.get('sector', 'Unknown')
+                try:
+                    info = yf.Ticker(symbol).info
+                    stock_sector = info.get('sector', 'Unknown')
+                except Exception:
+                    stock_sector = "Unknown"
+                
                 is_leading_sector = stock_sector == leading_sector
 
                 # 3. Relative Strength (1mo return vs SPY)

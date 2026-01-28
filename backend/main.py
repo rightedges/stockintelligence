@@ -35,12 +35,14 @@ app = FastAPI(lifespan=lifespan)
 origins = [
     "http://localhost:5173",  # React frontend (standard)
     "http://localhost:5174",  # React frontend (Vite alternative)
-    "http://localhost:3000",
+    "http://intelligence.local:5173", # LAN Access
+    "http://192.168.50.164:5173", # Direct IP Access
+    "http://192.168.50.16:5173",  # Server IP Access
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
