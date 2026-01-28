@@ -31,8 +31,8 @@ To protect against market "noise" and minor indicator fluctuations, the algorith
 
 ### ⛓️ Elder's Constraints (Cycle Filtering)
 To ensure the divergence is logically consistent and doesn't cross multiple unrelated market cycles:
-*   **Bridge Wave Limit**: A divergence can only cross a maximum of **3 intervening waves** (zero-crossings). This prevents linking two distant price peaks that are separated by significant momentum shifts.
-*   **Distance Limit**: The two extrema must occur within **60 bars** (approx. 3 months for Daily charts) of each other.
+*   **Bridge Wave Limit**: A divergence **must** cross exactly **1 intervening wave** of the opposite polarity (e.g., POS -> NEG -> POS). This prevents linking two distant price peaks that are separated by multiple momentum shifts.
+*   **Distance Limit**: The two extrema must occur within **40 bars** (approx. 2 months for Daily charts) of each other.
 
 ### 📉 Bearish Divergence (Reversal Signal)
 Occurs during an uptrend when price momentum is fading.
