@@ -190,46 +190,53 @@ def scan_stocks(session: Session = Depends(get_session)):
                         seg["extrema_val"] = float(hist[trough_idx])
                         seg["price_at_extrema"] = float(lows[trough_idx])
                         
-                # Bearish Lookback
+                # Bearish Lookback (Dynamic S2)
                 pos_segs = [s for s in segments if s["type"] == "pos" and len(s["indices"]) > 1]
                 if len(pos_segs) >= 2:
-                    s2 = pos_segs[-1]
-                    # Check recency of s2
-                    if (len(hist) - 1 - s2["extrema_idx"]) < 30:
-                        is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
-                        indicator_ticked_down = hist[-1] < s2["extrema_val"]
-                        
-                        if is_confirmed and indicator_ticked_down:
-                            # Search back through previous segments
-                            for i in range(1, min(len(pos_segs), 5)):
-                                s1 = pos_segs[-1 - i]
-                                # Allow 2% tolerance for price comparison
-                                price_condition = s2["price_at_extrema"] >= (s1["price_at_extrema"] * 0.98)
-                                if price_condition and s2["extrema_val"] < s1["extrema_val"]:
-                                    # Ensure there was a negative bridge
-                                    s1_idx = segments.index(s1)
-                                    s2_idx = segments.index(s2)
-                                    if any(segments[j]["type"] == "neg" for j in range(s1_idx + 1, s2_idx)):
-                                        return "bearish"
+                    # Check top 3 most recent segments as potential s2
+                    for j in range(1, min(len(pos_segs), 4)):
+                        s2 = pos_segs[-j]
+                        if (len(hist) - 1 - s2["extrema_idx"]) < 30:
+                            is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
+                            indicator_ticked_down = hist[-1] < s2["extrema_val"] if is_confirmed else False
+                            
+                            # Older segments are inherently confirmed by a zero crossing
+                            if j > 1:
+                                is_confirmed = True
+                                indicator_ticked_down = True
+
+                            if is_confirmed and indicator_ticked_down:
+                                for k in range(1, min(len(pos_segs) - (j-1), 5)):
+                                    s1 = pos_segs[-j - k]
+                                    price_condition = s2["price_at_extrema"] >= (s1["price_at_extrema"] * 0.98)
+                                    if price_condition and s2["extrema_val"] < s1["extrema_val"]:
+                                        s1_idx = segments.index(s1)
+                                        s2_idx = segments.index(s2)
+                                        if any(segments[m]["type"] == "neg" for m in range(s1_idx + 1, s2_idx)):
+                                            return "bearish"
                 
-                # Bullish Lookback
+                # Bullish Lookback (Dynamic S2)
                 neg_segs = [s for s in segments if s["type"] == "neg" and len(s["indices"]) > 1]
                 if len(neg_segs) >= 2:
-                    s2 = neg_segs[-1]
-                    if (len(hist) - 1 - s2["extrema_idx"]) < 30:
-                        is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
-                        indicator_ticked_up = hist[-1] > s2["extrema_val"]
-                        
-                        if is_confirmed and indicator_ticked_up:
-                            # Search back through previous segments
-                            for i in range(1, min(len(neg_segs), 5)):
-                                s1 = neg_segs[-1 - i]
-                                price_condition = s2["price_at_extrema"] <= (s1["price_at_extrema"] * 1.02)
-                                if price_condition and s2["extrema_val"] > s1["extrema_val"]:
-                                     s1_idx = segments.index(s1)
-                                     s2_idx = segments.index(s2)
-                                     if any(segments[j]["type"] == "pos" for j in range(s1_idx + 1, s2_idx)):
-                                         return "bullish"
+                    for j in range(1, min(len(neg_segs), 4)):
+                        s2 = neg_segs[-j]
+                        if (len(hist) - 1 - s2["extrema_idx"]) < 30:
+                            is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
+                            indicator_ticked_up = hist[-1] > s2["extrema_val"] if is_confirmed else False
+                            
+                            if j > 1:
+                                is_confirmed = True
+                                indicator_ticked_up = True
+
+                            if is_confirmed and indicator_ticked_up:
+                                for k in range(1, min(len(neg_segs) - (j-1), 5)):
+                                    s1 = neg_segs[-j - k]
+                                    price_condition = s2["price_at_extrema"] <= (s1["price_at_extrema"] * 1.02)
+                                    if price_condition and s2["extrema_val"] > s1["extrema_val"]:
+                                         s1_idx = segments.index(s1)
+                                         s2_idx = segments.index(s2)
+                                         if any(segments[m]["type"] == "pos" for m in range(s1_idx + 1, s2_idx)):
+                                             return "bullish"
                 return None
 
             macd_div = check_div_scan(df, 'macd_diff')
@@ -878,44 +885,51 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                     seg["extrema_val"] = float(hist[trough_idx])
                     seg["price_at_extrema"] = float(lows[trough_idx])
 
-            # 3. Detect Bearish Divergence Lookback
+            # 3. Detect Bearish Divergence Lookback (Dynamic S2)
             pos_segs = [s for s in segments if s["type"] == "pos" and len(s["indices"]) > 1]
             if len(pos_segs) >= 2:
-                s2 = pos_segs[-1]
-                
-                # Extended recency to 30 bars
-                if (len(hist) - 1 - s2["extrema_idx"]) < 30:
-                    is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
-                    indicator_ticked_down = hist[-1] < s2["extrema_val"]
-                    
-                    if is_confirmed and indicator_ticked_down:
-                        for i in range(1, min(len(pos_segs), 5)):
-                            s1 = pos_segs[-1 - i]
-                            price_condition = s2["price_at_extrema"] >= (s1["price_at_extrema"] * 0.98)
-                            if price_condition and s2["extrema_val"] < s1["extrema_val"]:
-                                s1_idx = segments.index(s1)
-                                s2_idx = segments.index(s2)
-                                if any(segments[j]["type"] == "neg" for j in range(s1_idx + 1, s2_idx)):
-                                    return {"type": "bearish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
+                for j in range(1, min(len(pos_segs), 4)):
+                    s2 = pos_segs[-j]
+                    if (len(hist) - 1 - s2["extrema_idx"]) < 30:
+                        is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
+                        indicator_ticked_down = hist[-1] < s2["extrema_val"] if is_confirmed else False
+                        
+                        if j > 1:
+                            is_confirmed = True
+                            indicator_ticked_down = True
 
-            # 4. Detect Bullish Divergence Lookback
+                        if is_confirmed and indicator_ticked_down:
+                            for k in range(1, min(len(pos_segs) - (j-1), 5)):
+                                s1 = pos_segs[-j - k]
+                                price_condition = s2["price_at_extrema"] >= (s1["price_at_extrema"] * 0.98)
+                                if price_condition and s2["extrema_val"] < s1["extrema_val"]:
+                                    s1_idx = segments.index(s1)
+                                    s2_idx = segments.index(s2)
+                                    if any(segments[m]["type"] == "neg" for m in range(s1_idx + 1, s2_idx)):
+                                        return {"type": "bearish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
+
+            # 4. Detect Bullish Divergence Lookback (Dynamic S2)
             neg_segs = [s for s in segments if s["type"] == "neg" and len(s["indices"]) > 1]
             if len(neg_segs) >= 2:
-                s2 = neg_segs[-1]
-                
-                if (len(hist) - 1 - s2["extrema_idx"]) < 30:
-                    is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
-                    indicator_ticked_up = hist[-1] > s2["extrema_val"]
-                    
-                    if is_confirmed and indicator_ticked_up:
-                        for i in range(1, min(len(neg_segs), 5)):
-                            s1 = neg_segs[-1 - i]
-                            price_condition = s2["price_at_extrema"] <= (s1["price_at_extrema"] * 1.02)
-                            if price_condition and s2["extrema_val"] > s1["extrema_val"]:
-                                s1_idx = segments.index(s1)
-                                s2_idx = segments.index(s2)
-                                if any(segments[j]["type"] == "pos" for j in range(s1_idx + 1, s2_idx)):
-                                    return {"type": "bullish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
+                for j in range(1, min(len(neg_segs), 4)):
+                    s2 = neg_segs[-j]
+                    if (len(hist) - 1 - s2["extrema_idx"]) < 30:
+                        is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
+                        indicator_ticked_up = hist[-1] > s2["extrema_val"] if is_confirmed else False
+                        
+                        if j > 1:
+                            is_confirmed = True
+                            indicator_ticked_up = True
+
+                        if is_confirmed and indicator_ticked_up:
+                            for k in range(1, min(len(neg_segs) - (j-1), 5)):
+                                s1 = neg_segs[-j - k]
+                                price_condition = s2["price_at_extrema"] <= (s1["price_at_extrema"] * 1.02)
+                                if price_condition and s2["extrema_val"] > s1["extrema_val"]:
+                                    s1_idx = segments.index(s1)
+                                    s2_idx = segments.index(s2)
+                                    if any(segments[m]["type"] == "pos" for m in range(s1_idx + 1, s2_idx)):
+                                        return {"type": "bullish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
             
             return None
 
