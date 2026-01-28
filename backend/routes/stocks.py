@@ -1031,22 +1031,22 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
         # Convert to list of dicts for frontend
         data = df.to_dict(orient="records")
         
-        # Handle nan values (JSON doesn't support NaN)
-        cleaned_data = []
-        for row in data:
-            new_row = {}
-            for k, v in row.items():
-                if pd.isna(v):
-                    new_row[k] = None
-                else:
-                    new_row[k] = v
-            # Ensure Date is string
-            new_row['Date'] = row['Date'].isoformat()
-            cleaned_data.append(new_row)
+        def clean_nans(obj):
+            if isinstance(obj, list):
+                return [clean_nans(i) for i in obj]
+            elif isinstance(obj, dict):
+                return {k: clean_nans(v) for k, v in obj.items()}
+            elif isinstance(obj, (float, int)):
+                if pd.isna(obj):
+                    return None
+                return obj
+            elif hasattr(obj, 'isoformat'):
+                return obj.isoformat()
+            return obj
 
-        return {
+        response = {
             "symbol": symbol,
-            "data": cleaned_data,
+            "data": data,
             "regime": regime,
             "regime_reason": reason,
             "volatility": volatility_status,
@@ -1069,6 +1069,8 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
             "macd_divergence": macd_divergence,
             "f13_divergence": f13_divergence
         }
+
+        return clean_nans(response)
 
     except Exception as e:
         print(f"Error analyzing {symbol}: {e}")
