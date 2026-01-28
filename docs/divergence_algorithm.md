@@ -18,10 +18,10 @@ graph LR
 
 ## 2. Extrema Extraction
 For each wave, the algorithm extracts two critical data points:
-*   **Indicator Extrema**: The maximum value for a positive wave (Peak) or the minimum value for a negative wave (Trough).
-*   **Price at Extrema**: The corresponding Stock Price at the exact same point in time.
-    *   For **Peaks** (Positive Indicator): High Price is recorded.
-    *   For **Troughs** (Negative Indicator): Low Price is recorded.
+*   **Indicator Extrema**: The maximum momentum value (Peak) or minimum momentum value (Trough) within the wave.
+*   **Price at Extrema**: The actual High or Low reached during the **entire wave segment**.
+    *   For **Peaks** (Positive Indicator): The **Maximum High** reached within the segment is recorded.
+    *   For **Troughs** (Negative Indicator): The **Minimum Low** reached within the segment is recorded.
 
 ## 3. Divergence Comparison Logic
 The system compares the **current active wave** with a **previous historical wave** of the same polarity.
@@ -55,8 +55,8 @@ graph TD
     linkStyle 1 stroke:#ef4444,stroke-width:3px;
 ```
 
-*   **Price Condition**: Current Peak High >= (Previous Peak High * 0.98). 
-    *   *Note: Includes "Higher Highs" and "Equal Highs" (Double Tops) within a 2% tolerance.*
+*   **Price Condition**: Current Peak High >= (Previous Peak High * 0.995). 
+    *   *Note: Includes "Higher Highs" and strict "Double Tops" within a 0.5% tolerance.*
 *   **Indicator Condition**: Current Peak Value < Previous Peak Value (A "Lower High" in momentum/volume).
 *   **Confirmation**: There must be at least one complete negative wave (zero-crossing) between the two peaks.
 
@@ -81,8 +81,8 @@ graph TD
     linkStyle 1 stroke:#22c55e,stroke-width:3px;
 ```
 
-*   **Price Condition**: Current Trough Low <= (Previous Trough Low * 1.02).
-    *   *Note: Includes "Lower Lows" and "Equal Lows" (Double Bottoms) within a 2% tolerance.*
+*   **Price Condition**: Current Trough Low <= (Previous Trough Low * 1.005).
+    *   *Note: Includes "Lower Lows" and strict "Double Bottoms" within a 0.5% tolerance.*
 *   **Indicator Condition**: Current Trough Value > Previous Trough Value (A "Higher Low" in momentum/volume).
 *   **Confirmation**: There must be at least one complete positive wave (zero-crossing) between the two troughs.
 

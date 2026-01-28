@@ -179,16 +179,19 @@ def scan_stocks(session: Session = Depends(get_session)):
                 # Extrema
                 for seg in segments:
                     idxs = seg["indices"]
+                    # Indicator extrema (for momentum comparison and drawing)
                     if seg["type"] == "pos":
                         peak_idx = idxs[0] + hist[idxs].argmax()
                         seg["extrema_idx"] = int(peak_idx)
                         seg["extrema_val"] = float(hist[peak_idx])
-                        seg["price_at_extrema"] = float(prices[peak_idx])
+                        # Use the true High of the entire segment for price comparison
+                        seg["price_at_extrema"] = float(prices[idxs].max())
                     else:
                         trough_idx = idxs[0] + hist[idxs].argmin()
                         seg["extrema_idx"] = int(trough_idx)
                         seg["extrema_val"] = float(hist[trough_idx])
-                        seg["price_at_extrema"] = float(lows[trough_idx])
+                        # Use the true Low of the entire segment for price comparison
+                        seg["price_at_extrema"] = float(lows[idxs].min())
                         
                 # Bearish Lookback (Dynamic S2 & Stricter Bridge)
                 pos_segs = [s for s in segments if s["type"] == "pos" and len(s["indices"]) > 1]
@@ -217,7 +220,8 @@ def scan_stocks(session: Session = Depends(get_session)):
                                     distance_bars = s2["extrema_idx"] - s1["extrema_idx"]
                                     
                                     if bridge_waves <= 3 and distance_bars <= 60:
-                                        price_condition = s2["price_at_extrema"] >= (s1["price_at_extrema"] * 0.98)
+                                        # Tightened tolerance to 0.5% for Double Tops
+                                        price_condition = s2["price_at_extrema"] >= (s1["price_at_extrema"] * 0.995)
                                         if price_condition and s2["extrema_val"] < s1["extrema_val"]:
                                             if any(segments[m]["type"] == "neg" for m in range(s1_idx_in_all + 1, s2_idx_in_all)):
                                                 return "bearish"
@@ -245,7 +249,8 @@ def scan_stocks(session: Session = Depends(get_session)):
                                     distance_bars = s2["extrema_idx"] - s1["extrema_idx"]
 
                                     if bridge_waves <= 3 and distance_bars <= 60:
-                                        price_condition = s2["price_at_extrema"] <= (s1["price_at_extrema"] * 1.02)
+                                        # Tightened tolerance to 0.5% for Double Bottoms
+                                        price_condition = s2["price_at_extrema"] <= (s1["price_at_extrema"] * 1.005)
                                         if price_condition and s2["extrema_val"] > s1["extrema_val"]:
                                              if any(segments[m]["type"] == "pos" for m in range(s1_idx_in_all + 1, s2_idx_in_all)):
                                                  return "bullish"
@@ -890,12 +895,14 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                     peak_idx = idxs[0] + hist[idxs].argmax()
                     seg["extrema_idx"] = int(peak_idx)
                     seg["extrema_val"] = float(hist[peak_idx])
-                    seg["price_at_extrema"] = float(prices[peak_idx])
+                    # Use segment max High
+                    seg["price_at_extrema"] = float(prices[idxs].max())
                 else:
                     trough_idx = idxs[0] + hist[idxs].argmin()
                     seg["extrema_idx"] = int(trough_idx)
                     seg["extrema_val"] = float(hist[trough_idx])
-                    seg["price_at_extrema"] = float(lows[trough_idx])
+                    # Use segment min Low
+                    seg["price_at_extrema"] = float(lows[idxs].min())
 
             # 3. Detect Bearish Divergence Lookback (Dynamic S2 & Stricter Bridge)
             pos_segs = [s for s in segments if s["type"] == "pos" and len(s["indices"]) > 1]
@@ -919,7 +926,8 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                                 distance_count = s2["extrema_idx"] - s1["extrema_idx"]
 
                                 if bridge_count <= 3 and distance_count <= 60:
-                                    price_condition = s2["price_at_extrema"] >= (s1["price_at_extrema"] * 0.98)
+                                    # Tightened tolerance to 0.5%
+                                    price_condition = s2["price_at_extrema"] >= (s1["price_at_extrema"] * 0.995)
                                     if price_condition and s2["extrema_val"] < s1["extrema_val"]:
                                         if any(segments[m]["type"] == "neg" for m in range(s1_idx_all + 1, s2_idx_all)):
                                             return {"type": "bearish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
@@ -946,7 +954,8 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                                 distance_count = s2["extrema_idx"] - s1["extrema_idx"]
 
                                 if bridge_count <= 3 and distance_count <= 60:
-                                    price_condition = s2["price_at_extrema"] <= (s1["price_at_extrema"] * 1.02)
+                                    # Tightened tolerance to 0.5%
+                                    price_condition = s2["price_at_extrema"] <= (s1["price_at_extrema"] * 1.005)
                                     if price_condition and s2["extrema_val"] > s1["extrema_val"]:
                                         if any(segments[m]["type"] == "pos" for m in range(s1_idx_all + 1, s2_idx_all)):
                                             return {"type": "bullish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
