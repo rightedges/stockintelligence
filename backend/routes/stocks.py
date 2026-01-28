@@ -191,28 +191,19 @@ def scan_stocks(session: Session = Depends(get_session)):
                         seg["price_at_extrema"] = float(lows[trough_idx])
                         
                 # Bearish
-                pos_segs = [s for s in segments if s["type"] == "pos" and len(s["indices"]) > 2]
+                pos_segs = [s for s in segments if s["type"] == "pos" and len(s["indices"]) > 1]
                 if len(pos_segs) >= 2:
                     s2 = pos_segs[-1]
                     s1 = pos_segs[-2]
-                    # Check recency: Signal must be in last 5 candles (approx)
-                    # BUT extrema might be 15 candles ago. The crossover is recent.
-                    # User asked: "divergence that occur in the past 5 days"
-                    # Usually divergence is "confirmed" when histogram ticks down or crosses down.
-                    # We'll stick to: if latest peak was effectively recent.
-                    
-                    if (len(hist) - 1 - s2["extrema_idx"]) < 10: # Peak within last 10 bars
-                        # STRICTER CONFIRMATION:
-                        # 1. Price must be higher than prev wave peak
-                        # 2. Indicator must be lower than prev wave peak
-                        # 3. MUST HAVE CONFIRMATION: The indicator must have ticked down from its peak
-                        # 4. MUST HAVE LAG: At least 1 bar after the peak to confirm it's a peak
-                        
+                    # Check recency: Signal must be within last 30 candles
+                    if (len(hist) - 1 - s2["extrema_idx"]) < 30: 
                         is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
                         indicator_ticked_down = hist[-1] < s2["extrema_val"]
                         
                         if is_confirmed and indicator_ticked_down:
-                            if s2["price_at_extrema"] > s1["price_at_extrema"] and s2["extrema_val"] < s1["extrema_val"]:
+                            # Allow 2% tolerance for "Equal Highs" (Double Top)
+                            price_condition = s2["price_at_extrema"] >= (s1["price_at_extrema"] * 0.98)
+                            if price_condition and s2["extrema_val"] < s1["extrema_val"]:
                                 # Check Intervening
                                 s1_idx = segments.index(s1)
                                 s2_idx = segments.index(s2)
@@ -220,16 +211,18 @@ def scan_stocks(session: Session = Depends(get_session)):
                                     return "bearish"
                 
                 # Bullish
-                neg_segs = [s for s in segments if s["type"] == "neg" and len(s["indices"]) > 2]
+                neg_segs = [s for s in segments if s["type"] == "neg" and len(s["indices"]) > 1]
                 if len(neg_segs) >= 2:
                     s2 = neg_segs[-1]
                     s1 = neg_segs[-2]
-                    if (len(hist) - 1 - s2["extrema_idx"]) < 10:
+                    if (len(hist) - 1 - s2["extrema_idx"]) < 30:
                         is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
                         indicator_ticked_up = hist[-1] > s2["extrema_val"]
                         
                         if is_confirmed and indicator_ticked_up:
-                            if s2["price_at_extrema"] < s1["price_at_extrema"] and s2["extrema_val"] > s1["extrema_val"]:
+                            # Allow 2% tolerance for "Equal Lows" (Double Bottom)
+                            price_condition = s2["price_at_extrema"] <= (s1["price_at_extrema"] * 1.02)
+                            if price_condition and s2["extrema_val"] > s1["extrema_val"]:
                                  s1_idx = segments.index(s1)
                                  s2_idx = segments.index(s2)
                                  if any(segments[i]["type"] == "pos" for i in range(s1_idx + 1, s2_idx)):
@@ -882,38 +875,38 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                     seg["extrema_val"] = float(hist[trough_idx])
                     seg["price_at_extrema"] = float(lows[trough_idx])
 
-            # 3. Detect Bearish Divergence (Price Higher High, MACD Lower High)
-            pos_segs = [s for s in segments if s["type"] == "pos" and len(s["indices"]) > 2]
+            # 3. Detect Bearish Divergence
+            pos_segs = [s for s in segments if s["type"] == "pos" and len(s["indices"]) > 1]
             if len(pos_segs) >= 2:
-                s2 = pos_segs[-1] # Current/Last pos wave
-                s1 = pos_segs[-2] # Previous pos wave
+                s2 = pos_segs[-1]
+                s1 = pos_segs[-2]
                 
-                # Must be recent (last segment extrema within 15 bars)
-                if (len(hist) - 1 - s2["extrema_idx"]) < 20:
-                    # Confirmation logic
+                # Extended recency to 30 bars
+                if (len(hist) - 1 - s2["extrema_idx"]) < 30:
                     is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
                     indicator_ticked_down = hist[-1] < s2["extrema_val"]
                     
                     if is_confirmed and indicator_ticked_down:
-                        if s2["price_at_extrema"] > s1["price_at_extrema"] and s2["extrema_val"] < s1["extrema_val"]:
-                            # Ensure there was a negative wave in between
+                        price_condition = s2["price_at_extrema"] >= (s1["price_at_extrema"] * 0.98)
+                        if price_condition and s2["extrema_val"] < s1["extrema_val"]:
                             s1_idx = segments.index(s1)
                             s2_idx = segments.index(s2)
                             if any(segments[i]["type"] == "neg" for i in range(s1_idx + 1, s2_idx)):
                                 return {"type": "bearish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
 
-            # 4. Detect Bullish Divergence (Price Lower Low, MACD Higher Low)
-            neg_segs = [s for s in segments if s["type"] == "neg" and len(s["indices"]) > 2]
+            # 4. Detect Bullish Divergence
+            neg_segs = [s for s in segments if s["type"] == "neg" and len(s["indices"]) > 1]
             if len(neg_segs) >= 2:
                 s2 = neg_segs[-1]
                 s1 = neg_segs[-2]
                 
-                if (len(hist) - 1 - s2["extrema_idx"]) < 20:
+                if (len(hist) - 1 - s2["extrema_idx"]) < 30:
                     is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
                     indicator_ticked_up = hist[-1] > s2["extrema_val"]
                     
                     if is_confirmed and indicator_ticked_up:
-                        if s2["price_at_extrema"] < s1["price_at_extrema"] and s2["extrema_val"] > s1["extrema_val"]:
+                        price_condition = s2["price_at_extrema"] <= (s1["price_at_extrema"] * 1.02)
+                        if price_condition and s2["extrema_val"] > s1["extrema_val"]:
                             s1_idx = segments.index(s1)
                             s2_idx = segments.index(s2)
                             if any(segments[i]["type"] == "pos" for i in range(s1_idx + 1, s2_idx)):
