@@ -906,8 +906,9 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
             if len(pos_segs) >= 2:
                 for j in range(1, min(len(pos_segs), 3)):
                     s2 = pos_segs[-j]
-                    if (len(hist) - 1 - s2["extrema_idx"]) < 5:
-                        is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
+                    recency = len(hist) - 1 - s2["extrema_idx"]
+                    if recency < 30: # Keep drawing historicals for chart context
+                        is_confirmed = recency >= 1
                         indicator_ticked_down = hist[-1] < s2["extrema_val"] if is_confirmed else False
                         
                         if j > 1:
@@ -927,15 +928,21 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                                     price_condition = s2["price_at_extrema"] >= (s1["price_at_extrema"] * 0.995)
                                     if price_condition and s2["extrema_val"] < s1["extrema_val"]:
                                         if any(segments[m]["type"] == "neg" for m in range(s1_idx_all + 1, s2_idx_all)):
-                                            return {"type": "bearish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
+                                            return {
+                                                "type": "bearish", 
+                                                "idx1": s1["extrema_idx"], 
+                                                "idx2": s2["extrema_idx"],
+                                                "recency": int(recency)
+                                            }
 
             # 4. Detect Bullish Divergence Lookback (Dynamic S2 & Stricter Bridge)
             neg_segs = [s for s in segments if s["type"] == "neg" and len(s["indices"]) > 1]
             if len(neg_segs) >= 2:
                 for j in range(1, min(len(neg_segs), 3)):
                     s2 = neg_segs[-j]
-                    if (len(hist) - 1 - s2["extrema_idx"]) < 5:
-                        is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
+                    recency = len(hist) - 1 - s2["extrema_idx"]
+                    if recency < 30: # Keep drawing historicals for chart context
+                        is_confirmed = recency >= 1
                         indicator_ticked_up = hist[-1] > s2["extrema_val"] if is_confirmed else False
                         
                         if j > 1:
@@ -955,7 +962,12 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                                     price_condition = s2["price_at_extrema"] <= (s1["price_at_extrema"] * 1.005)
                                     if price_condition and s2["extrema_val"] > s1["extrema_val"]:
                                         if any(segments[m]["type"] == "pos" for m in range(s1_idx_all + 1, s2_idx_all)):
-                                            return {"type": "bullish", "idx1": s1["extrema_idx"], "idx2": s2["extrema_idx"]}
+                                            return {
+                                                "type": "bullish", 
+                                                "idx1": s1["extrema_idx"], 
+                                                "idx2": s2["extrema_idx"],
+                                                "recency": int(recency)
+                                            }
             
             return None
 

@@ -543,9 +543,10 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                     {/* Divergence Alerts (Unified - Top Banner) */}
                     {(() => {
                         const isDual = macdDivergence && f13Divergence && macdDivergence.type === f13Divergence.type;
+                        const isFresh = (macdDivergence?.recency < 5) || (f13Divergence?.recency < 5);
 
                         // 1. Dual Divergence (Top Priority)
-                        if (isDual) {
+                        if (isDual && isFresh) {
                             return (
                                 <div className={`mb-8 p-5 rounded-2xl border-l-4 flex items-start gap-4 shadow-xl animate-in fade-in slide-in-from-top-2 duration-500 ${macdDivergence.type === 'bearish'
                                     ? 'bg-red-900/40 border-red-500/60 shadow-red-900/20'
@@ -569,7 +570,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         }
 
                         // 2. Individual MACD Divergence
-                        if (macdDivergence) {
+                        if (macdDivergence && macdDivergence.recency < 5) {
                             return (
                                 <div className={`mb-8 p-4 rounded-xl border-l-4 flex items-start gap-4 shadow-lg animate-in fade-in slide-in-from-top-2 duration-500 ${macdDivergence.type === 'bearish'
                                     ? 'bg-red-900/30 border-red-500/40 shadow-red-900/10'
@@ -593,7 +594,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         }
 
                         // 3. Individual F13 Divergence
-                        if (f13Divergence) {
+                        if (f13Divergence && f13Divergence.recency < 5) {
                             return (
                                 <div className={`mb-8 p-4 rounded-xl border-l-4 flex items-start gap-4 shadow-lg animate-in fade-in slide-in-from-top-2 duration-500 ${f13Divergence.type === 'bearish'
                                     ? 'bg-purple-900/30 border-purple-500/50 shadow-purple-900/10'
