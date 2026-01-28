@@ -199,7 +199,7 @@ def scan_stocks(session: Session = Depends(get_session)):
                     # Check top 2 most recent segments as potential s2 (latest or previous)
                     for j in range(1, min(len(pos_segs), 3)):
                         s2 = pos_segs[-j]
-                        if (len(hist) - 1 - s2["extrema_idx"]) < 30:
+                        if (len(hist) - 1 - s2["extrema_idx"]) < 5:
                             is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
                             indicator_ticked_down = hist[-1] < s2["extrema_val"] if is_confirmed else False
                             
@@ -231,7 +231,7 @@ def scan_stocks(session: Session = Depends(get_session)):
                 if len(neg_segs) >= 2:
                     for j in range(1, min(len(neg_segs), 3)):
                         s2 = neg_segs[-j]
-                        if (len(hist) - 1 - s2["extrema_idx"]) < 30:
+                        if (len(hist) - 1 - s2["extrema_idx"]) < 5:
                             is_confirmed = (len(hist) - 1 - s2["extrema_idx"]) >= 1
                             indicator_ticked_up = hist[-1] > s2["extrema_val"] if is_confirmed else False
                             
