@@ -135,7 +135,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
         // 3. Configure Scales (Alternating Left/Right to decouple)
         chart.priceScale('right').applyOptions({
-            scaleMargins: isWeekly ? { top: 0.05, bottom: 0.30 } : { top: 0.02, bottom: 0.45 },
+            scaleMargins: isWeekly ? { top: 0.15, bottom: 0.30 } : { top: 0.15, bottom: 0.45 },
         });
 
         chart.priceScale('macd').applyOptions({
