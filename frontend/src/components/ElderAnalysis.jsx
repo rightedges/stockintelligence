@@ -148,7 +148,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
         if (!isWeekly) {
             chart.priceScale('force13').applyOptions({
-                position: 'right', // Force 13 on Right
+                position: 'left', // Force 13 on Left to isolate Price on Right
                 visible: true,
                 borderColor: gridColor,
                 scaleMargins: { top: 0.74, bottom: 0.14 },
