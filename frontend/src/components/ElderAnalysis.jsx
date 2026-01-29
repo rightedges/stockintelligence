@@ -193,9 +193,9 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         };
 
         const priceLegend = createLegend(20);
-        const macdLegend = createLegend(isWeekly ? 675 : 522, 'right'); // Opposite of its axis
+        const macdLegend = createLegend(isWeekly ? 675 : 522); // All on Left
         const force13Legend = !isWeekly ? createLegend(666) : null;
-        const force2Legend = !isWeekly ? createLegend(792, 'right') : null;
+        const force2Legend = !isWeekly ? createLegend(792) : null;
 
         legendRef.current = { price: priceLegend, macd: macdLegend, f13: force13Legend, f2: force2Legend };
 
