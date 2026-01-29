@@ -65,9 +65,22 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             width: chartContainerRef.current.clientWidth,
             height: 900,
             timeScale: { timeVisible: true, borderColor: gridColor },
-            rightPriceScale: { borderColor: gridColor, visible: true },
-            leftPriceScale: { visible: false },
+            rightPriceScale: {
+                borderColor: gridColor,
+                visible: true,
+                autoScale: true,
+                minimumWidth: 80
+            },
+            leftPriceScale: {
+                borderColor: gridColor,
+                visible: true,
+                autoScale: true,
+                minimumWidth: 80
+            },
             crosshair: { mode: CrosshairMode.Normal },
+            localization: {
+                priceFormatter: (price) => price.toFixed(2),
+            },
         });
 
         chartRef.current = chart;
@@ -76,163 +89,107 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         const isWeekly = timeframeLabel === 'Weekly';
         const s = {};
 
-        s.candles = chart.addSeries(CandlestickSeries, { priceScaleId: 'right' });
-        s.ema13 = chart.addSeries(LineSeries, {
-            color: '#60a5fa',
-            lineWidth: 2,
-            lastValueVisible: false,
-            priceLineVisible: false,
-        });
-
-        if (!isWeekly) {
-            s.ema26 = chart.addSeries(LineSeries, {
-                color: '#f59e0b',
-                lineWidth: 2,
-                lastValueVisible: false,
-                priceLineVisible: false,
-            });
-            s.upper = chart.addSeries(LineSeries, {
-                color: 'rgba(255, 255, 255, 0.2)',
-                lineWidth: 1,
-                lineStyle: 2,
-                lastValueVisible: false,
-                priceLineVisible: false,
-            });
-            s.lower = chart.addSeries(LineSeries, {
-                color: 'rgba(255, 255, 255, 0.2)',
-                lineWidth: 1,
-                lineStyle: 2,
-                lastValueVisible: false,
-                priceLineVisible: false,
-            });
-        }
-
-        s.volume = chart.addSeries(HistogramSeries, {
-            priceScaleId: 'volume',
-            priceFormat: { type: 'volume' },
-            lastValueVisible: false,
-            priceLineVisible: false,
-        });
-
-        s.volumeSMA = chart.addSeries(LineSeries, {
-            priceScaleId: 'volume',
-            color: '#f59e0b', // Amber line for SMA
-            lineWidth: 1,
-            lastValueVisible: false,
-            priceLineVisible: false,
-        });
-
-        // Divergence Trendlines
-        // MACD Divergence Lines
-        s.divMacdPrice = chart.addSeries(LineSeries, {
-            color: 'rgba(255, 165, 0, 0.8)', // Orange
-            lineWidth: 2,
-            lineStyle: 0, // Solid
-            lastValueVisible: false,
-            priceLineVisible: false,
-            crosshairMarkerVisible: false
-        });
-        s.divMacdInd = chart.addSeries(LineSeries, {
-            priceScaleId: 'macd',
-            color: 'rgba(255, 165, 0, 0.8)',
-            lineWidth: 2,
-            lineStyle: 0,
-            lastValueVisible: false,
-            priceLineVisible: false,
-            crosshairMarkerVisible: false
-        });
-
-        // F13 Divergence Lines
-        s.divF13Price = chart.addSeries(LineSeries, {
-            color: '#a855f7', // Purple
-            lineWidth: 2,
-            lineStyle: 0,
-            lastValueVisible: false,
-            priceLineVisible: false,
-            crosshairMarkerVisible: false
-        });
-        s.divF13Ind = chart.addSeries(LineSeries, {
-            priceScaleId: 'force13',
-            color: '#a855f7',
-            lineWidth: 2,
-            lineStyle: 0,
-            lastValueVisible: false,
-            priceLineVisible: false,
-            crosshairMarkerVisible: false
-        });
-
-        s.macdHist = chart.addSeries(HistogramSeries, {
-            priceScaleId: 'macd',
-            lastValueVisible: false,
-            priceLineVisible: false,
-        });
-
-        if (!isWeekly) {
-            s.macdSignal = chart.addSeries(LineSeries, {
-                priceScaleId: 'macd',
-                color: '#ef4444',
-                lineWidth: 1,
-                lastValueVisible: false,
-                priceLineVisible: false,
-            });
-            s.force2 = chart.addSeries(HistogramSeries, {
-                priceScaleId: 'force2',
-                lastValueVisible: false,
-                priceLineVisible: false,
-            });
-            s.force13 = chart.addSeries(HistogramSeries, {
-                priceScaleId: 'force13',
-                lastValueVisible: false,
-                priceLineVisible: false,
-            });
-        }
-
-        seriesRef.current = s;
-
-        // Pane Layout (4-Pane Stack)
+        // 1. Configure Scales (Alternating Left/Right to decouple)
         chart.priceScale('right').applyOptions({
-            scaleMargins: isWeekly ? { top: 0.05, bottom: 0.30 } : { top: 0.02, bottom: 0.45 }
+            scaleMargins: isWeekly ? { top: 0.05, bottom: 0.30 } : { top: 0.02, bottom: 0.45 },
         });
 
         chart.priceScale('macd').applyOptions({
-            position: 'left',
+            position: 'left', // MACD on Left
+            visible: true,
+            borderColor: gridColor,
             scaleMargins: isWeekly ? { top: 0.75, bottom: 0 } : { top: 0.58, bottom: 0.28 },
-            visible: true
+            autoScale: true,
         });
 
         if (!isWeekly) {
             chart.priceScale('force13').applyOptions({
-                position: 'left',
+                position: 'right', // Force 13 on Right
+                visible: true,
+                borderColor: gridColor,
                 scaleMargins: { top: 0.74, bottom: 0.14 },
-                visible: true
+                autoScale: true,
             });
             chart.priceScale('force2').applyOptions({
-                position: 'left',
+                position: 'left', // Force 2 on Left
+                visible: true,
+                borderColor: gridColor,
                 scaleMargins: { top: 0.88, bottom: 0 },
-                visible: true
+                autoScale: true,
             });
         }
 
-        // Volume Scale (Overlay at bottom of price pane)
-        // Price pane bottom is 0.30 (Weekly) or 0.45 (Daily).
-        // We want volume to sit at the bottom of that pane.
-        chart.priceScale('volume').applyOptions({
-            scaleMargins: isWeekly ? { top: 0.55, bottom: 0.30 } : { top: 0.35, bottom: 0.45 },
-            visible: false, // Hide axis labels
+        // 2. Add Series
+        s.candles = chart.addSeries(CandlestickSeries, { priceScaleId: 'right' });
+        s.ema13 = chart.addSeries(LineSeries, { color: '#60a5fa', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
+
+        if (!isWeekly) {
+            s.ema26 = chart.addSeries(LineSeries, { color: '#f59e0b', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
+            s.upper = chart.addSeries(LineSeries, { color: 'rgba(255, 255, 255, 0.2)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            s.lower = chart.addSeries(LineSeries, { color: 'rgba(255, 255, 255, 0.2)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+        }
+
+        s.volume = chart.addSeries(HistogramSeries, { priceScaleId: 'volume', priceFormat: { type: 'volume' }, lastValueVisible: false, priceLineVisible: false });
+        chart.priceScale('volume').applyOptions({ scaleMargins: isWeekly ? { top: 0.55, bottom: 0.30 } : { top: 0.35, bottom: 0.45 }, visible: false });
+        s.volumeSMA = chart.addSeries(LineSeries, { priceScaleId: 'volume', color: '#f59e0b', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
+
+        s.macdHist = chart.addSeries(HistogramSeries, {
+            priceScaleId: 'macd',
+            lastValueVisible: true,
+            priceLineVisible: false,
+            priceFormat: { precision: 2, minMove: 0.01 }
         });
 
-        // Legends
-        const legend = document.createElement('div');
-        legend.style = `
-            position: absolute; left: 12px; top: 12px; z-index: 10;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.9);
-            pointer-events: none;
-            display: flex; flex-direction: column; gap: 2px;
-        `;
-        chartContainerRef.current.appendChild(legend);
-        legendRef.current = legend;
+        if (!isWeekly) {
+            s.macdSignal = chart.addSeries(LineSeries, { priceScaleId: 'macd', color: '#ef4444', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
+            s.force2 = chart.addSeries(HistogramSeries, {
+                priceScaleId: 'force2',
+                lastValueVisible: true,
+                priceLineVisible: false,
+                priceFormat: { precision: 1, minMove: 0.1 }
+            });
+            s.force13 = chart.addSeries(HistogramSeries, {
+                priceScaleId: 'force13',
+                lastValueVisible: true,
+                priceLineVisible: false,
+                priceFormat: { precision: 0, minMove: 1000 }
+            });
+        }
+
+        // Divergence Lines (Bind to correct scales)
+        s.divMacdPrice = chart.addSeries(LineSeries, { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        s.divMacdInd = chart.addSeries(LineSeries, { priceScaleId: 'macd', color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        s.divF13Price = chart.addSeries(LineSeries, { color: '#a855f7', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        s.divF13Ind = chart.addSeries(LineSeries, { priceScaleId: 'force13', color: '#a855f7', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+
+        seriesRef.current = s;
+
+        // Legends Container (one for each pane, using px for stability)
+        const createLegend = (topPx, side = 'left') => {
+            const leg = document.createElement('div');
+            leg.style = `
+                position: absolute; ${side}: 12px; top: ${topPx}px; z-index: 100;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                font-size: 11px;
+                color: rgba(255, 255, 255, 0.9);
+                pointer-events: none;
+                display: flex; flex-direction: column; gap: 2px;
+                background: rgba(17, 24, 39, 0.85);
+                padding: 6px 10px;
+                border-radius: 6px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            `;
+            chartContainerRef.current.appendChild(leg);
+            return leg;
+        };
+
+        const priceLegend = createLegend(20);
+        const macdLegend = createLegend(isWeekly ? 675 : 522, 'right'); // Opposite of its axis
+        const force13Legend = !isWeekly ? createLegend(666) : null;
+        const force2Legend = !isWeekly ? createLegend(792, 'right') : null;
+
+        legendRef.current = { price: priceLegend, macd: macdLegend, f13: force13Legend, f2: force2Legend };
 
         // Resizer
         const observer = new ResizeObserver(entries => {
@@ -243,7 +200,9 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         observer.observe(chartContainerRef.current);
 
         return () => {
-            if (legend) legend.remove();
+            if (legendRef.current) {
+                Object.values(legendRef.current).forEach(l => l && l.remove());
+            }
             observer.disconnect();
             if (chartRef.current) {
                 chartRef.current.remove();
@@ -458,33 +417,48 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         const updateLegend = (d) => {
             if (!d || !legendRef.current) return;
             const isWeekly = timeframeLabel === 'Weekly';
-            legendRef.current.innerHTML = `
-                <div style="font-size: 14px; font-weight: 600; color: #e5e7eb; margin-bottom: 2px;">
-                    ${symbol} <span style="font-size: 11px; color: #9ca3af; font-weight: 400;">${timeframeLabel}</span>
-                </div>
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <div style="display: flex; gap: 4px;">
+            const { price, macd, f13, f2 } = legendRef.current;
+
+            if (price) {
+                price.innerHTML = `
+                    <div style="font-size: 13px; font-weight: 700; color: #e5e7eb; margin-bottom: 2px;">
+                        ${symbol} <span style="font-size: 10px; color: #9ca3af; font-weight: 400;">${timeframeLabel}</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                         <span style="color: #9ca3af;">O</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Open?.toFixed(2)}</span>
                         <span style="color: #9ca3af;">H</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.High?.toFixed(2)}</span>
                         <span style="color: #9ca3af;">L</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Low?.toFixed(2)}</span>
                         <span style="color: #9ca3af;">C</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Close?.toFixed(2)}</span>
+                        <span style="color: #60a5fa">EMA13 ${d.ema_13?.toFixed(2) || ''}</span>
+                        ${!isWeekly ? `<span style="color: #f59e0b">EMA26 ${d.ema_26?.toFixed(2) || ''}</span>` : ''}
+                        <span style="color: #94a3b8">Vol ${(d.Volume / 1000000).toFixed(2)}M</span>
                     </div>
-                </div>
-                <div style="display: flex; gap: 8px; margin-top: 2px;">
-                    <span style="color: #60a5fa">EMA13 ${d.ema_13 !== undefined && d.ema_13 !== null ? d.ema_13.toFixed(2) : ''}</span>
-                    ${!isWeekly ? `<span style="color: #f59e0b">EMA26 ${d.ema_26 !== undefined && d.ema_26 !== null ? d.ema_26.toFixed(2) : ''}</span>` : ''}
-                    <span style="color: #9ca3af">Vol ${(d.Volume / 1000000).toFixed(2)}M</span>
-                    <span style="color: #f59e0b">SMA(20) ${d.volume_sma_20 ? (d.volume_sma_20 / 1000000).toFixed(2) + 'M' : ''}</span>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <span style="color: #34d399">MACD ${d.macd_diff !== undefined && d.macd_diff !== null ? d.macd_diff.toFixed(2) : ''}</span>
-                    ${!isWeekly ? `<span style="color: #ef4444">Signal ${d.macd_signal !== undefined && d.macd_signal !== null ? d.macd_signal.toFixed(2) : ''}</span>` : ''}
-                    ${!isWeekly ? `
-                        <span style="color: #a78bfa">F(2) ${d.force_index_2 ? (d.force_index_2 / 1000).toFixed(1) + 'K' : '-'}</span>
-                        <span style="color: #8b5cf6">F(13) ${d.force_index_13 ? (d.force_index_13 / 1000000).toFixed(1) + 'M' : '-'}</span>
-                    ` : ''}
-                </div>
-            `;
+                `;
+            }
+
+            if (macd) {
+                macd.innerHTML = `
+                    <div style="font-weight: 700; color: #34d399; margin-bottom: 2px;">MACD Histogram</div>
+                    <div style="display: flex; gap: 8px;">
+                        <span style="color: #34d399">Value ${d.macd_diff?.toFixed(2) || '0.00'}</span>
+                        ${!isWeekly ? `<span style="color: #ef4444">Signal ${d.macd_signal?.toFixed(2) || '0.00'}</span>` : ''}
+                    </div>
+                `;
+            }
+
+            if (f13 && !isWeekly) {
+                f13.innerHTML = `
+                    <div style="font-weight: 700; color: #8b5cf6; margin-bottom: 2px;">Force Index (13)</div>
+                    <div style="color: #8b5cf6">Value ${d.force_index_13 ? (d.force_index_13 / 1000000).toFixed(2) + 'M' : '0.00M'}</div>
+                `;
+            }
+
+            if (f2 && !isWeekly) {
+                f2.innerHTML = `
+                    <div style="font-weight: 700; color: #a78bfa; margin-bottom: 2px;">Force Index (2)</div>
+                    <div style="color: #a78bfa">Value ${d.force_index_2 ? (d.force_index_2 / 1000).toFixed(1) + 'K' : '0.0K'}</div>
+                `;
+            }
         };
 
         const handleCrosshairMove = param => {
@@ -494,6 +468,10 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             if (!param.time || param.point.x < 0 || param.point.y < 0) {
                 updateLegend(last);
             } else {
+                // Find matching item in 'data' array to be safe if seriesData is missing points
+                const timeStr = typeof param.time === 'string' ? param.time : param.time.year + '-' + String(param.time.month).padStart(2, '0') + '-' + String(param.time.day).padStart(2, '0');
+                const item = data.find(d => d.Date.split('T')[0] === timeStr) || last;
+
                 const e13 = s.ema13 ? param.seriesData.get(s.ema13) : null;
                 const e26 = s.ema26 ? param.seriesData.get(s.ema26) : null;
                 const mh = s.macdHist ? param.seriesData.get(s.macdHist) : null;
@@ -503,18 +481,18 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 const priceData = param.seriesData.get(s.candles);
 
                 updateLegend({
-                    Open: priceData?.open || last?.Open,
-                    High: priceData?.high || last?.High,
-                    Low: priceData?.low || last?.Low,
-                    Close: priceData?.close || priceData?.value || last?.Close,
-                    ema_13: e13?.value,
-                    ema_26: e26?.value,
-                    macd_diff: mh?.value,
-                    macd_signal: ms?.value,
-                    force_index_2: f2?.value,
-                    force_index_13: f13?.value,
-                    Volume: s.volume ? param.seriesData.get(s.volume)?.value : last?.Volume,
-                    volume_sma_20: s.volumeSMA ? param.seriesData.get(s.volumeSMA)?.value : last?.volume_sma_20
+                    ...item,
+                    Open: priceData?.open || item?.Open,
+                    High: priceData?.high || item?.High,
+                    Low: priceData?.low || item?.Low,
+                    Close: priceData?.close || priceData?.value || item?.Close,
+                    ema_13: e13?.value ?? item?.ema_13,
+                    ema_26: e26?.value ?? item?.ema_26,
+                    macd_diff: mh?.value ?? item?.macd_diff,
+                    macd_signal: ms?.value ?? item?.macd_signal,
+                    force_index_2: f2?.value ?? item?.force_index_2,
+                    force_index_13: f13?.value ?? item?.force_index_13,
+                    Volume: s.volume ? param.seriesData.get(s.volume)?.value || item?.Volume : item?.Volume,
                 });
             }
         };
@@ -728,7 +706,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                             </div>
                                             <div className="p-2 bg-black/40 rounded border border-white/5">
                                                 <div className="text-[8px] text-gray-500 uppercase font-bold">Risk/Reward</div>
-                                                <div className={`text-sm font-mono font-bold italic ${(Math.abs(tacticalAdvice.target - tacticalAdvice.entry) / Math.abs(tacticalAdvice.entry - tacticalAdvice.stop)) >= 2 ? 'text-green-400' : 'text-amber-400'}`}>
+                                                <div className={`text-sm font-mono font-bold italic ${(Math.abs((tacticalAdvice?.target || 0) - (tacticalAdvice?.entry || 0)) / Math.abs((tacticalAdvice?.entry || 0) - (tacticalAdvice?.stop || 1))) >= 2 ? 'text-green-400' : 'text-amber-400'}`}>
                                                     {tacticalAdvice.entry && tacticalAdvice.stop && tacticalAdvice.target
                                                         ? `${(Math.abs(tacticalAdvice.target - tacticalAdvice.entry) / Math.abs(tacticalAdvice.entry - tacticalAdvice.stop)).toFixed(2)}:1`
                                                         : 'N/A'}
@@ -743,19 +721,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 </div>
 
                 <div className="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-2xl overflow-hidden relative">
-                    <div ref={chartContainerRef} className="w-full h-[900px] relative">
-                        {/* Pane Labels */}
-                        {!isWeekly && (
-                            <>
-                                <div className="absolute left-[65px] top-[58%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">MACD</div>
-                                <div className="absolute left-[65px] top-[74%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">Force (13)</div>
-                                <div className="absolute left-[65px] top-[88%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">Force (2)</div>
-                            </>
-                        )}
-                        {isWeekly && (
-                            <div className="absolute left-[65px] top-[75%] z-10 text-[9px] font-black text-gray-500 uppercase tracking-tighter pointer-events-none bg-gray-900/40 px-1 rounded">MACD</div>
-                        )}
-                    </div>
+                    <div ref={chartContainerRef} className="w-full h-[900px] relative" />
                 </div>
             </div>
 
@@ -923,7 +889,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                     </div>
                 )
             }
-        </div >
+        </div>
     );
 };
 
