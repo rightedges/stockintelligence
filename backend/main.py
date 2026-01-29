@@ -34,6 +34,7 @@ app = FastAPI(lifespan=lifespan)
 # CORS configuration
 origins = [
     "http://localhost:5173",  # React frontend (standard)
+    "http://127.0.0.1:5173",  # React frontend (IP)
     "http://localhost:5174",  # React frontend (Vite alternative)
     "http://intelligence.local:5173", # LAN Access
     "http://192.168.50.164:5173", # Direct IP Access

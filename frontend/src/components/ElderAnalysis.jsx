@@ -89,36 +89,6 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         const isWeekly = timeframeLabel === 'Weekly';
         const s = {};
 
-        // 1. Configure Scales (Alternating Left/Right to decouple)
-        chart.priceScale('right').applyOptions({
-            scaleMargins: isWeekly ? { top: 0.05, bottom: 0.30 } : { top: 0.02, bottom: 0.45 },
-        });
-
-        chart.priceScale('macd').applyOptions({
-            position: 'left', // MACD on Left
-            visible: true,
-            borderColor: gridColor,
-            scaleMargins: isWeekly ? { top: 0.75, bottom: 0 } : { top: 0.58, bottom: 0.28 },
-            autoScale: true,
-        });
-
-        if (!isWeekly) {
-            chart.priceScale('force13').applyOptions({
-                position: 'right', // Force 13 on Right
-                visible: true,
-                borderColor: gridColor,
-                scaleMargins: { top: 0.74, bottom: 0.14 },
-                autoScale: true,
-            });
-            chart.priceScale('force2').applyOptions({
-                position: 'left', // Force 2 on Left
-                visible: true,
-                borderColor: gridColor,
-                scaleMargins: { top: 0.88, bottom: 0 },
-                autoScale: true,
-            });
-        }
-
         // 2. Add Series
         s.candles = chart.addSeries(CandlestickSeries, { priceScaleId: 'right' });
         s.ema13 = chart.addSeries(LineSeries, { color: '#60a5fa', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
@@ -130,7 +100,6 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         }
 
         s.volume = chart.addSeries(HistogramSeries, { priceScaleId: 'volume', priceFormat: { type: 'volume' }, lastValueVisible: false, priceLineVisible: false });
-        chart.priceScale('volume').applyOptions({ scaleMargins: isWeekly ? { top: 0.55, bottom: 0.30 } : { top: 0.35, bottom: 0.45 }, visible: false });
         s.volumeSMA = chart.addSeries(LineSeries, { priceScaleId: 'volume', color: '#f59e0b', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
 
         s.macdHist = chart.addSeries(HistogramSeries, {
@@ -164,8 +133,47 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
         seriesRef.current = s;
 
+        // 3. Configure Scales (Alternating Left/Right to decouple)
+        chart.priceScale('right').applyOptions({
+            scaleMargins: isWeekly ? { top: 0.05, bottom: 0.30 } : { top: 0.02, bottom: 0.45 },
+        });
+
+        chart.priceScale('macd').applyOptions({
+            position: 'left', // MACD on Left
+            visible: true,
+            borderColor: gridColor,
+            scaleMargins: isWeekly ? { top: 0.75, bottom: 0 } : { top: 0.58, bottom: 0.28 },
+            autoScale: true,
+        });
+
+        if (!isWeekly) {
+            chart.priceScale('force13').applyOptions({
+                position: 'right', // Force 13 on Right
+                visible: true,
+                borderColor: gridColor,
+                scaleMargins: { top: 0.74, bottom: 0.14 },
+                autoScale: true,
+            });
+            chart.priceScale('force2').applyOptions({
+                position: 'left', // Force 2 on Left
+                visible: true,
+                borderColor: gridColor,
+                scaleMargins: { top: 0.88, bottom: 0 },
+                autoScale: true,
+            });
+        }
+
+        chart.priceScale('volume').applyOptions({
+            scaleMargins: isWeekly ? { top: 0.55, bottom: 0.30 } : { top: 0.35, bottom: 0.45 },
+            visible: false
+        });
+
+        if (!chartContainerRef.current) return;
+        const container = chartContainerRef.current;
+
         // Legends Container (one for each pane, using px for stability)
         const createLegend = (topPx, side = 'left') => {
+            if (!container) return null;
             const leg = document.createElement('div');
             leg.style = `
                 position: absolute; ${side}: 12px; top: ${topPx}px; z-index: 100;
@@ -180,7 +188,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 border: 1px solid rgba(255, 255, 255, 0.1);
                 box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             `;
-            chartContainerRef.current.appendChild(leg);
+            container.appendChild(leg);
             return leg;
         };
 
@@ -197,11 +205,13 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 chartRef.current.applyOptions({ width: entries[0].contentRect.width });
             }
         });
-        observer.observe(chartContainerRef.current);
+        observer.observe(container);
 
         return () => {
             if (legendRef.current) {
-                Object.values(legendRef.current).forEach(l => l && l.remove());
+                Object.values(legendRef.current).forEach(l => {
+                    try { if (l && container.contains(l)) container.removeChild(l); } catch (e) { }
+                });
             }
             observer.disconnect();
             if (chartRef.current) {
@@ -324,21 +334,21 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             }
         });
 
-        s.candles.setData(candleData);
-        s.ema13.setData(ema13Data);
+        if (s.candles) s.candles.setData(candleData);
+        if (s.ema13) s.ema13.setData(ema13Data);
         if (!isWeekly) {
-            s.ema26.setData(ema26Data);
-            s.upper.setData(upperData);
-            s.lower.setData(lowerData);
+            if (s.ema26) s.ema26.setData(ema26Data);
+            if (s.upper) s.upper.setData(upperData);
+            if (s.lower) s.lower.setData(lowerData);
         }
-        s.macdHist.setData(macdHistData);
+        if (s.macdHist) s.macdHist.setData(macdHistData);
         if (!isWeekly) {
-            s.macdSignal.setData(macdSignalData);
-            s.force2.setData(force2Data);
-            s.force13.setData(force13Data);
+            if (s.macdSignal) s.macdSignal.setData(macdSignalData);
+            if (s.force2) s.force2.setData(force2Data);
+            if (s.force13) s.force13.setData(force13Data);
         }
-        s.volume.setData(volumeData);
-        s.volumeSMA.setData(volumeSMAData);
+        if (s.volume) s.volume.setData(volumeData);
+        if (s.volumeSMA) s.volumeSMA.setData(volumeSMAData);
 
         // Render Divergence Trendlines
         if (macdDivergence && data[macdDivergence.idx1] && data[macdDivergence.idx2]) {
@@ -354,13 +364,13 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             // Price Line: Connect Highs (Bearish) or Lows (Bullish)
             const priceVal1 = macdDivergence.type === 'bearish' ? p1.High : p1.Low;
             const priceVal2 = macdDivergence.type === 'bearish' ? p2.High : p2.Low;
-            s.divMacdPrice.setData([{ time: time1, value: priceVal1 }, { time: time2, value: priceVal2 }]);
+            if (s.divMacdPrice) s.divMacdPrice.setData([{ time: time1, value: priceVal1 }, { time: time2, value: priceVal2 }]);
 
             // Indicator Line
-            s.divMacdInd.setData([{ time: time1, value: p1.macd_diff }, { time: time2, value: p2.macd_diff }]);
+            if (s.divMacdInd) s.divMacdInd.setData([{ time: time1, value: p1.macd_diff }, { time: time2, value: p2.macd_diff }]);
         } else {
-            s.divMacdPrice.setData([]);
-            s.divMacdInd.setData([]);
+            if (s.divMacdPrice) s.divMacdPrice.setData([]);
+            if (s.divMacdInd) s.divMacdInd.setData([]);
         }
 
         if (f13Divergence && data[f13Divergence.idx1] && data[f13Divergence.idx2]) {
@@ -375,13 +385,13 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
             const priceVal1 = f13Divergence.type === 'bearish' ? p1.High : p1.Low;
             const priceVal2 = f13Divergence.type === 'bearish' ? p2.High : p2.Low;
-            s.divF13Price.setData([{ time: time1, value: priceVal1 }, { time: time2, value: priceVal2 }]);
+            if (s.divF13Price) s.divF13Price.setData([{ time: time1, value: priceVal1 }, { time: time2, value: priceVal2 }]);
 
             // F13 Data
-            s.divF13Ind.setData([{ time: time1, value: p1.force_index_13 }, { time: time2, value: p2.force_index_13 }]);
+            if (s.divF13Ind) s.divF13Ind.setData([{ time: time1, value: p1.force_index_13 }, { time: time2, value: p2.force_index_13 }]);
         } else {
-            s.divF13Price.setData([]);
-            s.divF13Ind.setData([]);
+            if (s.divF13Price) s.divF13Price.setData([]);
+            if (s.divF13Ind) s.divF13Ind.setData([]);
         }
 
         // Support & Resistance Lines Cleanup
@@ -465,11 +475,22 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             if (!s || !s.candles) return;
             const last = data[data.length - 1];
 
-            if (!param.time || param.point.x < 0 || param.point.y < 0) {
+            if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
                 updateLegend(last);
             } else {
-                // Find matching item in 'data' array to be safe if seriesData is missing points
-                const timeStr = typeof param.time === 'string' ? param.time : param.time.year + '-' + String(param.time.month).padStart(2, '0') + '-' + String(param.time.day).padStart(2, '0');
+                // Defensive check for param.time because it can be an object or string
+                let timeStr;
+                if (typeof param.time === 'string') {
+                    timeStr = param.time;
+                } else if (param.time && typeof param.time === 'object') {
+                    timeStr = `${param.time.year}-${String(param.time.month).padStart(2, '0')}-${String(param.time.day).padStart(2, '0')}`;
+                }
+
+                if (!timeStr) {
+                    updateLegend(last);
+                    return;
+                }
+
                 const item = data.find(d => d.Date.split('T')[0] === timeStr) || last;
 
                 const e13 = s.ema13 ? param.seriesData.get(s.ema13) : null;
