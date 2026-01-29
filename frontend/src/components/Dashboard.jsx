@@ -248,9 +248,9 @@ const Dashboard = () => {
                     ) : view === 'intelligence' ? (
                         <MarketIntelligence regimeData={regimeData} />
                     ) : view === 'elder' ? (
-                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} f13Divergence={f13Divergence} timeframeLabel="Daily" />
+                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} f13Divergence={f13Divergence} timeframeLabel="Daily" regimeData={regimeData} />
                     ) : view === 'weekly' ? (
-                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} f13Divergence={f13Divergence} timeframeLabel="Weekly" />
+                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} f13Divergence={f13Divergence} timeframeLabel="Weekly" regimeData={regimeData} />
                     ) : (
                         <div className="flex items-center justify-center h-full text-gray-500">
                             Select a stock to view analysis

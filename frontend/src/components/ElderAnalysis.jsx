@@ -6,11 +6,11 @@ import {
     HistogramSeries,
     CrosshairMode
 } from 'lightweight-charts';
-import { Zap, Info, Notebook, Camera, Calendar, Trash2, Search, AlertTriangle, Edit } from 'lucide-react';
+import { Zap, Info, Notebook, Camera, Calendar, Trash2, Search, AlertTriangle, Edit, ShieldCheck, ArrowUpRight, Globe, Layers } from 'lucide-react';
 import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalEntry } from '../services/api';
 import { X } from 'lucide-react';
 
-const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDivergence, f13Divergence, timeframeLabel = 'Daily' }) => {
+const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDivergence, f13Divergence, timeframeLabel = 'Daily', regimeData }) => {
     const chartContainerRef = useRef();
     const [persistenceKey, setPersistenceKey] = useState(null);
     const [journalEntries, setJournalEntries] = useState([]);
@@ -742,6 +742,45 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 </div>
 
                 <div className="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-2xl overflow-hidden relative">
+
+                    {/* --- Market Context Header --- */}
+                    {regimeData && (
+                        <div className="absolute top-6 left-6 right-6 z-20 flex flex-wrap items-center gap-4 px-4 py-2 bg-gray-900/80 border border-gray-700/50 rounded-xl backdrop-blur-md shadow-lg transform transition-all hover:bg-gray-900/95">
+
+                            {/* Macro Status */}
+                            <div className="flex items-center gap-2" title={`Macro: ${regimeData.macro_status} | Trend: ${regimeData.regime}`}>
+                                <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${regimeData.macro_status === 'Risk-On' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                                    <Globe size={12} />
+                                    {regimeData.macro_status}
+                                </div>
+                            </div>
+
+                            <div className="w-[1px] h-4 bg-gray-700" />
+
+                            {/* Sector Status */}
+                            <div className="flex items-center gap-2" title={`Sector: ${regimeData.sector_analysis?.stock_sector}`}>
+                                <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${regimeData.sector_analysis?.is_leading ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'bg-gray-700/50 text-gray-400 border border-gray-600/50'}`}>
+                                    <Layers size={12} />
+                                    {regimeData.sector_analysis?.is_leading ? 'Leading Sector' : regimeData.sector_analysis?.stock_sector || 'Sector'}
+                                </div>
+                            </div>
+
+                            <div className="w-[1px] h-4 bg-gray-700" />
+
+                            {/* Strategic Verdict */}
+                            <div className="flex items-center gap-2 ml-auto">
+                                <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest hidden sm:block">Strategy</span>
+                                <div className={`px-3 py-1 rounded text-[10px] uppercase font-black tracking-widest flex items-center gap-2 ${regimeData.decision.includes('Buy') || regimeData.decision.includes('Bullish') ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.5)]' :
+                                        regimeData.decision.includes('Avoid') || regimeData.decision.includes('Short') ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]' :
+                                            'bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.5)]'
+                                    }`}>
+                                    {regimeData.decision.includes('Buy') || regimeData.decision.includes('Bullish') ? <ArrowUpRight size={14} strokeWidth={3} /> : <ShieldCheck size={14} strokeWidth={3} />}
+                                    {regimeData.decision.split('.')[0]}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div ref={chartContainerRef} className="w-full h-[900px] relative" />
                 </div>
             </div>
