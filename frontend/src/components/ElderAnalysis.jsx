@@ -192,7 +192,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             return leg;
         };
 
-        const priceLegend = createLegend(20);
+        const priceLegend = createLegend(80);
         const macdLegend = createLegend(isWeekly ? 675 : 522); // All on Left
         const force13Legend = !isWeekly ? createLegend(666) : null;
         const force2Legend = !isWeekly ? createLegend(792) : null;
@@ -771,8 +771,8 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                             <div className="flex items-center gap-2 ml-auto">
                                 <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest hidden sm:block">Strategy</span>
                                 <div className={`px-3 py-1 rounded text-[10px] uppercase font-black tracking-widest flex items-center gap-2 ${regimeData.decision.includes('Buy') || regimeData.decision.includes('Bullish') ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.5)]' :
-                                        regimeData.decision.includes('Avoid') || regimeData.decision.includes('Short') ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]' :
-                                            'bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.5)]'
+                                    regimeData.decision.includes('Avoid') || regimeData.decision.includes('Short') ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]' :
+                                        'bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.5)]'
                                     }`}>
                                     {regimeData.decision.includes('Buy') || regimeData.decision.includes('Bullish') ? <ArrowUpRight size={14} strokeWidth={3} /> : <ShieldCheck size={14} strokeWidth={3} />}
                                     {regimeData.decision.split('.')[0]}
