@@ -19,11 +19,19 @@ def migrate():
             session.commit()
             print("✅ SUCCESS: Added 'divergence_status' column to 'stock' table.")
         except Exception as e:
-            # Check if error is because column already exists (common in SQLite)
+            if "duplicate column name" not in str(e).lower():
+                 print(f"Migration note (stock): {e}")
+
+        try:
+            # Attempt to add snapshot column to Trade table
+            session.exec(text("ALTER TABLE trade ADD COLUMN snapshot TEXT"))
+            session.commit()
+            print("✅ SUCCESS: Added 'snapshot' column to 'trade' table.")
+        except Exception as e:
             if "duplicate column name" in str(e).lower():
-                print("ℹ️  INFO: Column 'divergence_status' already exists. You are good to go.")
+                print("ℹ️  INFO: Column 'snapshot' already exists in 'trade'.")
             else:
-                print(f"❌ ERROR: Migration failed: {e}")
+                 print(f"❌ ERROR: Trade Migration failed: {e}")
 
 if __name__ == "__main__":
     migrate()
