@@ -34,6 +34,7 @@ class Trade(SQLModel, table=True):
     symbol: str = Field(index=True)
     quantity: float
     direction: str # 'Long' or 'Short'
+    snapshot: Optional[str] = None # Base64 chart image
     
     # Entry
     entry_date: str

@@ -6,9 +6,10 @@ import {
     HistogramSeries,
     CrosshairMode
 } from 'lightweight-charts';
-import { Zap, Info, Notebook, Camera, Calendar, Trash2, Search, AlertTriangle, Edit, ShieldCheck, ArrowUpRight, Globe, Layers } from 'lucide-react';
+import { Zap, Info, Notebook, Camera, Calendar, Trash2, Search, AlertTriangle, Edit, ShieldCheck, ArrowUpRight, Globe, Layers, Plus } from 'lucide-react';
 import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalEntry } from '../services/api';
 import { X } from 'lucide-react';
+import TradeEntryModal from './TradeEntryModal';
 
 const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDivergence, f13Divergence, timeframeLabel = 'Daily', regimeData }) => {
     const chartContainerRef = useRef();
@@ -21,6 +22,8 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
     const [searchQuery, setSearchQuery] = useState('');
     const [editingId, setEditingId] = useState(null);
     const [editingNote, setEditingNote] = useState('');
+    const [showTradeModal, setShowTradeModal] = useState(false);
+    const [snapshot, setSnapshot] = useState(null);
     const lastData = data && data.length > 0 ? data[data.length - 1] : null;
     const currentImpulse = lastData?.impulse || 'blue';
     const isWeekly = timeframeLabel === 'Weekly';
@@ -781,6 +784,24 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         </div>
                     )}
 
+                    {/* Log Trade Button (Absolute Top Right of Chart) */}
+                    <button
+                        onClick={() => {
+                            const chartDiv = chartContainerRef.current;
+                            if (chartDiv) {
+                                const canvas = chartDiv.querySelector('canvas');
+                                if (canvas) {
+                                    setSnapshot(canvas.toDataURL());
+                                    setShowTradeModal(true);
+                                }
+                            }
+                        }}
+                        className="absolute top-6 right-6 z-30 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-2 text-xs font-bold uppercase tracking-wider backdrop-blur-md transition-all"
+                    >
+                        <Plus size={14} />
+                        Log Trade
+                    </button>
+
                     <div ref={chartContainerRef} className="w-full h-[900px] relative" />
                 </div>
             </div>
@@ -949,7 +970,20 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                     </div>
                 )
             }
-        </div>
+            {/* Trade Entry Modal */}
+            {
+                showTradeModal && (
+                    <TradeEntryModal
+                        onClose={() => setShowTradeModal(false)}
+                        snapshot={snapshot}
+                        initialData={{
+                            symbol: symbol,
+                            entry_price: data && data.length > 0 ? data[data.length - 1].Close : ''
+                        }}
+                    />
+                )
+            }
+        </div >
     );
 };
 

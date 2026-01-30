@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getTrades, logTrade, deleteTrade } from '../services/api';
 import { Plus, Trash2, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import TradeEntryModal from './TradeEntryModal';
 
 const TradeJournal = () => {
     const [trades, setTrades] = useState([]);
@@ -175,101 +176,12 @@ const TradeJournal = () => {
             </div>
 
             {/* Modal */}
+            {/* Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-fade-in-up">
-                        <div className="p-6 border-b border-gray-700 flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-white">Log New Trade</h2>
-                            <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white">✕</button>
-                        </div>
-                        <form onSubmit={handleSubmit} className="p-6 grid grid-cols-2 gap-4">
-                            {/* Basics */}
-                            <div className="col-span-2 grid grid-cols-4 gap-4">
-                                <label className="block">
-                                    <span className="text-xs text-gray-400 uppercase">Symbol</span>
-                                    <input required className="w-full bg-gray-900 border border-gray-700 rounded p-2 mt-1 focus:border-blue-500 outline-none"
-                                        value={formData.symbol} onChange={e => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })} />
-                                </label>
-                                <label className="block">
-                                    <span className="text-xs text-gray-400 uppercase">Direction</span>
-                                    <select className="w-full bg-gray-900 border border-gray-700 rounded p-2 mt-1 focus:border-blue-500 outline-none"
-                                        value={formData.direction} onChange={e => setFormData({ ...formData, direction: e.target.value })}>
-                                        <option value="Long">Long</option>
-                                        <option value="Short">Short</option>
-                                    </select>
-                                </label>
-                                <label className="block">
-                                    <span className="text-xs text-gray-400 uppercase">Qty</span>
-                                    <input required type="number" className="w-full bg-gray-900 border border-gray-700 rounded p-2 mt-1 focus:border-blue-500 outline-none"
-                                        value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: e.target.value })} />
-                                </label>
-                                <label className="block">
-                                    <span className="text-xs text-gray-400 uppercase">Date</span>
-                                    <input required type="date" className="w-full bg-gray-900 border border-gray-700 rounded p-2 mt-1 focus:border-blue-500 outline-none"
-                                        value={formData.entry_date} onChange={e => setFormData({ ...formData, entry_date: e.target.value })} />
-                                </label>
-                            </div>
-
-                            {/* Execution */}
-                            <div className="col-span-2 border-t border-gray-700 pt-4 mt-2">
-                                <h3 className="text-sm font-bold text-blue-400 mb-2 uppercase tracking-wider">Execution</h3>
-                                <div className="grid grid-cols-3 gap-4">
-                                    <label>
-                                        <span className="text-xs text-gray-400">Entry Price (Fill)</span>
-                                        <input required type="number" step="0.01" className="w-full bg-gray-900 border border-gray-700 rounded p-2 mt-1"
-                                            value={formData.entry_price} onChange={e => setFormData({ ...formData, entry_price: e.target.value })} />
-                                    </label>
-                                    <label>
-                                        <span className="text-xs text-gray-400">Order Price (Limit)</span>
-                                        <input type="number" step="0.01" placeholder="Optional" className="w-full bg-gray-900 border border-gray-700 rounded p-2 mt-1"
-                                            value={formData.entry_order_price} onChange={e => setFormData({ ...formData, entry_order_price: e.target.value })} />
-                                    </label>
-                                    <label>
-                                        <span className="text-xs text-gray-400">Source</span>
-                                        <select className="w-full bg-gray-900 border border-gray-700 rounded p-2 mt-1"
-                                            value={formData.source} onChange={e => setFormData({ ...formData, source: e.target.value })}>
-                                            <option>Homework</option>
-                                            <option>Tip (WOM)</option>
-                                            <option>Webinar</option>
-                                            <option>Spike Group</option>
-                                        </select>
-                                    </label>
-                                </div>
-                            </div>
-
-                            {/* Context for Grading */}
-                            <div className="col-span-2 border-t border-gray-700 pt-4 mt-2">
-                                <h3 className="text-sm font-bold text-purple-400 mb-2 uppercase tracking-wider">Daily Context (For Grading)</h3>
-                                <div className="grid grid-cols-4 gap-4">
-                                    <label>
-                                        <span className="text-xs text-gray-400">Daily High</span>
-                                        <input type="number" step="0.01" className="w-full bg-gray-900 border border-gray-700 rounded p-2 mt-1"
-                                            value={formData.entry_day_high} onChange={e => setFormData({ ...formData, entry_day_high: e.target.value })} />
-                                    </label>
-                                    <label>
-                                        <span className="text-xs text-gray-400">Daily Low</span>
-                                        <input type="number" step="0.01" className="w-full bg-gray-900 border border-gray-700 rounded p-2 mt-1"
-                                            value={formData.entry_day_low} onChange={e => setFormData({ ...formData, entry_day_low: e.target.value })} />
-                                    </label>
-                                    <label>
-                                        <span className="text-xs text-gray-400">Channel Top</span>
-                                        <input type="number" step="0.01" className="w-full bg-gray-900 border border-gray-700 rounded p-2 mt-1"
-                                            value={formData.upper_channel} onChange={e => setFormData({ ...formData, upper_channel: e.target.value })} />
-                                    </label>
-                                    <label>
-                                        <span className="text-xs text-gray-400">Channel Bot</span>
-                                        <input type="number" step="0.01" className="w-full bg-gray-900 border border-gray-700 rounded p-2 mt-1"
-                                            value={formData.lower_channel} onChange={e => setFormData({ ...formData, lower_channel: e.target.value })} />
-                                    </label>
-                                </div>
-                            </div>
-
-                            <button type="submit" className="col-span-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl mt-4 transition shadow-lg shadow-blue-900/40">
-                                Save Trade Entry
-                            </button>
-                        </form>
-                    </div>
-                </div>
+                <TradeEntryModal
+                    onClose={() => setShowModal(false)}
+                    onSave={loadTrades}
+                />
             )}
         </div>
     );
