@@ -22,10 +22,15 @@ def create_trade(trade: Trade, session: Session = Depends(get_session)):
     # Calculate Grades if not provided?
     # For now, trust frontend values or just store implementation.
     
-    session.add(trade)
-    session.commit()
-    session.refresh(trade)
-    return trade
+    try:
+        session.add(trade)
+        session.commit()
+        session.refresh(trade)
+        return trade
+    except Exception as e:
+        with open("error_log.txt", "a") as f:
+            f.write(f"Error creating trade: {e}\nPayload: {trade}\n")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 @router.patch("/{trade_id}", response_model=Trade)
 def update_trade(trade_id: int, trade_update: Trade, session: Session = Depends(get_session)):

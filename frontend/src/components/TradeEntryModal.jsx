@@ -51,12 +51,24 @@ const TradeEntryModal = ({ onClose, onSave, snapshot, initialData = {} }) => {
 
         const { entryGrade } = calculateGrades(formData);
 
+        // Helper to safe parse float or return null
+        const safeFloat = (val) => {
+            if (val === '' || val === null || val === undefined) return null;
+            const num = parseFloat(val);
+            return isNaN(num) ? null : num;
+        };
+
         const payload = {
             ...formData,
             slippage_entry: slipEntry,
             grade_entry: entryGrade,
-            quantity: parseFloat(formData.quantity),
-            entry_price: parseFloat(formData.entry_price),
+            quantity: safeFloat(formData.quantity) || 0, // Required
+            entry_price: safeFloat(formData.entry_price) || 0, // Required
+            entry_order_price: safeFloat(formData.entry_order_price),
+            entry_day_high: safeFloat(formData.entry_day_high),
+            entry_day_low: safeFloat(formData.entry_day_low),
+            upper_channel: safeFloat(formData.upper_channel),
+            lower_channel: safeFloat(formData.lower_channel),
             snapshot: snapshot || null,
         };
 
