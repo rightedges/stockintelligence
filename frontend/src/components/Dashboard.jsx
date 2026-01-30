@@ -3,7 +3,8 @@ import { getStocks, addStock, deleteStock, getAnalysis, toggleWatchStock, scanSt
 import StockChart from './StockChart';
 import MarketIntelligence from './MarketIntelligence';
 import ElderAnalysis from './ElderAnalysis';
-import { Plus, Trash2, TrendingUp, Activity, Brain, LineChart, Star, Zap } from 'lucide-react';
+import TradeJournal from './TradeJournal';
+import { Plus, Trash2, TrendingUp, Activity, Brain, LineChart, Star, Zap, Notebook } from 'lucide-react';
 
 const Dashboard = () => {
     const [stocks, setStocks] = useState([]);
@@ -236,6 +237,13 @@ const Dashboard = () => {
                             <Brain size={18} />
                             Intelligence
                         </button>
+                        <button
+                            onClick={() => setView('journal')}
+                            className={`flex items-center gap-2 px-3 py-1 rounded-md transition ${view === 'journal' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
+                        >
+                            <Notebook size={18} />
+                            Journal
+                        </button>
                     </div>
                 </div>
 
@@ -247,6 +255,8 @@ const Dashboard = () => {
                         </div>
                     ) : view === 'intelligence' ? (
                         <MarketIntelligence regimeData={regimeData} />
+                    ) : view === 'journal' ? (
+                        <TradeJournal />
                     ) : view === 'elder' ? (
                         <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} f13Divergence={f13Divergence} timeframeLabel="Daily" regimeData={regimeData} />
                     ) : view === 'weekly' ? (
