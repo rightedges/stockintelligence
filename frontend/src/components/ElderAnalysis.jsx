@@ -888,9 +888,8 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                 </div>
                                 <button
                                     onClick={() => {
-                                        const chartDiv = chartContainerRef.current;
-                                        if (chartDiv) {
-                                            const canvas = chartDiv.querySelector('canvas');
+                                        if (chartRef.current) {
+                                            const canvas = chartRef.current.takeScreenshot();
                                             if (canvas) {
                                                 setSnapshot(canvas.toDataURL());
                                                 setShowTradeModal(true);
