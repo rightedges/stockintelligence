@@ -150,9 +150,19 @@ const TradeJournal = () => {
                                 <td className={`p-3 text-right font-mono font-bold ${t.net_pl > 0 ? 'text-green-400' : t.net_pl < 0 ? 'text-red-400' : 'text-gray-500'}`}>
                                     {t.net_pl ? `$${t.net_pl.toFixed(2)}` : '-'}
                                 </td>
-                                <td className="p-3 text-center flex justify-center gap-1">
-                                    {t.grade_entry && <span className="bg-gray-700 px-1.5 rounded text-xs border border-gray-600" title="Entry Grade">{t.grade_entry}</span>}
-                                    {t.grade_trade && <span className={`px-1.5 rounded text-xs border ${t.grade_trade === 'A' ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-gray-700 border-gray-600'}`}>{t.grade_trade}</span>}
+                                <td className="p-3 text-center flex justify-center">
+                                    {t.grade_trade ? (
+                                        <span className={`px-2 py-0.5 rounded text-xs font-bold border ${t.grade_trade === 'A' ? 'bg-green-500/20 border-green-500/50 text-green-400' :
+                                            t.grade_trade === 'D' ? 'bg-red-500/20 border-red-500/50 text-red-400' : 'bg-gray-700 border-gray-600 text-gray-300'}`} title="Trade Grade">
+                                            {t.grade_trade}
+                                        </span>
+                                    ) : t.grade_entry ? (
+                                        <span className="bg-gray-800 px-2 py-0.5 rounded text-xs border border-gray-600 text-gray-400" title="Entry Grade">
+                                            {t.grade_entry}
+                                        </span>
+                                    ) : (
+                                        <span className="text-gray-600">-</span>
+                                    )}
                                 </td>
                                 <td className="p-3 text-center">
                                     <button onClick={() => { setSelectedTrade(t); setShowModal(true); }} className="text-gray-500 hover:text-blue-400 transition">
