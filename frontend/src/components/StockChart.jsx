@@ -209,16 +209,17 @@ const StockChart = ({ data, srLevels = [], colors = {} }) => {
             }
             updateLegend(data[data.length - 1]);
 
-            const handleResize = () => {
-                if (chartContainerRef.current) {
-                    chart.applyOptions({ width: chartContainerRef.current.clientWidth });
-                }
+            const handleResize = (entries) => {
+                if (!chart || !entries || entries.length === 0) return;
+                const { width } = entries[0].contentRect;
+                chart.applyOptions({ width });
             };
 
-            window.addEventListener('resize', handleResize);
+            const resizeObserver = new ResizeObserver(handleResize);
+            resizeObserver.observe(chartContainerRef.current);
 
             return () => {
-                window.removeEventListener('resize', handleResize);
+                resizeObserver.disconnect();
                 chart.remove();
                 if (chartContainerRef.current) chartContainerRef.current.innerHTML = '';
             };
