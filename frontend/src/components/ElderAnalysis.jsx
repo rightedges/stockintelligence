@@ -8,7 +8,7 @@ import {
     createSeriesMarkers
 } from 'lightweight-charts';
 import { Zap, Info, Notebook, Camera, Calendar, Trash2, Search, AlertTriangle, Edit, ShieldCheck, ArrowUpRight, Globe, Layers, Plus } from 'lucide-react';
-import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalEntry } from '../services/api';
+import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalEntry, getActiveTrade } from '../services/api';
 import { X } from 'lucide-react';
 import TradeEntryModal from './TradeEntryModal';
 
@@ -27,7 +27,24 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
     const [showTradeModal, setShowTradeModal] = useState(false);
     const [tradeModalInitialData, setTradeModalInitialData] = useState({});
     const [snapshot, setSnapshot] = useState(null);
-    const lastData = data && data.length > 0 ? data[data.length - 1] : null;
+    const [activeTrade, setActiveTrade] = useState(null);
+
+    useEffect(() => {
+        if (!symbol) return;
+        const fetchAnalysis = async () => {
+            // ... existing fetch logic if any ...
+        };
+        const fetchActiveTrade = async () => {
+            try {
+                const res = await getActiveTrade(symbol);
+                if (res.data) setActiveTrade(res.data);
+                else setActiveTrade(null);
+            } catch (err) {
+                console.error("Failed to fetch active trade", err);
+            }
+        };
+        fetchActiveTrade();
+    }, [symbol]);
     const currentImpulse = lastData?.impulse || 'blue';
     const isWeekly = timeframeLabel === 'Weekly';
 
@@ -919,6 +936,52 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                     )}
 
 
+
+                    {/* Active Trade Widget */}
+                    {activeTrade && (
+                        <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-20 flex items-center gap-4 px-6 py-3 bg-gray-900/90 border border-blue-500/50 rounded-xl backdrop-blur-md shadow-2xl animate-in fade-in slide-in-from-top-4">
+                            <div className="flex flex-col">
+                                <div className="text-[10px] uppercase font-black text-gray-500 tracking-widest mb-1">Active Position</div>
+                                <div className="flex items-center gap-3">
+                                    <span className={`text-lg font-black ${activeTrade.direction === 'Long' ? 'text-green-400' : 'text-red-400'}`}>
+                                        {activeTrade.direction.toUpperCase()}
+                                    </span>
+                                    <span className="text-sm font-mono text-gray-300">
+                                        {activeTrade.quantity} @ {activeTrade.entry_price}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="w-px h-8 bg-gray-700 mx-2" />
+                            <div className="flex flex-col">
+                                <div className="text-[10px] uppercase font-black text-gray-500 tracking-widest mb-1">Strategy</div>
+                                <div className="text-xs font-bold text-blue-300">
+                                    {activeTrade.strategy_name || 'Manual'}
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    if (chartRef.current) {
+                                        const canvas = chartRef.current.takeScreenshot();
+                                        setSnapshot(canvas.toDataURL());
+                                        setTradeModalInitialData({
+                                            ...activeTrade,
+                                            exit_date: new Date().toISOString().split('T')[0],
+                                            exit_price: lastData.Close, // Auto-fill current price
+                                            exit_day_high: lastData.High,
+                                            exit_day_low: lastData.Low,
+                                            upper_channel: lastData.price_atr_h3,
+                                            lower_channel: lastData.price_atr_l3
+                                        });
+                                        setShowTradeModal(true);
+                                    }
+                                }}
+                                className="ml-4 bg-gray-800 hover:bg-gray-700 hover:text-white text-gray-300 border border-gray-600 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all shadow-lg flex items-center gap-2"
+                            >
+                                <Camera size={14} /> Close Trade
+                            </button>
+                        </div>
+                    )}
 
                     <div ref={chartContainerRef} className="w-full h-[900px] relative overflow-hidden" />
                 </div>

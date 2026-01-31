@@ -7,7 +7,44 @@ const TradeJournal = () => {
     const [trades, setTrades] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
-    const [selectedTrade, setSelectedTrade] = useState({});
+    const [analyticsView, setAnalyticsView] = useState('strategy'); // 'strategy' or 'exit'
+
+    const analyticsData = React.useMemo(() => {
+        const stats = {};
+
+        trades.forEach(t => {
+            let key = '';
+            if (analyticsView === 'strategy') {
+                key = t.strategy_name || 'Manual';
+            } else {
+                // Parse "Type:Details" or just use Type
+                key = t.exit_reason ? t.exit_reason.split(':')[0] : 'Open/Unknown';
+            }
+
+            if (!stats[key]) {
+                stats[key] = { count: 0, wins: 0, totalGradePoints: 0, gradedCount: 0 };
+            }
+
+            stats[key].count++;
+            if (t.net_pl > 0) stats[key].wins++;
+
+            const grade = t.grade_trade;
+            if (grade) {
+                stats[key].gradedCount++;
+                if (grade === 'A') stats[key].totalGradePoints += 4;
+                else if (grade === 'B') stats[key].totalGradePoints += 3;
+                else if (grade === 'C') stats[key].totalGradePoints += 2;
+                else if (grade === 'D') stats[key].totalGradePoints += 1;
+            }
+        });
+
+        return Object.entries(stats).map(([name, data]) => ({
+            name,
+            count: data.count,
+            winRate: Math.round((data.wins / data.count) * 100),
+            avgGrade: data.gradedCount > 0 ? (data.totalGradePoints / data.gradedCount).toFixed(1) : '-'
+        })).sort((a, b) => b.winRate - a.winRate);
+    }, [trades, analyticsView]);
 
     useEffect(() => {
         loadTrades();
@@ -106,20 +143,58 @@ const TradeJournal = () => {
                 </button>
             </div>
 
+            {/* Strategy/Exit Analytics */}
+            <div className="mb-6">
+                <div className="flex items-center gap-4 mb-3">
+                    <button
+                        onClick={() => setAnalyticsView('strategy')}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${analyticsView === 'strategy' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-500 hover:bg-gray-700'}`}
+                    >
+                        Strategy Performance
+                    </button>
+                    <button
+                        onClick={() => setAnalyticsView('exit')}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${analyticsView === 'exit' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-500 hover:bg-gray-700'}`}
+                    >
+                        Exit Performance
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {analyticsData.map(stat => (
+                        <div key={stat.name} className="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-lg relative overflow-hidden">
+                            <div className={`absolute top-0 right-0 p-2 opacity-10 ${analyticsView === 'strategy' ? 'text-blue-500' : 'text-purple-500'}`}>
+                                {analyticsView === 'strategy' ? <TrendingUp size={64} /> : <X size={64} />}
+                            </div>
+                            <div className="text-gray-400 text-xs uppercase font-bold tracking-wider mb-2 truncate" title={stat.name}>
+                                {stat.name}
+                            </div>
+                            <div className="flex justify-between items-end relative z-10">
+                                <div>
+                                    <div className="text-2xl font-black text-white">{stat.winRate}%</div>
+                                    <div className="text-xs text-green-400 font-bold">Win Rate</div>
+                                </div>
+                                <div className="text-right">
+                                    <div className={`text-xl font-bold ${stat.avgGrade >= 3.5 ? 'text-green-400' : stat.avgGrade >= 2.5 ? 'text-yellow-400' : 'text-red-400'}`}>
+                                        {stat.avgGrade}
+                                    </div>
+                                    <div className="text-xs text-gray-500">Avg Grade ({stat.count})</div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             {/* Data Grid */}
             <div className="flex-1 overflow-auto bg-gray-800 rounded-xl border border-gray-700 shadow-xl">
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-900 sticky top-0 z-10 text-xs uppercase text-gray-400">
                         <tr>
-                            <th className="p-3 border-b border-gray-700">Date</th>
-                            <th className="p-3 border-b border-gray-700">Account</th>
-                            <th className="p-3 border-b border-gray-700">Source</th>
+                            <th className="p-3 border-b border-gray-700">Date/Strat</th>
                             <th className="p-3 border-b border-gray-700">Symbol</th>
                             <th className="p-3 border-b border-gray-700">Dir</th>
-                            <th className="p-3 border-b border-gray-700 text-center">Snap</th>
-                            <th className="p-3 border-b border-gray-700 text-right">Qty</th>
-                            <th className="p-3 border-b border-gray-700 text-right">Entry</th>
-                            <th className="p-3 border-b border-gray-700 text-right">Exit</th>
+                            <th className="p-3 border-b border-gray-700 text-center">Snaps</th>
                             <th className="p-3 border-b border-gray-700 text-right">Net P/L</th>
                             <th className="p-3 border-b border-gray-700 text-center">Grades</th>
                             <th className="p-3 border-b border-gray-700 text-center">Actions</th>
@@ -128,48 +203,45 @@ const TradeJournal = () => {
                     <tbody className="divide-y divide-gray-700 text-sm">
                         {trades.map(t => (
                             <tr key={t.id} className="hover:bg-gray-750 transition">
-                                <td className="p-3">{t.entry_date}</td>
-                                <td className="p-3">{t.account}</td>
-                                <td className="p-3">{t.source}</td>
+                                <td className="p-3">
+                                    <div className="font-mono text-white">{t.entry_date}</div>
+                                    <div className="text-xs text-gray-500 font-bold">{t.strategy_name || 'Manual'}</div>
+                                </td>
                                 <td className="p-3 font-bold text-blue-400">{t.symbol}</td>
                                 <td className="p-3">
                                     <span className={`px-2 py-0.5 rounded text-xs font-bold ${t.direction === 'Long' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                                         {t.direction.toUpperCase()}
                                     </span>
                                 </td>
-                                <td className="p-3 text-center">
+                                <td className="p-3 text-center flex justify-center gap-1">
                                     {t.snapshot && (
-                                        <button onClick={() => setSelectedImage(t.snapshot)} className="p-1.5 hover:bg-gray-700 rounded text-blue-400 hover:text-white transition">
-                                            <Camera size={16} />
+                                        <button onClick={() => setSelectedImage(t.snapshot)} className="p-1.5 hover:bg-gray-700 rounded text-blue-400 hover:text-white transition" title="Entry Snapshot">
+                                            <Camera size={14} />
+                                        </button>
+                                    )}
+                                    {t.exit_snapshot && (
+                                        <button onClick={() => setSelectedImage(t.exit_snapshot)} className="p-1.5 hover:bg-gray-700 rounded text-purple-400 hover:text-white transition" title="Exit Snapshot">
+                                            <Camera size={14} />
                                         </button>
                                     )}
                                 </td>
-                                <td className="p-3 text-right">{t.quantity}</td>
-                                <td className="p-3 text-right text-gray-300">{t.entry_price?.toFixed(2)}</td>
-                                <td className="p-3 text-right text-gray-300">{t.exit_price?.toFixed(2) || '-'}</td>
                                 <td className={`p-3 text-right font-mono font-bold ${t.net_pl > 0 ? 'text-green-400' : t.net_pl < 0 ? 'text-red-400' : 'text-gray-500'}`}>
                                     {t.net_pl ? `$${t.net_pl.toFixed(2)}` : '-'}
                                 </td>
-                                <td className="p-3 text-center flex justify-center">
+                                <td className="p-3 text-center">
                                     {t.grade_trade ? (
                                         <span className={`px-2 py-0.5 rounded text-xs font-bold border ${t.grade_trade === 'A' ? 'bg-green-500/20 border-green-500/50 text-green-400' :
                                             t.grade_trade === 'D' ? 'bg-red-500/20 border-red-500/50 text-red-400' : 'bg-gray-700 border-gray-600 text-gray-300'}`} title="Trade Grade">
                                             {t.grade_trade}
                                         </span>
-                                    ) : t.grade_entry ? (
-                                        <span className="bg-gray-800 px-2 py-0.5 rounded text-xs border border-gray-600 text-gray-400" title="Entry Grade">
-                                            {t.grade_entry}
-                                        </span>
-                                    ) : (
-                                        <span className="text-gray-600">-</span>
-                                    )}
+                                    ) : '-'}
                                 </td>
                                 <td className="p-3 text-center">
-                                    <button onClick={() => { setSelectedTrade(t); setShowModal(true); }} className="text-gray-500 hover:text-blue-400 transition">
-                                        <Edit size={16} />
+                                    <button onClick={() => { setSelectedTrade(t); setShowModal(true); }} className="text-gray-500 hover:text-blue-400 transition mx-1">
+                                        <Edit size={14} />
                                     </button>
-                                    <button onClick={() => handleDelete(t.id)} className="text-gray-500 hover:text-red-500 transition">
-                                        <Trash2 size={16} />
+                                    <button onClick={() => handleDelete(t.id)} className="text-gray-500 hover:text-red-500 transition mx-1">
+                                        <Trash2 size={14} />
                                     </button>
                                 </td>
                             </tr>

@@ -35,6 +35,34 @@ async def lifespan(app: FastAPI):
         if "duplicate column name" not in str(e).lower():
             print(f"Migration note (efi): {e}")
 
+    # Auto-migration for Trade fields (entry_reason, exit_snapshot)
+    try:
+        with Session(engine) as session:
+            session.exec(text("ALTER TABLE trade ADD COLUMN entry_reason TEXT"))
+            session.commit()
+            print("Migrated: Added entry_reason column")
+    except Exception as e:
+        if "duplicate column name" not in str(e).lower():
+            print(f"Migration note (trade reason): {e}")
+
+    try:
+        with Session(engine) as session:
+            session.exec(text("ALTER TABLE trade ADD COLUMN exit_snapshot TEXT"))
+            session.commit()
+            print("Migrated: Added exit_snapshot column")
+    except Exception as e:
+        if "duplicate column name" not in str(e).lower():
+            print(f"Migration note (trade exit snap): {e}")
+
+    try:
+        with Session(engine) as session:
+            session.exec(text("ALTER TABLE trade ADD COLUMN exit_reason TEXT"))
+            session.commit()
+            print("Migrated: Added exit_reason column")
+    except Exception as e:
+        if "duplicate column name" not in str(e).lower():
+            print(f"Migration note (trade exit reason): {e}")
+
     yield
     # Shutdown
 

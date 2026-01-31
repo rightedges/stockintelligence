@@ -4,12 +4,19 @@ import { logTrade, updateTrade } from '../services/api';
 const TradeEntryModal = ({ onClose, onSave, snapshot, initialData = {} }) => {
     const [formData, setFormData] = useState({
         account: 'Main', source: 'Homework', symbol: '', quantity: '', direction: 'Long',
+        strategy_name: 'Elder Impulse', entry_reason: '',
         entry_date: new Date().toISOString().split('T')[0], entry_price: '', entry_order_type: 'Market', entry_order_price: '',
         entry_day_high: '', entry_day_low: '',
         upper_channel: '', lower_channel: '',
         exit_date: '', exit_price: '',
         ...initialData
     });
+
+    // If modal opened with a snapshot prop (from "Close Trade"), and we are editing an existing trade (initialData.id),
+    // then this snapshot is an EXIT snapshot. Otherwise, it's an ENTRY snapshot.
+    // If we already have an entry snapshot in initialData, preserve it.
+    const currentEntrySnapshot = initialData.snapshot || (!initialData.id ? snapshot : null);
+    const currentExitSnapshot = initialData.exit_snapshot || (initialData.id ? snapshot : null);
 
     const calculateGrades = (data) => {
         let entryGrade = '';
@@ -107,7 +114,9 @@ const TradeEntryModal = ({ onClose, onSave, snapshot, initialData = {} }) => {
             ...formData,
             trade_id: initialData.id, // Use updateTrade if ID exists.
             slippage_entry: slipEntry,
+            slippage_exit: 0, // Placeholder for future calculation
             grade_entry: entryGrade,
+            grade_exit: null, // Calc later if needed
             grade_trade: tradeGrade,
             net_pl: netPL,
             quantity: safeFloat(formData.quantity) || 0, // Required
@@ -119,7 +128,8 @@ const TradeEntryModal = ({ onClose, onSave, snapshot, initialData = {} }) => {
             lower_channel: safeFloat(formData.lower_channel),
             exit_price: safeFloat(formData.exit_price),
             exit_date: formData.exit_date || null,
-            snapshot: snapshot || formData.snapshot || null,
+            snapshot: currentEntrySnapshot, // Explicitly set correct entry snapshot
+            exit_snapshot: currentExitSnapshot, // Explicitly set correct exit snapshot
         };
 
         try {
@@ -219,6 +229,46 @@ const TradeEntryModal = ({ onClose, onSave, snapshot, initialData = {} }) => {
                                     <input type="date" className="w-full bg-gray-900 border border-gray-700 rounded p-2 mt-1"
                                         value={formData.exit_date} onChange={e => setFormData({ ...formData, exit_date: e.target.value })} />
                                 </label>
+                            </div>
+                        </div>
+
+                        {/* Strategy and Reason */}
+                        <div className="col-span-2 border-t border-gray-700 pt-4 mt-2">
+                            <h3 className="text-xs font-bold text-yellow-400 mb-2 uppercase tracking-wider">Strategy & Reason</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs uppercase text-gray-400 mb-1">Strategy</label>
+                                    <select
+                                        value={formData.strategy_name || 'Elder Impulse'}
+                                        onChange={e => setFormData({ ...formData, strategy_name: e.target.value })}
+                                        className="w-full bg-gray-900 border border-gray-700 rounded p-2 mt-1 focus:border-blue-500 outline-none"
+                                    >
+                                        <option value="Elder Impulse">Elder Impulse</option>
+                                        <option value="MACD Divergence">MACD Divergence</option>
+                                        <option value="EFI Pullback">EFI Pullback</option>
+                                        <option value="Channel Breakout">Channel Breakout</option>
+                                        <option value="Support Bounce">Support Bounce</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs uppercase text-gray-400 mb-1">Source</label>
+                                    <input
+                                        type="text"
+                                        value={formData.source}
+                                        onChange={e => setFormData({ ...formData, source: e.target.value })}
+                                        className="w-full bg-gray-900 border border-gray-700 rounded p-2 mt-1 focus:border-blue-500 outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="mt-4">
+                                <label className="block text-xs uppercase text-gray-400 mb-1">Entry Context / Reason</label>
+                                <textarea
+                                    value={formData.entry_reason || ''}
+                                    onChange={e => setFormData({ ...formData, entry_reason: e.target.value })}
+                                    placeholder="Why this trade? e.g. 'Bullish divergence at lower channel with EFI buy signal'"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded p-2 mt-1 focus:border-blue-500 outline-none h-20 resize-none"
+                                />
                             </div>
                         </div>
 

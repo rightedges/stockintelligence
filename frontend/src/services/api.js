@@ -22,6 +22,7 @@ export const getTrades = () => api.get('/trades/');
 export const logTrade = (entry) => api.post('/trades/', entry);
 export const updateTrade = (id, data) => api.patch(`/trades/${id}`, data);
 export const deleteTrade = (id) => api.delete(`/trades/${id}`);
+export const getActiveTrade = (symbol) => api.get(`/trades/active/${symbol}`);
 
 export const getTemplates = () => api.get('/templates/');
 export const addTemplate = (template) => api.post('/templates/', template);

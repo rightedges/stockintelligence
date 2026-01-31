@@ -47,6 +47,12 @@ def update_trade(trade_id: int, trade_update: Trade, session: Session = Depends(
     session.refresh(db_trade)
     return db_trade
 
+@router.get("/active/{symbol}", response_model=Optional[Trade])
+def get_active_trade(symbol: str, session: Session = Depends(get_session)):
+    # Find the most recent trade for this symbol that hasn't been closed (exit_price is None)
+    statement = select(Trade).where(Trade.symbol == symbol).where(Trade.exit_price == None).order_by(Trade.entry_date.desc()).limit(1)
+    return session.exec(statement).first()
+
 @router.delete("/{trade_id}")
 def delete_trade(trade_id: int, session: Session = Depends(get_session)):
     trade = session.get(Trade, trade_id)

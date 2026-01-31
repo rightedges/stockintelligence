@@ -38,6 +38,7 @@ class Trade(SQLModel, table=True):
     snapshot: Optional[str] = None # Base64 chart image
     
     # Entry
+    entry_reason: Optional[str] = None # Why? Strategy context.
     entry_date: str
     entry_price: float
     entry_order_type: str = "Market" # Market, Limit
@@ -46,7 +47,9 @@ class Trade(SQLModel, table=True):
     comm_entry: Optional[float] = 0.0
     
     # Exit
+    exit_snapshot: Optional[str] = None # Base64 chart image on exit
     exit_date: Optional[str] = None
+    exit_reason: Optional[str] = None # Target Hit, Stop Loss, etc.
     exit_price: Optional[float] = None
     exit_order_type: Optional[str] = None
     exit_order_price: Optional[float] = None
