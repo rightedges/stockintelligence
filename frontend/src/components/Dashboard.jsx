@@ -209,10 +209,10 @@ const Dashboard = () => {
                                     <div className="font-bold">{stock.symbol}</div>
                                     {/* Divergence Icon */}
                                     {stock.divergence_status && (
-                                        <div className={`ml-2 p-0.5 rounded-full ${stock.divergence_status.includes('bearish') ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}
+                                        <div className={`ml-1 px-1 rounded text-[10px] font-bold border ${stock.divergence_status.includes('bearish') ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-green-500/20 text-green-400 border-green-500/30'}`}
                                             title={`${stock.divergence_status.replace('_', ' ').toUpperCase()} Divergence Detected`}
                                         >
-                                            <Zap size={12} fill="currentColor" />
+                                            D
                                         </div>
                                     )}
                                     {/* EFI Icon */}
