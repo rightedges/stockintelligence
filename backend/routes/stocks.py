@@ -295,24 +295,18 @@ def scan_stocks(session: Session = Depends(get_session)):
 
             macd_div = check_div_scan(df, 'macd_diff')
             
-            # EFI ATR Extremes as alternative signals
-            efi_buy = df['efi_buy_signal'].iloc[-1]
-            efi_sell = df['efi_sell_signal'].iloc[-1]
+            # 3. Check Divergence (MACD Only)
+            macd_div = check_div_scan(df, 'macd_diff')
             
-            final_status = None
-            if macd_div:
-                final_status = macd_div
-            elif efi_buy:
-                final_status = 'bullish'
-            elif efi_sell:
-                final_status = 'bearish'
+            # Clear legacy EFI pollution if it exists in divergence_status?
+            # Or just overwrite.
             
             # Update DB
-            stock.divergence_status = final_status
+            stock.divergence_status = macd_div # Could be None
             session.add(stock)
             
-            if final_status:
-                results.append({"symbol": stock.symbol, "status": final_status})
+            if macd_div:
+                results.append({"symbol": stock.symbol, "status": macd_div})
             
             # Anti-Block Sleep
             time.sleep(0.5)
@@ -322,7 +316,50 @@ def scan_stocks(session: Session = Depends(get_session)):
             continue
     
     session.commit()
+    session.commit()
     return {"scanned": len(stocks), "divergences": results}
+
+@router.post("/scan/efi")
+def scan_stocks_efi(session: Session = Depends(get_session)):
+    import time
+    stocks = session.exec(select(Stock)).all()
+    results = []
+    
+    for stock in stocks:
+        try:
+            df = yf.download(stock.symbol, period="1y", interval="1d", progress=False)
+            if df.empty or len(df) < 50:
+                continue
+
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+            
+            df = calculate_indicators(df)
+            
+            # Check EFI Signals (Last bar)
+            efi_buy = df['efi_buy_signal'].iloc[-1]
+            efi_sell = df['efi_sell_signal'].iloc[-1]
+            
+            status = None
+            if efi_buy:
+                status = 'buy'
+            elif efi_sell:
+                status = 'sell'
+            
+            stock.efi_status = status
+            session.add(stock)
+            
+            if status:
+                results.append({"symbol": stock.symbol, "status": status})
+            
+            time.sleep(0.3) # Slightly faster than div scan
+            
+        except Exception as e:
+            print(f"EFI Scan failed for {stock.symbol}: {e}")
+            continue
+            
+    session.commit()
+    return {"scanned": len(stocks), "efi_signals": results}
 
 @router.get("/", response_model=list[StockPublic])
 def get_stocks(session: Session = Depends(get_session)):

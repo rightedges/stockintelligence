@@ -22,9 +22,18 @@ async def lifespan(app: FastAPI):
             session.commit()
             print("Migrated: Added divergence_status column")
     except Exception as e:
-        # Check if error is because column exists
         if "duplicate column name" not in str(e).lower():
-            print(f"Migration note: {e}")
+            print(f"Migration note (div): {e}")
+
+    # Auto-migration for efi_status
+    try:
+        with Session(engine) as session:
+            session.exec(text("ALTER TABLE stock ADD COLUMN efi_status TEXT"))
+            session.commit()
+            print("Migrated: Added efi_status column")
+    except Exception as e:
+        if "duplicate column name" not in str(e).lower():
+            print(f"Migration note (efi): {e}")
 
     yield
     # Shutdown

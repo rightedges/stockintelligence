@@ -29,5 +29,6 @@ export const deleteTemplate = (id) => api.delete(`/templates/${id}`);
 
 
 export const scanStocks = () => api.post('/stocks/scan');
+export const scanStocksEFI = () => api.post('/stocks/scan/efi');
 
 export default api;

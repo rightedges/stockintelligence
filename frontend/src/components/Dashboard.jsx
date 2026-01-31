@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getStocks, addStock, deleteStock, getAnalysis, toggleWatchStock, scanStocks } from '../services/api';
+import { getStocks, addStock, deleteStock, getAnalysis, toggleWatchStock, scanStocks, scanStocksEFI } from '../services/api';
 import StockChart from './StockChart';
 import MarketIntelligence from './MarketIntelligence';
 import ElderAnalysis from './ElderAnalysis';
@@ -17,6 +17,7 @@ const Dashboard = () => {
     const [newSymbol, setNewSymbol] = useState('');
     const [loading, setLoading] = useState(false);
     const [isScanning, setIsScanning] = useState(false);
+    const [isScanningEFI, setIsScanningEFI] = useState(false);
     const [view, setView] = useState('weekly'); // 'weekly', 'elder' (daily), or 'intelligence'
 
     useEffect(() => {
@@ -117,31 +118,61 @@ const Dashboard = () => {
                 <div className="p-4 border-b border-gray-700 font-bold text-xl flex items-center gap-2">
                     <TrendingUp className="text-green-500" />
                     StockAI
-                    <button
-                        onClick={async (e) => {
-                            e.stopPropagation();
-                            if (isScanning) return;
-                            setIsScanning(true);
-                            try {
-                                await scanStocks();
-                                await loadStocks();
-                            } catch (err) {
-                                console.error("Scan failed", err);
-                            } finally {
-                                setIsScanning(false);
-                            }
-                        }}
-                        disabled={isScanning}
-                        className={`ml-auto text-xs px-2 py-1 rounded flex items-center gap-1 transition-all ${isScanning ? 'bg-purple-600 font-bold animate-pulse' : 'bg-gray-700 hover:bg-purple-600 text-gray-300 hover:text-white'}`}
-                        title="Scan Watchlist for Recent Divergences"
-                    >
-                        {isScanning ? (
-                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-white/20 border-t-white" />
-                        ) : (
-                            <Zap size={12} />
-                        )}
-                        {isScanning ? "SCANNING..." : "DIV SCAN"}
-                    </button>
+                    <div className="flex gap-2 ml-auto">
+                        {/* EFI Scan Button */}
+                        <button
+                            onClick={async (e) => {
+                                e.stopPropagation();
+                                if (isScanningEFI) return;
+                                setIsScanningEFI(true);
+                                try {
+                                    await scanStocksEFI();
+                                    await loadStocks();
+                                } catch (err) {
+                                    console.error("EFI Scan failed", err);
+                                } finally {
+                                    setIsScanningEFI(false);
+                                }
+                            }}
+                            disabled={isScanningEFI}
+                            className={`text-xs px-2 py-1 rounded flex items-center gap-1 transition-all border border-blue-500/30 ${isScanningEFI ? 'bg-blue-600 font-bold animate-pulse' : 'bg-gray-700 hover:bg-blue-600 text-gray-300 hover:text-white'}`}
+                            title="Scan Watchlist for EFI Signals"
+                        >
+                            {isScanningEFI ? (
+                                <div className="animate-spin rounded-full h-3 w-3 border-2 border-white/20 border-t-white" />
+                            ) : (
+                                <Activity size={12} />
+                            )}
+                            {isScanningEFI ? "SCANNING..." : "EFI SCAN"}
+                        </button>
+
+                        {/* DIV Scan Button */}
+                        <button
+                            onClick={async (e) => {
+                                e.stopPropagation();
+                                if (isScanning) return;
+                                setIsScanning(true);
+                                try {
+                                    await scanStocks();
+                                    await loadStocks();
+                                } catch (err) {
+                                    console.error("Scan failed", err);
+                                } finally {
+                                    setIsScanning(false);
+                                }
+                            }}
+                            disabled={isScanning}
+                            className={`text-xs px-2 py-1 rounded flex items-center gap-1 transition-all border border-purple-500/30 ${isScanning ? 'bg-purple-600 font-bold animate-pulse' : 'bg-gray-700 hover:bg-purple-600 text-gray-300 hover:text-white'}`}
+                            title="Scan Watchlist for Recent Divergences"
+                        >
+                            {isScanning ? (
+                                <div className="animate-spin rounded-full h-3 w-3 border-2 border-white/20 border-t-white" />
+                            ) : (
+                                <Zap size={12} />
+                            )}
+                            {isScanning ? "SCANNING..." : "DIV SCAN"}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Add Stock */}
@@ -182,6 +213,14 @@ const Dashboard = () => {
                                             title={`${stock.divergence_status.replace('_', ' ').toUpperCase()} Divergence Detected`}
                                         >
                                             <Zap size={12} fill="currentColor" />
+                                        </div>
+                                    )}
+                                    {/* EFI Icon */}
+                                    {stock.efi_status && (
+                                        <div className={`ml-1 px-1 rounded text-[10px] font-bold border ${stock.efi_status === 'sell' ? 'bg-pink-500/20 text-pink-400 border-pink-500/30' : 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'}`}
+                                            title={`EFI ${stock.efi_status.toUpperCase()} Signal`}
+                                        >
+                                            E
                                         </div>
                                     )}
                                 </div>
