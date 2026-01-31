@@ -1,18 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { getTrades, logTrade, deleteTrade } from '../services/api';
-import { Plus, Trash2, TrendingUp, TrendingDown, DollarSign, Camera, X } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, TrendingDown, DollarSign, Camera, X, Edit } from 'lucide-react';
 import TradeEntryModal from './TradeEntryModal';
 
 const TradeJournal = () => {
     const [trades, setTrades] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
-    const [formData, setFormData] = useState({
-        account: 'Main', source: 'Homework', symbol: '', quantity: '', direction: 'Long',
-        entry_date: new Date().toISOString().split('T')[0], entry_price: '', entry_order_type: 'Market', entry_order_price: '',
-        entry_day_high: '', entry_day_low: '',
-        upper_channel: '', lower_channel: ''
-    });
+    const [selectedTrade, setSelectedTrade] = useState({});
 
     useEffect(() => {
         loadTrades();
@@ -104,7 +99,7 @@ const TradeJournal = () => {
                     <TrendingUp className="text-blue-500" /> Trade Journal
                 </h1>
                 <button
-                    onClick={() => setShowModal(true)}
+                    onClick={() => { setSelectedTrade({}); setShowModal(true); }}
                     className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded flex items-center gap-2"
                 >
                     <Plus size={18} /> Log Trade
@@ -160,6 +155,9 @@ const TradeJournal = () => {
                                     {t.grade_trade && <span className={`px-1.5 rounded text-xs border ${t.grade_trade === 'A' ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-gray-700 border-gray-600'}`}>{t.grade_trade}</span>}
                                 </td>
                                 <td className="p-3 text-center">
+                                    <button onClick={() => { setSelectedTrade(t); setShowModal(true); }} className="text-gray-500 hover:text-blue-400 transition">
+                                        <Edit size={16} />
+                                    </button>
                                     <button onClick={() => handleDelete(t.id)} className="text-gray-500 hover:text-red-500 transition">
                                         <Trash2 size={16} />
                                     </button>
@@ -180,6 +178,7 @@ const TradeJournal = () => {
             {showModal && (
                 <TradeEntryModal
                     onClose={() => setShowModal(false)}
+                    initialData={selectedTrade}
                     onSave={loadTrades}
                 />
             )}

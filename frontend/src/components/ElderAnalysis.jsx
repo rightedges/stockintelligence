@@ -25,6 +25,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
     const [editingId, setEditingId] = useState(null);
     const [editingNote, setEditingNote] = useState('');
     const [showTradeModal, setShowTradeModal] = useState(false);
+    const [tradeModalInitialData, setTradeModalInitialData] = useState({});
     const [snapshot, setSnapshot] = useState(null);
     const lastData = data && data.length > 0 ? data[data.length - 1] : null;
     const currentImpulse = lastData?.impulse || 'blue';
@@ -892,6 +893,18 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                             const canvas = chartRef.current.takeScreenshot();
                                             if (canvas) {
                                                 setSnapshot(canvas.toDataURL());
+
+                                                // Auto-populate Daily Context
+                                                if (lastData) {
+                                                    setTradeModalInitialData({
+                                                        symbol,
+                                                        entry_day_high: lastData.High,
+                                                        entry_day_low: lastData.Low,
+                                                        upper_channel: lastData.price_atr_h3, // 3 ATR Top
+                                                        lower_channel: lastData.price_atr_l3  // 3 ATR Bottom
+                                                    });
+                                                }
+
                                                 setShowTradeModal(true);
                                             }
                                         }
@@ -1080,10 +1093,10 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 showTradeModal && (
                     <TradeEntryModal
                         onClose={() => setShowTradeModal(false)}
+                        initialData={tradeModalInitialData}
                         snapshot={snapshot}
-                        initialData={{
-                            symbol: symbol,
-                            entry_price: data && data.length > 0 ? data[data.length - 1].Close : ''
+                        onSave={() => {
+                            // Refresh journal entries if needed
                         }}
                     />
                 )
