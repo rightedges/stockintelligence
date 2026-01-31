@@ -43,14 +43,23 @@ const TradeEntryModal = ({ onClose, onSave, snapshot, initialData = {} }) => {
         if (!isNaN(exit) && !isNaN(e) && !isNaN(top) && !isNaN(bot)) {
             const channelWidth = top - bot;
             if (channelWidth > 0) {
-                const captured = Math.abs(exit - e);
-                const percentCaptured = (captured / channelWidth) * 100;
+                let realizedCapture = 0;
+                if (data.direction === 'Long') {
+                    realizedCapture = exit - e;
+                } else {
+                    realizedCapture = e - exit;
+                }
 
-                // Elder's Logic: Capture >30% of channel is A
-                if (percentCaptured >= 30) tradeGrade = 'A';
-                else if (percentCaptured >= 20) tradeGrade = 'B';
-                else if (percentCaptured >= 10) tradeGrade = 'C';
-                else tradeGrade = 'D';
+                if (realizedCapture <= 0) {
+                    tradeGrade = 'D'; // Loss
+                } else {
+                    const percentCaptured = (realizedCapture / channelWidth) * 100;
+                    // Elder's Logic: Capture >30% of channel is A
+                    if (percentCaptured >= 30) tradeGrade = 'A';
+                    else if (percentCaptured >= 20) tradeGrade = 'B';
+                    else if (percentCaptured >= 10) tradeGrade = 'C';
+                    else tradeGrade = 'D';
+                }
             }
         }
 
@@ -110,7 +119,7 @@ const TradeEntryModal = ({ onClose, onSave, snapshot, initialData = {} }) => {
             lower_channel: safeFloat(formData.lower_channel),
             exit_price: safeFloat(formData.exit_price),
             exit_date: formData.exit_date || null,
-            snapshot: snapshot || null,
+            snapshot: snapshot || formData.snapshot || null,
         };
 
         try {
