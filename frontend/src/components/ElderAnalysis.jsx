@@ -14,6 +14,8 @@ import TradeEntryModal from './TradeEntryModal';
 
 const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDivergence, timeframeLabel = 'Daily', regimeData }) => {
     console.log('ElderAnalysis Init', { symbol, dataLength: data?.length, timeframeLabel });
+    const lastData = data && data.length > 0 ? data[data.length - 1] : null;
+
     const chartContainerRef = useRef();
     const [persistenceKey, setPersistenceKey] = useState(null);
     const [journalEntries, setJournalEntries] = useState([]);
