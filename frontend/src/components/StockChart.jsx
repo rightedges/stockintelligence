@@ -229,7 +229,7 @@ const StockChart = ({ data, srLevels = [], colors = {} }) => {
     }, [data, colors]);
 
     return (
-        <div ref={chartContainerRef} className="w-full h-[600px] bg-[#242424] relative" />
+        <div ref={chartContainerRef} className="w-full h-[600px] bg-[#242424] relative overflow-hidden" />
     );
 };
 

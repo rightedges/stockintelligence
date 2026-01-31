@@ -920,7 +920,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
 
 
-                    <div ref={chartContainerRef} className="w-full h-[900px] relative" />
+                    <div ref={chartContainerRef} className="w-full h-[900px] relative overflow-hidden" />
                 </div>
             </div>
 
