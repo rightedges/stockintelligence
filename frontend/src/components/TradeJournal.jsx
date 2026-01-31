@@ -5,6 +5,7 @@ import TradeEntryModal from './TradeEntryModal';
 
 const TradeJournal = () => {
     const [trades, setTrades] = useState([]);
+    const [selectedTrade, setSelectedTrade] = useState({});
     const [showModal, setShowModal] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
     const [analyticsView, setAnalyticsView] = useState('strategy'); // 'strategy' or 'exit'
@@ -135,12 +136,6 @@ const TradeJournal = () => {
                 <h1 className="text-2xl font-bold flex items-center gap-2">
                     <TrendingUp className="text-blue-500" /> Trade Journal
                 </h1>
-                <button
-                    onClick={() => { setSelectedTrade({}); setShowModal(true); }}
-                    className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded flex items-center gap-2"
-                >
-                    <Plus size={18} /> Log Trade
-                </button>
             </div>
 
             {/* Strategy/Exit Analytics */}
@@ -237,7 +232,11 @@ const TradeJournal = () => {
                                     ) : '-'}
                                 </td>
                                 <td className="p-3 text-center">
-                                    <button onClick={() => { setSelectedTrade(t); setShowModal(true); }} className="text-gray-500 hover:text-blue-400 transition mx-1">
+                                    <button onClick={() => {
+                                        console.log("Editing Trade:", t);
+                                        setSelectedTrade(t);
+                                        setShowModal(true);
+                                    }} className="text-gray-500 hover:text-blue-400 transition mx-1">
                                         <Edit size={14} />
                                     </button>
                                     <button onClick={() => handleDelete(t.id)} className="text-gray-500 hover:text-red-500 transition mx-1">
