@@ -198,40 +198,45 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
         seriesRef.current = s;
 
-        // 3. Configure Scales (Alternating Left/Right to decouple)
+        // 3. Configure Scales (Decoupled Layout)
+        // Main Pane (OHLC): 0% - 50%
         chart.priceScale('right').applyOptions({
-            scaleMargins: isWeekly ? { top: 0.15, bottom: 0.30 } : { top: 0.15, bottom: 0.45 },
+            scaleMargins: isWeekly ? { top: 0.1, bottom: 0.3 } : { top: 0.05, bottom: 0.5 },
         });
 
+        // Volume Overlay (Bottom of OHLC Pane): 38% - 50%
+        chart.priceScale('volume').applyOptions({
+            scaleMargins: isWeekly ? { top: 0.55, bottom: 0.3 } : { top: 0.38, bottom: 0.5 },
+            visible: false
+        });
+
+        // MACD Pane: 54% - 68% (4% Gap)
         chart.priceScale('macd').applyOptions({
-            position: 'left', // MACD on Left
+            position: 'left',
             visible: true,
             borderColor: gridColor,
-            scaleMargins: isWeekly ? { top: 0.75, bottom: 0 } : { top: 0.58, bottom: 0.28 },
+            scaleMargins: isWeekly ? { top: 0.75, bottom: 0 } : { top: 0.54, bottom: 0.32 },
             autoScale: true,
         });
 
         if (!isWeekly) {
+            // Force 13 Pane: 71% - 84% (3% Gap)
             chart.priceScale('force13').applyOptions({
-                position: 'left', // Force 13 on Left to isolate Price on Right
+                position: 'left',
                 visible: true,
                 borderColor: gridColor,
-                scaleMargins: { top: 0.74, bottom: 0.14 },
+                scaleMargins: { top: 0.71, bottom: 0.16 },
                 autoScale: true,
             });
+            // Force 2 Pane: 87% - 100% (3% Gap)
             chart.priceScale('force2').applyOptions({
-                position: 'left', // Force 2 on Left
+                position: 'left',
                 visible: true,
                 borderColor: gridColor,
-                scaleMargins: { top: 0.88, bottom: 0 },
+                scaleMargins: { top: 0.87, bottom: 0 },
                 autoScale: true,
             });
         }
-
-        chart.priceScale('volume').applyOptions({
-            scaleMargins: { top: 0.85, bottom: 0 },
-            visible: false
-        });
 
         if (!chartContainerRef.current) return;
         const container = chartContainerRef.current;
