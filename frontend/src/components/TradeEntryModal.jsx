@@ -270,6 +270,38 @@ const TradeEntryModal = ({ onClose, onSave, snapshot, initialData = {} }) => {
                                     className="w-full bg-gray-900 border border-gray-700 rounded p-2 mt-1 focus:border-blue-500 outline-none h-20 resize-none"
                                 />
                             </div>
+
+                            <div className="mt-4 pt-4 border-t border-gray-700">
+                                <label className="block text-xs uppercase text-gray-400 mb-1">Exit Reason / Context</label>
+                                <div className="grid grid-cols-2 gap-4 mb-2">
+                                    <select
+                                        value={formData.exit_reason?.split(':')[0] || 'Target Hit'}
+                                        onChange={e => {
+                                            const val = e.target.value;
+                                            const curr = formData.exit_reason || '';
+                                            const detail = curr.includes(':') ? curr.split(':')[1] : '';
+                                            setFormData({ ...formData, exit_reason: `${val}:${detail}` });
+                                        }}
+                                        className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm focus:border-purple-500 outline-none"
+                                    >
+                                        <option value="Target Hit">Target Hit</option>
+                                        <option value="Stop Loss">Stop Loss</option>
+                                        <option value="Trailing Stop">Trailing Stop</option>
+                                        <option value="Time Stop">Time Stop</option>
+                                        <option value="Market Structure">Market Change</option>
+                                        <option value="Manual Close">Manual Close</option>
+                                    </select>
+                                </div>
+                                <textarea
+                                    value={formData.exit_reason?.includes(':') ? formData.exit_reason.split(':')[1] : (formData.exit_reason || '')}
+                                    onChange={e => {
+                                        const type = formData.exit_reason?.split(':')[0] || 'Target Hit';
+                                        setFormData({ ...formData, exit_reason: `${type}:${e.target.value}` });
+                                    }}
+                                    placeholder="Details on exit..."
+                                    className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm focus:border-purple-500 outline-none h-16 resize-none"
+                                />
+                            </div>
                         </div>
 
                         {/* Grading Context */}
