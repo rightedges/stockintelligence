@@ -229,7 +229,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         }
 
         chart.priceScale('volume').applyOptions({
-            scaleMargins: isWeekly ? { top: 0.55, bottom: 0.30 } : { top: 0.35, bottom: 0.45 },
+            scaleMargins: { top: 0.85, bottom: 0 },
             visible: false
         });
 
@@ -799,6 +799,21 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                         </div>
                                     </div>
 
+                                    {/* EFI Signal Override */}
+                                    {lastData && (lastData.efi_buy_signal || lastData.efi_sell_signal) && (
+                                        <div className={`mt-3 p-3 rounded-xl border flex items-center gap-3 animation-pulse ${lastData.efi_buy_signal ? 'bg-green-500/20 border-green-500/50' : 'bg-red-500/20 border-red-500/50'}`}>
+                                            <Zap size={16} className={lastData.efi_buy_signal ? 'text-green-400' : 'text-red-400'} fill="currentColor" />
+                                            <div>
+                                                <div className={`text-[10px] font-black uppercase tracking-widest ${lastData.efi_buy_signal ? 'text-green-400' : 'text-red-400'}`}>
+                                                    EFI {lastData.efi_buy_signal ? 'BUY' : 'SELL'} SIGNAL
+                                                </div>
+                                                <div className="text-[10px] text-gray-300 leading-tight">
+                                                    {lastData.efi_buy_signal ? 'Oversold extreme. Look for entry.' : 'Overbought extreme. Tighten stops.'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Execution Grid */}
                                     {tacticalAdvice && (
                                         <div className="grid grid-cols-2 gap-2">
@@ -866,27 +881,27 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                     {(regimeData.decision?.includes('Buy') || regimeData.decision?.includes('Bullish')) ? <ArrowUpRight size={14} strokeWidth={3} /> : <ShieldCheck size={14} strokeWidth={3} />}
                                     {regimeData.decision?.split('.')[0] || 'N/A'}
                                 </div>
+                                <button
+                                    onClick={() => {
+                                        const chartDiv = chartContainerRef.current;
+                                        if (chartDiv) {
+                                            const canvas = chartDiv.querySelector('canvas');
+                                            if (canvas) {
+                                                setSnapshot(canvas.toDataURL());
+                                                setShowTradeModal(true);
+                                            }
+                                        }
+                                    }}
+                                    className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-[10px] uppercase font-bold tracking-wider flex items-center gap-2 transition-all shadow-lg ml-2"
+                                >
+                                    <Plus size={12} />
+                                    Log Trade
+                                </button>
                             </div>
                         </div>
                     )}
 
-                    {/* Log Trade Button (Absolute Top Right of Chart) */}
-                    <button
-                        onClick={() => {
-                            const chartDiv = chartContainerRef.current;
-                            if (chartDiv) {
-                                const canvas = chartDiv.querySelector('canvas');
-                                if (canvas) {
-                                    setSnapshot(canvas.toDataURL());
-                                    setShowTradeModal(true);
-                                }
-                            }
-                        }}
-                        className="absolute top-6 right-6 z-30 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-2 text-xs font-bold uppercase tracking-wider backdrop-blur-md transition-all"
-                    >
-                        <Plus size={14} />
-                        Log Trade
-                    </button>
+
 
                     <div ref={chartContainerRef} className="w-full h-[900px] relative" />
                 </div>

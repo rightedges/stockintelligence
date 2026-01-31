@@ -140,7 +140,7 @@ const Dashboard = () => {
                         ) : (
                             <Zap size={12} />
                         )}
-                        {isScanning ? "SCANNING..." : "SCAN"}
+                        {isScanning ? "SCANNING..." : "DIV SCAN"}
                     </button>
                 </div>
 

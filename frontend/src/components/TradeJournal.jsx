@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { getTrades, logTrade, deleteTrade } from '../services/api';
-import { Plus, Trash2, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, TrendingDown, DollarSign, Camera, X } from 'lucide-react';
 import TradeEntryModal from './TradeEntryModal';
 
 const TradeJournal = () => {
     const [trades, setTrades] = useState([]);
     const [showModal, setShowModal] = useState(false);
+    const [selectedImage, setSelectedImage] = useState(null);
     const [formData, setFormData] = useState({
         account: 'Main', source: 'Homework', symbol: '', quantity: '', direction: 'Long',
         entry_date: new Date().toISOString().split('T')[0], entry_price: '', entry_order_type: 'Market', entry_order_price: '',
@@ -44,12 +45,6 @@ const TradeJournal = () => {
                     score = ((e - l) / range) * 100;
                 }
 
-                if (score >= 30) entryGrade = 'A'; // Elder's relaxed grading: >30% channel is A? No, usually buy within bottom decile. 
-                // Let's stick to user request: >30% is A, >20% is B, >10% is C.
-                // Wait, user said: ">30% is A". This implies buying within 30% of the optimal edge?
-                // Actually, standard Elder is: Buy in bottom 25% of deviation.
-                // Let's use the calculated score: if I buy at low, score is 100. If I buy at high, score is 0.
-
                 if (score >= 66) entryGrade = 'A'; // Top third of value
                 else if (score >= 33) entryGrade = 'B';
                 else entryGrade = 'C';
@@ -66,8 +61,6 @@ const TradeJournal = () => {
         if (formData.entry_order_price && formData.entry_price) {
             const order = parseFloat(formData.entry_order_price);
             const fill = parseFloat(formData.entry_price);
-            // Long: Filled (151) > Order (150) = Negative Slip (-1)
-            // Short: Filled (149) < Order (150) = Positive Slip? No, sell lower is bad.
 
             if (formData.direction === 'Long') {
                 slipEntry = order - fill; // 150 - 151 = -1 (Bad)
@@ -128,6 +121,7 @@ const TradeJournal = () => {
                             <th className="p-3 border-b border-gray-700">Source</th>
                             <th className="p-3 border-b border-gray-700">Symbol</th>
                             <th className="p-3 border-b border-gray-700">Dir</th>
+                            <th className="p-3 border-b border-gray-700 text-center">Snap</th>
                             <th className="p-3 border-b border-gray-700 text-right">Qty</th>
                             <th className="p-3 border-b border-gray-700 text-right">Entry</th>
                             <th className="p-3 border-b border-gray-700 text-right">Exit</th>
@@ -147,6 +141,13 @@ const TradeJournal = () => {
                                     <span className={`px-2 py-0.5 rounded text-xs font-bold ${t.direction === 'Long' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                                         {t.direction.toUpperCase()}
                                     </span>
+                                </td>
+                                <td className="p-3 text-center">
+                                    {t.snapshot && (
+                                        <button onClick={() => setSelectedImage(t.snapshot)} className="p-1.5 hover:bg-gray-700 rounded text-blue-400 hover:text-white transition">
+                                            <Camera size={16} />
+                                        </button>
+                                    )}
                                 </td>
                                 <td className="p-3 text-right">{t.quantity}</td>
                                 <td className="p-3 text-right text-gray-300">{t.entry_price?.toFixed(2)}</td>
@@ -176,12 +177,32 @@ const TradeJournal = () => {
             </div>
 
             {/* Modal */}
-            {/* Modal */}
             {showModal && (
                 <TradeEntryModal
                     onClose={() => setShowModal(false)}
                     onSave={loadTrades}
                 />
+            )}
+
+            {/* Image Preview Modal */}
+            {selectedImage && (
+                <div
+                    className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 md:p-12 animate-in fade-in duration-200"
+                    onClick={() => setSelectedImage(null)}
+                >
+                    <button
+                        className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors"
+                        onClick={() => setSelectedImage(null)}
+                    >
+                        <X size={32} />
+                    </button>
+                    <img
+                        src={selectedImage}
+                        alt="Trade Snapshot"
+                        className="max-h-full max-w-full object-contain rounded-lg shadow-2xl border border-white/10"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
             )}
         </div>
     );
