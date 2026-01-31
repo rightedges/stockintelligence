@@ -4,14 +4,16 @@ import {
     CandlestickSeries,
     LineSeries,
     HistogramSeries,
-    CrosshairMode
+    CrosshairMode,
+    createSeriesMarkers
 } from 'lightweight-charts';
 import { Zap, Info, Notebook, Camera, Calendar, Trash2, Search, AlertTriangle, Edit, ShieldCheck, ArrowUpRight, Globe, Layers, Plus } from 'lucide-react';
 import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalEntry } from '../services/api';
 import { X } from 'lucide-react';
 import TradeEntryModal from './TradeEntryModal';
 
-const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDivergence, f13Divergence, timeframeLabel = 'Daily', regimeData }) => {
+const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDivergence, timeframeLabel = 'Daily', regimeData }) => {
+    console.log('ElderAnalysis Init', { symbol, dataLength: data?.length, timeframeLabel });
     const chartContainerRef = useRef();
     const [persistenceKey, setPersistenceKey] = useState(null);
     const [journalEntries, setJournalEntries] = useState([]);
@@ -82,9 +84,10 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             },
             crosshair: { mode: CrosshairMode.Normal },
             localization: {
-                priceFormatter: (price) => price.toFixed(2),
+                priceFormatter: (price) => (price || 0).toFixed(2),
             },
         });
+        console.log('Chart Created', chart);
 
         chartRef.current = chart;
 
@@ -98,8 +101,23 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
         if (!isWeekly) {
             s.ema26 = chart.addSeries(LineSeries, { color: '#f59e0b', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
-            s.upper = chart.addSeries(LineSeries, { color: 'rgba(255, 255, 255, 0.2)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
-            s.lower = chart.addSeries(LineSeries, { color: 'rgba(255, 255, 255, 0.2)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            s.ema22 = chart.addSeries(LineSeries, { color: 'rgba(255, 255, 255, 0.5)', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
+
+            // Price ATR Channels
+            const priceBandOptions = (style) => ({
+                color: 'rgba(255, 255, 255, 0.15)',
+                lineWidth: 1,
+                lineStyle: style,
+                lastValueVisible: false,
+                priceLineVisible: false,
+                crosshairMarkerVisible: false,
+            });
+            s.priceH1 = chart.addSeries(LineSeries, priceBandOptions(2)); // Dotted
+            s.priceL1 = chart.addSeries(LineSeries, priceBandOptions(2));
+            s.priceH2 = chart.addSeries(LineSeries, priceBandOptions(3)); // Dashed
+            s.priceL2 = chart.addSeries(LineSeries, priceBandOptions(3));
+            s.priceH3 = chart.addSeries(LineSeries, { ...priceBandOptions(0), color: 'rgba(255, 255, 255, 0.3)' }); // Solid gray
+            s.priceL3 = chart.addSeries(LineSeries, { ...priceBandOptions(0), color: 'rgba(255, 255, 255, 0.3)' });
         }
 
         s.volume = chart.addSeries(HistogramSeries, { priceScaleId: 'volume', priceFormat: { type: 'volume' }, lastValueVisible: false, priceLineVisible: false });
@@ -120,19 +138,63 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 priceLineVisible: false,
                 priceFormat: { precision: 1, minMove: 0.1 }
             });
-            s.force13 = chart.addSeries(HistogramSeries, {
+            s.force13 = chart.addSeries(LineSeries, {
                 priceScaleId: 'force13',
+                color: '#60a5fa', // Blue
+                lineWidth: 3,
                 lastValueVisible: true,
                 priceLineVisible: false,
-                priceFormat: { precision: 0, minMove: 1000 }
+            });
+            s.force13Sig = chart.addSeries(LineSeries, {
+                priceScaleId: 'force13',
+                color: '#ef4444', // Red
+                lineWidth: 1,
+                lastValueVisible: false,
+                priceLineVisible: false,
+            });
+            // ATR Bands
+            const bandOptions = (style) => ({
+                priceScaleId: 'force13',
+                color: 'rgba(156, 163, 175, 0.4)', // Gray-400
+                lineWidth: 1,
+                lineStyle: style,
+                lastValueVisible: false,
+                priceLineVisible: false,
+                crosshairMarkerVisible: false,
+            });
+            s.efiH1 = chart.addSeries(LineSeries, bandOptions(2)); // Dotted
+            s.efiL1 = chart.addSeries(LineSeries, bandOptions(2));
+            s.efiH2 = chart.addSeries(LineSeries, bandOptions(3)); // Dashed
+            s.efiL2 = chart.addSeries(LineSeries, bandOptions(3));
+            s.efiH3 = chart.addSeries(LineSeries, { ...bandOptions(0), color: 'rgba(156, 163, 175, 0.8)' }); // Solid gray
+            s.efiL3 = chart.addSeries(LineSeries, { ...bandOptions(0), color: 'rgba(156, 163, 175, 0.8)' });
+
+            // Signal Dots
+            s.efiDotsHigh = chart.addSeries(LineSeries, {
+                priceScaleId: 'force13',
+                color: '#ef4444',
+                lineWidth: 0,
+                pointShape: 'circle',
+                pointSize: 4,
+                lastValueVisible: false,
+                priceLineVisible: false,
+                crosshairMarkerVisible: false,
+            });
+            s.efiDotsLow = chart.addSeries(LineSeries, {
+                priceScaleId: 'force13',
+                color: '#22c55e',
+                lineWidth: 0,
+                pointShape: 'circle',
+                pointSize: 4,
+                lastValueVisible: false,
+                priceLineVisible: false,
+                crosshairMarkerVisible: false,
             });
         }
 
         // Divergence Lines (Bind to correct scales)
         s.divMacdPrice = chart.addSeries(LineSeries, { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
         s.divMacdInd = chart.addSeries(LineSeries, { priceScaleId: 'macd', color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
-        s.divF13Price = chart.addSeries(LineSeries, { color: '#a855f7', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
-        s.divF13Ind = chart.addSeries(LineSeries, { priceScaleId: 'force13', color: '#a855f7', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
 
         seriesRef.current = s;
 
@@ -216,6 +278,8 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                     try { if (l && container.contains(l)) container.removeChild(l); } catch (e) { }
                 });
             }
+            legendRef.current = null;
+            srLineRefs.current = [];
             observer.disconnect();
             if (chartRef.current) {
                 chartRef.current.remove();
@@ -286,23 +350,44 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
     // Update Series Data
     useEffect(() => {
+        console.log('Updating Series Data Effect', { hasChart: !!chartRef.current, hasData: !!data });
         if (!chartRef.current || !data || data.length === 0) return;
         const s = seriesRef.current;
         const isWeekly = timeframeLabel === 'Weekly';
 
-        const candleData = [], ema13Data = [], ema26Data = [], upperData = [], lowerData = [], macdHistData = [], macdSignalData = [], force2Data = [], force13Data = [], volumeData = [], volumeSMAData = [];
+        const safeSetData = (series, seriesData, label) => {
+            if (!series) return;
+            try {
+                series.setData(seriesData);
+            } catch (err) {
+                console.error(`FAILED to set ${label}:`, err);
+            }
+        };
 
+        const candleData = [], ema13Data = [], ema22Data = [], ema26Data = [], priceH1Data = [], priceL1Data = [], priceH2Data = [], priceL2Data = [], priceH3Data = [], priceL3Data = [], macdHistData = [], macdSignalData = [], force2Data = [], force13Data = [], ema13DataForce = [], efiH1Data = [], efiL1Data = [], efiH2Data = [], efiL2Data = [], efiH3Data = [], efiL3Data = [], efiDotsHighData = [], efiDotsLowData = [], volumeData = [], volumeSMAData = [];
+
+        const processedTimes = new Set();
         data.forEach(d => {
+            if (!d || !d.Date) return;
             const time = d.Date.split('T')[0];
+            if (processedTimes.has(time)) return;
+            processedTimes.add(time);
+
             const candleColor = d.impulse === 'green' ? '#22c55e' : d.impulse === 'red' ? '#ef4444' : '#60a5fa';
 
             candleData.push({ time, open: d.Open, high: d.High, low: d.Low, close: d.Close, color: candleColor, wickColor: candleColor, borderColor: candleColor });
             if (d.ema_13) ema13Data.push({ time, value: d.ema_13 });
 
             if (!isWeekly) {
+                if (d.ema_22) ema22Data.push({ time, value: d.ema_22 });
                 if (d.ema_26) ema26Data.push({ time, value: d.ema_26 });
-                if (d.envelope_upper) upperData.push({ time, value: d.envelope_upper });
-                if (d.envelope_lower) lowerData.push({ time, value: d.envelope_lower });
+
+                if (d.price_atr_h1) priceH1Data.push({ time, value: d.price_atr_h1 });
+                if (d.price_atr_l1) priceL1Data.push({ time, value: d.price_atr_l1 });
+                if (d.price_atr_h2) priceH2Data.push({ time, value: d.price_atr_h2 });
+                if (d.price_atr_l2) priceL2Data.push({ time, value: d.price_atr_l2 });
+                if (d.price_atr_h3) priceH3Data.push({ time, value: d.price_atr_h3 });
+                if (d.price_atr_l3) priceL3Data.push({ time, value: d.price_atr_l3 });
             }
 
             if (d.macd_diff !== undefined && d.macd_diff !== null) {
@@ -321,8 +406,18 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 });
             }
 
-            if (!isWeekly && d.force_index_13 !== undefined && d.force_index_13 !== null) {
-                force13Data.push({ time, value: d.force_index_13, color: d.force_index_13 >= 0 ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)' });
+            if (!isWeekly && d.efi_truncated !== undefined && d.efi_truncated !== null) {
+                force13Data.push({ time, value: d.efi_truncated });
+                if (d.efi_signal) ema13DataForce.push({ time, value: d.efi_signal });
+                if (d.efi_atr_h1) efiH1Data.push({ time, value: d.efi_atr_h1 });
+                if (d.efi_atr_l1) efiL1Data.push({ time, value: d.efi_atr_l1 });
+                if (d.efi_atr_h2) efiH2Data.push({ time, value: d.efi_atr_h2 });
+                if (d.efi_atr_l2) efiL2Data.push({ time, value: d.efi_atr_l2 });
+                if (d.efi_atr_h3) efiH3Data.push({ time, value: d.efi_atr_h3 });
+                if (d.efi_atr_l3) efiL3Data.push({ time, value: d.efi_atr_l3 });
+
+                if (d.efi_extreme_high) efiDotsHighData.push({ time, value: d.efi_truncated });
+                if (d.efi_extreme_low) efiDotsLowData.push({ time, value: d.efi_truncated });
             }
 
             if (d.Volume) {
@@ -337,64 +432,90 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             }
         });
 
-        if (s.candles) s.candles.setData(candleData);
-        if (s.ema13) s.ema13.setData(ema13Data);
-        if (!isWeekly) {
-            if (s.ema26) s.ema26.setData(ema26Data);
-            if (s.upper) s.upper.setData(upperData);
-            if (s.lower) s.lower.setData(lowerData);
-        }
-        if (s.macdHist) s.macdHist.setData(macdHistData);
-        if (!isWeekly) {
-            if (s.macdSignal) s.macdSignal.setData(macdSignalData);
-            if (s.force2) s.force2.setData(force2Data);
-            if (s.force13) s.force13.setData(force13Data);
-        }
-        if (s.volume) s.volume.setData(volumeData);
-        if (s.volumeSMA) s.volumeSMA.setData(volumeSMAData);
+        safeSetData(s.candles, candleData, 'Candles');
+        safeSetData(s.ema13, ema13Data, 'EMA13');
+        safeSetData(s.ema26, ema26Data, 'EMA26');
+        safeSetData(s.ema22, ema22Data, 'EMA22');
+        safeSetData(s.priceH1, priceH1Data, 'PriceH1');
+        safeSetData(s.priceL1, priceL1Data, 'PriceL1');
+        safeSetData(s.priceH2, priceH2Data, 'PriceH2');
+        safeSetData(s.priceL2, priceL2Data, 'PriceL2');
+        safeSetData(s.priceH3, priceH3Data, 'PriceH3');
+        safeSetData(s.priceL3, priceL3Data, 'PriceL3');
+
+        safeSetData(s.macdHist, macdHistData, 'MACD Hist');
+        safeSetData(s.macdSignal, macdSignalData, 'MACD Signal');
+
+        safeSetData(s.force2, force2Data, 'Force2');
+        safeSetData(s.force13, force13Data, 'Force13');
+        safeSetData(s.force13Sig, ema13DataForce, 'Force13 Signal');
+
+        safeSetData(s.efiH1, efiH1Data, 'EFI H1');
+        safeSetData(s.efiL1, efiL1Data, 'EFI L1');
+        safeSetData(s.efiH2, efiH2Data, 'EFI H2');
+        safeSetData(s.efiL2, efiL2Data, 'EFI L2');
+        safeSetData(s.efiH3, efiH3Data, 'EFI H3');
+        safeSetData(s.efiL3, efiL3Data, 'EFI L3');
+
+        safeSetData(s.efiDotsHigh, efiDotsHighData, 'EFI High');
+        safeSetData(s.efiDotsLow, efiDotsLowData, 'EFI Low');
+
+        safeSetData(s.volume, volumeData, 'Volume');
+        safeSetData(s.volumeSMA, volumeSMAData, 'Volume SMA');
 
         // Render Divergence Trendlines
         if (macdDivergence && data[macdDivergence.idx1] && data[macdDivergence.idx2]) {
             const p1 = data[macdDivergence.idx1];
             const p2 = data[macdDivergence.idx2];
-            const time1 = p1.Date.split('T')[0];
-            const time2 = p2.Date.split('T')[0];
-            const color = macdDivergence.type === 'bearish' ? '#ef4444' : '#22c55e'; // Red/Green matches signals better? Or stick to Orange/Blue? Using Red/Green for clarity.
+            if (p1?.Date && p2?.Date) {
+                const time1 = p1.Date.split('T')[0];
+                const time2 = p2.Date.split('T')[0];
+                const color = macdDivergence.type === 'bearish' ? '#ef4444' : '#22c55e';
 
-            s.divMacdPrice.applyOptions({ color });
-            s.divMacdInd.applyOptions({ color });
+                s.divMacdPrice.applyOptions({ color });
+                s.divMacdInd.applyOptions({ color });
 
-            // Price Line: Connect Highs (Bearish) or Lows (Bullish)
-            const priceVal1 = macdDivergence.type === 'bearish' ? p1.High : p1.Low;
-            const priceVal2 = macdDivergence.type === 'bearish' ? p2.High : p2.Low;
-            if (s.divMacdPrice) s.divMacdPrice.setData([{ time: time1, value: priceVal1 }, { time: time2, value: priceVal2 }]);
+                // Price Line: Connect Highs (Bearish) or Lows (Bullish)
+                const priceVal1 = macdDivergence.type === 'bearish' ? p1.High : p1.Low;
+                const priceVal2 = macdDivergence.type === 'bearish' ? p2.High : p2.Low;
+                if (s.divMacdPrice) safeSetData(s.divMacdPrice, [{ time: time1, value: priceVal1 }, { time: time2, value: priceVal2 }], 'DivPrice');
 
-            // Indicator Line
-            if (s.divMacdInd) s.divMacdInd.setData([{ time: time1, value: p1.macd_diff }, { time: time2, value: p2.macd_diff }]);
+                // Indicator Line
+                if (s.divMacdInd) safeSetData(s.divMacdInd, [{ time: time1, value: p1.macd_diff || 0 }, { time: time2, value: p2.macd_diff || 0 }], 'DivInd');
+            }
         } else {
-            if (s.divMacdPrice) s.divMacdPrice.setData([]);
-            if (s.divMacdInd) s.divMacdInd.setData([]);
+            if (s.divMacdPrice) safeSetData(s.divMacdPrice, [], 'DivPrice');
+            if (s.divMacdInd) safeSetData(s.divMacdInd, [], 'DivInd');
         }
 
-        if (f13Divergence && data[f13Divergence.idx1] && data[f13Divergence.idx2]) {
-            const p1 = data[f13Divergence.idx1];
-            const p2 = data[f13Divergence.idx2];
-            const time1 = p1.Date.split('T')[0];
-            const time2 = p2.Date.split('T')[0];
-            const color = f13Divergence.type === 'bearish' ? '#a855f7' : '#6366f1'; // Purple/Indigo
+        if (!data || data.length === 0) return;
 
-            s.divF13Price.applyOptions({ color });
-            s.divF13Ind.applyOptions({ color });
+        // Render Signal Markers on Candles
+        const markers = [];
+        const seenTimes = new Set();
 
-            const priceVal1 = f13Divergence.type === 'bearish' ? p1.High : p1.Low;
-            const priceVal2 = f13Divergence.type === 'bearish' ? p2.High : p2.Low;
-            if (s.divF13Price) s.divF13Price.setData([{ time: time1, value: priceVal1 }, { time: time2, value: priceVal2 }]);
+        data.forEach((d, idx) => {
+            if (!d || !d.Date) return;
+            const time = d.Date.split('T')[0];
+            if (seenTimes.has(time)) return;
 
-            // F13 Data
-            if (s.divF13Ind) s.divF13Ind.setData([{ time: time1, value: p1.force_index_13 }, { time: time2, value: p2.force_index_13 }]);
-        } else {
-            if (s.divF13Price) s.divF13Price.setData([]);
-            if (s.divF13Ind) s.divF13Ind.setData([]);
+            if (d.efi_buy_signal) {
+                markers.push({ time, position: 'belowBar', color: '#22c55e', shape: 'arrowUp', text: 'EFI BUY' });
+                seenTimes.add(time);
+            } else if (d.efi_sell_signal) {
+                markers.push({ time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'EFI SELL' });
+                seenTimes.add(time);
+            }
+        });
+        try {
+            if (s.candles) {
+                if (!s.markersPlugin) {
+                    s.markersPlugin = createSeriesMarkers(s.candles, []);
+                }
+                s.markersPlugin.setMarkers(markers);
+            }
+        } catch (e) {
+            console.error('Error setting markers plugin', e);
         }
 
         // Support & Resistance Lines Cleanup
@@ -406,13 +527,14 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         }
 
         srLevels.forEach(level => {
+            if (!level || typeof level.price !== 'number' || !level.type) return;
             const line = s.candles.createPriceLine({
                 price: level.price,
                 color: level.type === 'resistance' ? '#ef4444' : '#22c55e',
                 lineWidth: 1.5,
                 lineStyle: 1,
                 axisLabelVisible: false,
-                title: level.type.toUpperCase(),
+                title: (level.type || 'SR').toUpperCase(),
             });
             srLineRefs.current.push(line);
         });
@@ -422,6 +544,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
     // Legend interaction Logic
     useEffect(() => {
+        console.log('Legend Interaction Effect', { hasChart: !!chartRef.current, hasData: !!data });
         if (!chartRef.current || !data || data.length === 0) return;
 
         const chart = chartRef.current;
@@ -438,13 +561,14 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         ${symbol} <span style="font-size: 10px; color: #9ca3af; font-weight: 400;">${timeframeLabel}</span>
                     </div>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <span style="color: #9ca3af;">O</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Open?.toFixed(2)}</span>
-                        <span style="color: #9ca3af;">H</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.High?.toFixed(2)}</span>
-                        <span style="color: #9ca3af;">L</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Low?.toFixed(2)}</span>
-                        <span style="color: #9ca3af;">C</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Close?.toFixed(2)}</span>
+                        <span style="color: #9ca3af;">O</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Open?.toFixed(2) || '0.00'}</span>
+                        <span style="color: #9ca3af;">H</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.High?.toFixed(2) || '0.00'}</span>
+                        <span style="color: #9ca3af;">L</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Low?.toFixed(2) || '0.00'}</span>
+                        <span style="color: #9ca3af;">C</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Close?.toFixed(2) || '0.00'}</span>
                         <span style="color: #60a5fa">EMA13 ${d.ema_13?.toFixed(2) || ''}</span>
                         ${!isWeekly ? `<span style="color: #f59e0b">EMA26 ${d.ema_26?.toFixed(2) || ''}</span>` : ''}
-                        <span style="color: #94a3b8">Vol ${(d.Volume / 1000000).toFixed(2)}M</span>
+                        ${!isWeekly ? `<span style="color: rgba(255, 255, 255, 0.7)">EMA22 ${d.ema_22?.toFixed(2) || ''} (Channels)</span>` : ''}
+                        <span style="color: #94a3b8">Vol ${d.Volume ? (d.Volume / 1000000).toFixed(2) : '0.00'}M</span>
                     </div>
                 `;
             }
@@ -460,9 +584,16 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             }
 
             if (f13 && !isWeekly) {
+                let extremeText = '';
+                if (d.efi_buy_signal) extremeText = ' (BOTTOM EXTREME)';
+                if (d.efi_sell_signal) extremeText = ' (TOP EXTREME)';
+
                 f13.innerHTML = `
-                    <div style="font-weight: 700; color: #8b5cf6; margin-bottom: 2px;">Force Index (13)</div>
-                    <div style="color: #8b5cf6">Value ${d.force_index_13 ? (d.force_index_13 / 1000000).toFixed(2) + 'M' : '0.00M'}</div>
+                    <div style="font-weight: 700; color: #60a5fa; margin-bottom: 2px;">Force Index (ATR Channels)</div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <span style="color: #60a5fa">EFI ${d.efi ? (d.efi / 1000000).toFixed(2) + 'M' : '0.00M'}${extremeText}</span>
+                        <span style="color: #ef4444">Signal ${d.efi_signal ? (d.efi_signal / 1000000).toFixed(2) + 'M' : '0.00M'}</span>
+                    </div>
                 `;
             }
 
@@ -494,14 +625,14 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                     return;
                 }
 
-                const item = data.find(d => d.Date.split('T')[0] === timeStr) || last;
+                const item = data.find(d => d.Date && d.Date.split('T')[0] === timeStr) || last;
+                if (!item) return;
 
                 const e13 = s.ema13 ? param.seriesData.get(s.ema13) : null;
                 const e26 = s.ema26 ? param.seriesData.get(s.ema26) : null;
                 const mh = s.macdHist ? param.seriesData.get(s.macdHist) : null;
                 const ms = s.macdSignal ? param.seriesData.get(s.macdSignal) : null;
                 const f2 = s.force2 ? param.seriesData.get(s.force2) : null;
-                const f13 = s.force13 ? param.seriesData.get(s.force13) : null;
                 const priceData = param.seriesData.get(s.candles);
 
                 updateLegend({
@@ -512,10 +643,15 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                     Close: priceData?.close || priceData?.value || item?.Close,
                     ema_13: e13?.value ?? item?.ema_13,
                     ema_26: e26?.value ?? item?.ema_26,
+                    ema_22: item?.ema_22,
                     macd_diff: mh?.value ?? item?.macd_diff,
                     macd_signal: ms?.value ?? item?.macd_signal,
                     force_index_2: f2?.value ?? item?.force_index_2,
-                    force_index_13: f13?.value ?? item?.force_index_13,
+                    // Use item values for EFI fields since they aren't easily extracted from multiple series
+                    efi: item?.efi,
+                    efi_signal: item?.efi_signal,
+                    efi_extreme_high: item?.efi_extreme_high,
+                    efi_extreme_low: item?.efi_extreme_low,
                     Volume: s.volume ? param.seriesData.get(s.volume)?.value || item?.Volume : item?.Volume,
                 });
             }
@@ -544,35 +680,10 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
                     {/* Divergence Alerts (Unified - Top Banner) */}
                     {(() => {
-                        const isDual = macdDivergence && f13Divergence && macdDivergence.type === f13Divergence.type;
-                        const isFresh = (macdDivergence?.recency < 5) || (f13Divergence?.recency < 5);
+                        const isFresh = (macdDivergence?.recency < 5);
 
-                        // 1. Dual Divergence (Top Priority)
-                        if (isDual && isFresh) {
-                            return (
-                                <div className={`mb-8 p-5 rounded-2xl border-l-4 flex items-start gap-4 shadow-xl animate-in fade-in slide-in-from-top-2 duration-500 ${macdDivergence.type === 'bearish'
-                                    ? 'bg-red-900/40 border-red-500/60 shadow-red-900/20'
-                                    : 'bg-green-900/40 border-green-500/60 shadow-green-900/20'
-                                    }`}>
-                                    <div className={`p-3 rounded-xl ${macdDivergence.type === 'bearish' ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
-                                        <AlertTriangle size={28} className={macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'} />
-                                    </div>
-                                    <div>
-                                        <h4 className={`font-black uppercase tracking-widest text-sm mb-1 ${macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'}`}>
-                                            CRITICAL DUAL {macdDivergence.type} DIVERGENCE (MACD + F13)
-                                        </h4>
-                                        <p className="text-gray-200 text-sm leading-relaxed font-medium">
-                                            {macdDivergence.type === 'bearish'
-                                                ? "Price is making higher highs while BOTH Momentum (MACD) and Volume Pressure (F13) are weakening. This represents a highly confirmed reversal signal. Tighten stops immediately."
-                                                : "Price is making lower lows while BOTH Momentum (MACD) and Volume Pressure (F13) are strengthening. This represents a highly confirmed bottoming signal. Watch for entry triggers."}
-                                        </p>
-                                    </div>
-                                </div>
-                            );
-                        }
-
-                        // 2. Individual MACD Divergence
-                        if (macdDivergence && macdDivergence.recency < 5) {
+                        // 1. MACD Divergence
+                        if (macdDivergence && isFresh) {
                             return (
                                 <div className={`mb-8 p-4 rounded-xl border-l-4 flex items-start gap-4 shadow-lg animate-in fade-in slide-in-from-top-2 duration-500 ${macdDivergence.type === 'bearish'
                                     ? 'bg-red-900/30 border-red-500/40 shadow-red-900/10'
@@ -589,31 +700,6 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                             {macdDivergence.type === 'bearish'
                                                 ? "Price is making a higher high while momentum (MACD) is weakening. A sharp reversal may be imminent."
                                                 : "Price is making a lower low while momentum (MACD) is strengthening. A bottom may be forming."}
-                                        </p>
-                                    </div>
-                                </div>
-                            );
-                        }
-
-                        // 3. Individual F13 Divergence
-                        if (f13Divergence && f13Divergence.recency < 5) {
-                            return (
-                                <div className={`mb-8 p-4 rounded-xl border-l-4 flex items-start gap-4 shadow-lg animate-in fade-in slide-in-from-top-2 duration-500 ${f13Divergence.type === 'bearish'
-                                    ? 'bg-purple-900/30 border-purple-500/50 shadow-purple-900/10'
-                                    : 'bg-indigo-900/30 border-indigo-500/50 shadow-indigo-900/10'
-                                    }`}>
-                                    <div className={`p-2 rounded-lg ${f13Divergence.type === 'bearish' ? 'bg-purple-500/20' : 'bg-indigo-500/20'}`}>
-                                        <Zap size={24} className={f13Divergence.type === 'bearish' ? 'text-purple-400' : 'text-indigo-400'} />
-                                    </div>
-                                    <div>
-                                        <h4 className={`text-sm font-black uppercase tracking-wider mb-1 ${f13Divergence.type === 'bearish' ? 'text-purple-400' : 'text-indigo-400'}`}>
-                                            F13 {f13Divergence.type} DIVERGENCE DETECTED
-                                        </h4>
-                                        <p className="text-sm text-gray-300 leading-relaxed">
-                                            Force Index (13) is diverging from Price action.
-                                            {f13Divergence.type === 'bearish'
-                                                ? " Smart money volume is fading on highs."
-                                                : " Selling pressure is exhausting on lows."}
                                         </p>
                                     </div>
                                 </div>
@@ -662,19 +748,19 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                         <div className="flex items-center justify-between text-xs">
                                             <span className="text-gray-400 italic">Force Index (2)</span>
                                             <span className={tacticalAdvice?.screen2?.force_index_2 < 0 ? 'text-blue-400 font-bold' : 'text-amber-400 font-bold'}>
-                                                {tacticalAdvice?.screen2?.force_index_2?.toFixed(0)} ({tacticalAdvice?.screen2?.f2_streak}d)
+                                                {tacticalAdvice?.screen2?.force_index_2?.toFixed(0) || '0'} ({tacticalAdvice?.screen2?.f2_streak || 0}d)
                                             </span>
                                         </div>
                                         <div className="flex items-center justify-between text-xs">
                                             <span className="text-gray-400 italic">Williams %R (14)</span>
                                             <span className={tacticalAdvice?.screen2?.williams_r < -80 ? 'text-green-400 font-bold' : tacticalAdvice?.screen2?.williams_r > -20 ? 'text-red-400 font-bold' : 'text-gray-200'}>
-                                                {tacticalAdvice?.screen2?.williams_r?.toFixed(1)}%
+                                                {tacticalAdvice?.screen2?.williams_r?.toFixed(1) || '-0.0'}%
                                             </span>
                                         </div>
                                         <div className="flex items-center justify-between text-xs">
                                             <span className="text-gray-400 italic">Stochastic %K</span>
                                             <span className={tacticalAdvice?.screen2?.stoch_k < 20 ? 'text-green-400 font-bold' : tacticalAdvice?.screen2?.stoch_k > 80 ? 'text-red-400 font-bold' : 'text-gray-200'}>
-                                                {tacticalAdvice?.screen2?.stoch_k?.toFixed(1)}
+                                                {tacticalAdvice?.screen2?.stoch_k?.toFixed(1) || '0.0'}
                                             </span>
                                         </div>
                                     </div>
@@ -773,12 +859,12 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                             {/* Strategic Verdict */}
                             <div className="flex items-center gap-2 ml-auto">
                                 <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest hidden sm:block">Strategy ({timeframeLabel})</span>
-                                <div className={`px-3 py-1 rounded text-[10px] uppercase font-black tracking-widest flex items-center gap-2 ${regimeData.decision.includes('Buy') || regimeData.decision.includes('Bullish') ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.5)]' :
-                                    regimeData.decision.includes('Avoid') || regimeData.decision.includes('Short') ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]' :
+                                <div className={`px-3 py-1 rounded text-[10px] uppercase font-black tracking-widest flex items-center gap-2 ${(regimeData.decision?.includes('Buy') || regimeData.decision?.includes('Bullish')) ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.5)]' :
+                                    (regimeData.decision?.includes('Avoid') || regimeData.decision?.includes('Short')) ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]' :
                                         'bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.5)]'
                                     }`}>
-                                    {regimeData.decision.includes('Buy') || regimeData.decision.includes('Bullish') ? <ArrowUpRight size={14} strokeWidth={3} /> : <ShieldCheck size={14} strokeWidth={3} />}
-                                    {regimeData.decision.split('.')[0]}
+                                    {(regimeData.decision?.includes('Buy') || regimeData.decision?.includes('Bullish')) ? <ArrowUpRight size={14} strokeWidth={3} /> : <ShieldCheck size={14} strokeWidth={3} />}
+                                    {regimeData.decision?.split('.')[0] || 'N/A'}
                                 </div>
                             </div>
                         </div>

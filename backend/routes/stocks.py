@@ -7,7 +7,7 @@ from database import get_session
 from models import Stock, StockPublic
 from cache import get_cached, set_cache
 
-router = APIRouter(prefix="/api/stocks", tags=["stocks"])
+router = APIRouter(prefix="/stocks", tags=["stocks"])
 
 def calculate_indicators(df):
     if len(df) < 2:
@@ -36,19 +36,21 @@ def calculate_indicators(df):
     df['stoch_k'] = stoch.stoch()
     df['stoch_d'] = stoch.stoch_signal()
 
-    # 95% Envelope Logic (Elder's Auto-Envelope)
-    window = 100
-    dist = (df['High'] - df['ema_22']).abs() / df['ema_22']
-    # Use rolling quantile if enough data, else fallback
-    if len(df) >= window:
-        multiplier = dist.rolling(window=window).quantile(0.95).iloc[-1]
-    else:
-        multiplier = dist.quantile(0.95) # Fallback for short history
-        
-    if pd.isna(multiplier) or multiplier == 0: multiplier = 0.03 # Fallback
-    
-    df['envelope_upper'] = df['ema_22'] * (1 + multiplier)
-    df['envelope_lower'] = df['ema_22'] * (1 - multiplier)
+    # 22-period EMA as centerline for Price ATR Channels
+    df['ema_22'] = ta.trend.ema_indicator(df['Close'], window=22)
+    df['price_atr'] = ta.volatility.average_true_range(df['High'], df['Low'], df['Close'], window=14)
+
+    # Price ATR Channels (1, 2, and 3 multipliers)
+    df['price_atr_h1'] = df['ema_22'] + df['price_atr'] * 1
+    df['price_atr_l1'] = df['ema_22'] - df['price_atr'] * 1
+    df['price_atr_h2'] = df['ema_22'] + df['price_atr'] * 2
+    df['price_atr_l2'] = df['ema_22'] - df['price_atr'] * 2
+    df['price_atr_h3'] = df['ema_22'] + df['price_atr'] * 3
+    df['price_atr_l3'] = df['ema_22'] - df['price_atr'] * 3
+
+    # Backwards compatibility for existing series naming if needed
+    df['envelope_upper'] = df['price_atr_h2'] # Use level 2 as default substitute
+    df['envelope_lower'] = df['price_atr_l2']
 
     # Calculate Volume SMA
     df['volume_sma_20'] = ta.trend.sma_indicator(df['Volume'], window=20)
@@ -74,10 +76,48 @@ def calculate_indicators(df):
     df['bulls_power'] = df['High'] - df['ema_13']
     df['bears_power'] = df['Low'] - df['ema_13']
 
-    # 3. Force Index
+    # 3. Force Index (EFI) with ATR Channels
+    # EFI = 13-period EMA of (Close - Close[1]) * Volume
     raw_force = (df['Close'] - df['Close'].shift(1)) * df['Volume']
+    df['efi'] = raw_force.ewm(span=13, adjust=False).mean()
+    
+    # Sig = 13-period EMA of EFI (Averaged Force)
+    df['efi_signal'] = df['efi'].ewm(span=13, adjust=False).mean()
+    
+    # EFI ATR = smoothed absolute bar-to-bar change of EFI
+    # Use RMA (SMA with alpha=1/N) equivalent for TV consistency if possible, 
+    # but EMA (ewm) 13 is the Elder standard for smoothing here.
+    efi_range = (df['efi'] - df['efi'].shift(1)).abs()
+    efi_atr = efi_range.ewm(span=13, adjust=False).mean()
+    
+    # Upper/Lower Bands centered on Signal
+    df['efi_atr_h1'] = df['efi_signal'] + efi_atr * 1
+    df['efi_atr_l1'] = df['efi_signal'] - efi_atr * 1
+    df['efi_atr_h2'] = df['efi_signal'] + efi_atr * 2
+    df['efi_atr_l2'] = df['efi_signal'] - efi_atr * 2
+    df['efi_atr_h3'] = df['efi_signal'] + efi_atr * 3
+    df['efi_atr_l3'] = df['efi_signal'] - efi_atr * 3
+    
+    # Truncation Logic (Extreme Value Handling)
+    # Capping EFI if it exceeds 4-ATR for visual stability in plots
+    efi_ob_h = df['efi_signal'] + efi_atr * 4
+    efi_ob_l = df['efi_signal'] - efi_atr * 4
+    
+    df['efi_truncated'] = df['efi']
+    df.loc[df['efi'] > efi_ob_h, 'efi_truncated'] = df['efi_atr_h3']
+    df.loc[df['efi'] < efi_ob_l, 'efi_truncated'] = df['efi_atr_l3']
+    
+    # Signal Dots (EFI hitting or exceeding 3-ATR)
+    df['efi_buy_signal'] = df['efi'] <= df['efi_atr_l3']
+    df['efi_sell_signal'] = df['efi'] >= df['efi_atr_h3']
+    
+    # Backwards compatibility
+    df['efi_extreme_high'] = df['efi_sell_signal']
+    df['efi_extreme_low'] = df['efi_buy_signal']
+
+    # Keep compatibility with existing code that might use force_index_13
+    df['force_index_13'] = df['efi']
     df['force_index_2'] = raw_force.ewm(span=2, adjust=False).mean()
-    df['force_index_13'] = raw_force.ewm(span=13, adjust=False).mean()
     
     return df
 
@@ -147,15 +187,8 @@ def scan_stocks(session: Session = Depends(get_session)):
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
             
-            # 2. Calculate Indicators (MACD & Force Index)
-            # Use minimal calcs to save CPU
-            df['macd'] = ta.trend.macd(df['Close'])
-            df['macd_signal'] = ta.trend.macd_signal(df['Close'])
-            df['macd_diff'] = ta.trend.macd_diff(df['Close'])
-            
-            # Force Index
-            raw_force = (df['Close'] - df['Close'].shift(1)) * df['Volume']
-            df['force_index_13'] = raw_force.ewm(span=13, adjust=False).mean()
+            # 2. Calculate Indicators
+            df = calculate_indicators(df)
             
             # 3. Check Divergence
             # Use the existing find_divergence logic but reused here
@@ -261,18 +294,18 @@ def scan_stocks(session: Session = Depends(get_session)):
                 return None
 
             macd_div = check_div_scan(df, 'macd_diff')
-            f13_div = check_div_scan(df, 'force_index_13')
+            
+            # EFI ATR Extremes as alternative signals
+            efi_buy = df['efi_buy_signal'].iloc[-1]
+            efi_sell = df['efi_sell_signal'].iloc[-1]
             
             final_status = None
-            if macd_div and f13_div and macd_div == f13_div:
-                final_status = f"dual_{macd_div}" # dual_bullish or dual_bearish
-            elif macd_div:
+            if macd_div:
                 final_status = macd_div
-            elif f13_div:
-                final_status = f13_div # store as 'bullish'/'bearish'? Or separate?
-                # To distinguish, maybe prefix? But UI expects 'bullish'/'bearish' for color.
-                # Let's just use 'bullish'/'bearish' priority MACD
-                # User asked: "use color code in symbol list"
+            elif efi_buy:
+                final_status = 'bullish'
+            elif efi_sell:
+                final_status = 'bearish'
             
             # Update DB
             stock.divergence_status = final_status
@@ -1085,8 +1118,7 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
             },
             "sr_levels": sr_levels,
             "elder_tactics": elder_tactics,
-            "macd_divergence": macd_divergence,
-            "f13_divergence": f13_divergence
+            "macd_divergence": macd_divergence
         }
 
         return clean_nans(response)

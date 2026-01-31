@@ -4,7 +4,7 @@ from database import get_session
 from models import JournalEntry
 from datetime import datetime
 
-router = APIRouter(prefix="/api/journal", tags=["journal"])
+router = APIRouter(prefix="/journal", tags=["journal"])
 
 @router.post("/")
 def create_entry(entry: JournalEntry, session: Session = Depends(get_session)):
