@@ -31,19 +31,21 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
     const [snapshot, setSnapshot] = useState(null);
     const [activeTrade, setActiveTrade] = useState(null);
 
+    const fetchActiveTrade = async () => {
+        if (!symbol) return;
+        try {
+            const res = await getActiveTrade(symbol);
+            if (res.data) setActiveTrade(res.data);
+            else setActiveTrade(null);
+        } catch (err) {
+            console.error("Failed to fetch active trade", err);
+        }
+    };
+
     useEffect(() => {
         if (!symbol) return;
         const fetchAnalysis = async () => {
             // ... existing fetch logic if any ...
-        };
-        const fetchActiveTrade = async () => {
-            try {
-                const res = await getActiveTrade(symbol);
-                if (res.data) setActiveTrade(res.data);
-                else setActiveTrade(null);
-            } catch (err) {
-                console.error("Failed to fetch active trade", err);
-            }
         };
         fetchActiveTrade();
     }, [symbol]);
@@ -1161,7 +1163,9 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         initialData={tradeModalInitialData}
                         snapshot={snapshot}
                         onSave={() => {
+                            fetchActiveTrade();
                             // Refresh journal entries if needed
+                            // loadJournal(); // If we had this function exposed or local
                         }}
                     />
                 )

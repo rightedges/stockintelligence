@@ -150,7 +150,7 @@ const TradeEntryModal = ({ onClose, onSave, snapshot, initialData = {} }) => {
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-fade-in-up">
+            <div className={`bg-gray-800 rounded-2xl border border-gray-700 w-full ${displaySnapshot ? 'max-w-6xl' : 'max-w-2xl'} max-h-[90vh] overflow-y-auto shadow-2xl animate-fade-in-up transition-all duration-300`}>
                 <div className="p-6 border-b border-gray-700 flex justify-between items-center bg-gray-900/50">
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
                         {initialData.id ? 'Edit Trade' : 'Log New Trade'}
@@ -161,13 +161,17 @@ const TradeEntryModal = ({ onClose, onSave, snapshot, initialData = {} }) => {
 
                 <div className="flex">
                     {displaySnapshot && (
-                        <div className="w-1/3 border-r border-gray-700 p-4 bg-black/20">
+                        <div className="w-1/2 border-r border-gray-700 p-4 bg-black/20 flex flex-col">
                             <p className="text-xs text-gray-500 mb-2 uppercase font-bold">Chart Context</p>
-                            <img src={displaySnapshot} className="w-full rounded border border-gray-700" alt="Chart Snapshot" />
+                            <img
+                                src={displaySnapshot}
+                                className="w-full h-auto object-contain rounded border border-gray-700 shadow-lg"
+                                alt="Chart Snapshot"
+                            />
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className={`p-6 grid grid-cols-2 gap-4 ${displaySnapshot ? 'w-2/3' : 'w-full'}`}>
+                    <form onSubmit={handleSubmit} className={`p-6 grid grid-cols-2 gap-4 ${displaySnapshot ? 'w-1/2' : 'w-full'}`}>
                         {/* Basics */}
                         <div className="col-span-2 grid grid-cols-2 gap-4">
                             <label>
