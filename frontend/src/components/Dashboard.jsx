@@ -246,7 +246,7 @@ const Dashboard = () => {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-w-0">
                 {/* Header */}
                 <div className="h-16 bg-gray-800 border-b border-gray-700 flex items-center px-6 justify-between">
                     <div className="text-xl font-semibold">
