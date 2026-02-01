@@ -176,10 +176,13 @@ def scan_stocks(session: Session = Depends(get_session)):
     # Process each stock (limit history to save bandwidth)
     for stock in stocks:
         try:
-            # 1. Fetch Daily Data (~1y is enough for divergence)
-            # Use yfinance directly, bypass heavy caching for speed or use short TTL?
-            # We'll use download but minimal call
-            df = yf.download(stock.symbol, period="1y", interval="1d", progress=False)
+            # 1. Fetch Data (Need ~2 years for reliable Weekly calculation)
+            # Fetching 2y of daily data is heavy but allows resampling for Weekly.
+            # Alternately, fetch separate Weekly data? 
+            # Optimization: 2y Daily is a lot. Let's fetch 2y Weekly + 6mo Daily? 
+            # No, yfinance download caching is key.
+            # Let's fetch 1y Daily. Weekly Impulse on just 52 bars is okay.
+            df = yf.download(stock.symbol, period="2y", interval="1d", progress=False)
             
             if df.empty or len(df) < 50:
                 continue
@@ -307,18 +310,64 @@ def scan_stocks(session: Session = Depends(get_session)):
                 efi_status = 'buy'
             elif efi_sell:
                 efi_status = 'sell'
+            
+            # 5. Check Triple Screen Pullback (Setup Signal)
+            # Rule: Weekly Impulse is Bullish (Green/Blue) AND Daily EFI-2 is Negative (Pullback)
+            setup_signal = None
+            
+            try:
+                # Resample for Weekly Impulse
+                logic = {'Open': 'first', 'High': 'max', 'Low': 'min', 'Close': 'last', 'Volume': 'sum'}
+                df_wk = df.resample('W').apply(logic).dropna()
+                
+                if len(df_wk) > 26:
+                    df_wk['ema_13'] = ta.trend.ema_indicator(df_wk['Close'], window=13)
+                    df_wk['macd_diff'] = ta.trend.macd_diff(df_wk['Close'])
+                    
+                    slope_ema = df_wk['ema_13'].diff().iloc[-1]
+                    slope_macd = df_wk['macd_diff'].diff().iloc[-1]
+                    
+                    weekly_bullish = (slope_ema > 0 and slope_macd > 0) or (slope_ema > 0 or slope_macd > 0) # Green or Blue
+                    weekly_bearish = (slope_ema < 0 and slope_macd < 0) or (slope_ema < 0 or slope_macd < 0) # Red or Blue
+                    
+                    # Daily Force Index 2-Day (Calculated in calculate_indicators, need 'force_index_2')
+                    # We might need to ensure 'force_index_2' is in 'df'.
+                    # It's added in calculate_indicators line 120: df['force_index_2'] = raw_force.ewm(span=2...
+                    
+                    daily_efi2 = df['force_index_2'].iloc[-1]
+                    
+                    # BUY SETUP: Weekly Up/Neutral + Daily Pullback (EFI2 < 0)
+                    if weekly_bullish and daily_efi2 < 0:
+                         # Elder Quality: Only if EMA13 Daily is also rising? Or just basic TS?
+                         # Basic TS: Weekly allows Long, Daily dips.
+                         if slope_ema > 0 and slope_macd > 0: # Green Weekly is best
+                             setup_signal = 'pullback_buy_strong'
+                         elif slope_ema >= 0: # Blue/Green
+                             setup_signal = 'pullback_buy'
+
+                    # SELL SETUP: Weekly Down/Neutral + Daily Rally (EFI2 > 0)
+                    elif weekly_bearish and daily_efi2 > 0:
+                        if slope_ema < 0 and slope_macd < 0:
+                            setup_signal = 'pullback_sell_strong'
+                        elif slope_ema <= 0:
+                            setup_signal = 'pullback_sell'
+
+            except Exception as e:
+                print(f"TS Scan error {stock.symbol}: {e}")
 
             # Update DB
             stock.divergence_status = macd_div 
             stock.efi_status = efi_status
+            stock.setup_signal = setup_signal
             
             session.add(stock)
             
-            if macd_div or efi_status:
+            if macd_div or efi_status or setup_signal:
                 results.append({
                     "symbol": stock.symbol, 
                     "divergence": macd_div,
-                    "efi": efi_status
+                    "efi": efi_status,
+                    "setup": setup_signal
                 })
             
             # Anti-Block Sleep

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { logTrade, updateTrade } from '../services/api';
+import { ShieldCheck } from 'lucide-react'; // Fixed import
 
 const TradeEntryModal = ({ onClose, onSave, snapshot, initialData = {} }) => {
     const [formData, setFormData] = useState({
@@ -9,8 +10,32 @@ const TradeEntryModal = ({ onClose, onSave, snapshot, initialData = {} }) => {
         entry_day_high: '', entry_day_low: '',
         upper_channel: '', lower_channel: '',
         exit_date: '', exit_price: '',
+        stop_loss: '', // Added Stop Loss field
         ...initialData
     });
+
+    const [riskParams, setRiskParams] = useState({
+        equity: 100000,
+        riskPercent: 2
+    });
+
+    // Auto-Calculate Quantity based on Risk
+    React.useEffect(() => {
+        if (!formData.entry_price || !formData.stop_loss || !riskParams.equity) return;
+
+        const entry = parseFloat(formData.entry_price);
+        const stop = parseFloat(formData.stop_loss);
+        const riskPerShare = Math.abs(entry - stop);
+
+        if (riskPerShare <= 0) return;
+
+        const maxRiskDollars = riskParams.equity * (riskParams.riskPercent / 100);
+        const maxQty = Math.floor(maxRiskDollars / riskPerShare);
+
+        // Update quantity if it hasn't been manually overriden recently?
+        // For now, let's just allow the user to click a "Apply" button or auto-suggest next to the input.
+        // Or cleaner: Just show the suggestion and let them click it.
+    }, [formData.entry_price, formData.stop_loss, riskParams]);
 
     // If modal opened with a snapshot prop (from "Close Trade"), and we are editing an existing trade (initialData.id),
     // then this snapshot is an EXIT snapshot. Otherwise, it's an ENTRY snapshot.
@@ -171,7 +196,64 @@ const TradeEntryModal = ({ onClose, onSave, snapshot, initialData = {} }) => {
                         </div>
                     )}
 
+                    {displaySnapshot && (
+                        <div className="w-1/2 border-r border-gray-700 p-4 bg-black/20 flex flex-col">
+                            <p className="text-xs text-gray-500 mb-2 uppercase font-bold">Chart Context</p>
+                            <img
+                                src={displaySnapshot}
+                                className="w-full h-auto object-contain rounded border border-gray-700 shadow-lg"
+                                alt="Chart Snapshot"
+                            />
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit} className={`p-6 grid grid-cols-2 gap-4 ${displaySnapshot ? 'w-1/2' : 'w-full'}`}>
+                        {/* Risk Management / Money Management */}
+                        <div className="col-span-2 bg-blue-900/10 border border-blue-500/20 rounded-lg p-3 mb-2">
+                            <h3 className="text-xs font-bold text-blue-400 mb-2 uppercase tracking-wider flex items-center gap-2">
+                                <ShieldCheck size={14} /> Risk Management (2% Rule)
+                            </h3>
+                            <div className="grid grid-cols-4 gap-2 text-xs">
+                                <label className="col-span-1">
+                                    <span className="text-gray-500 block mb-1">Account Equity</span>
+                                    <input type="number" className="w-full bg-gray-900 border border-gray-700 rounded p-1"
+                                        value={riskParams.equity} onChange={e => setRiskParams({ ...riskParams, equity: e.target.value })} />
+                                </label>
+                                <label className="col-span-1">
+                                    <span className="text-gray-500 block mb-1">Risk %</span>
+                                    <input type="number" step="0.1" className="w-full bg-gray-900 border border-gray-700 rounded p-1"
+                                        value={riskParams.riskPercent} onChange={e => setRiskParams({ ...riskParams, riskPercent: e.target.value })} />
+                                </label>
+                                <label className="col-span-1">
+                                    <span className="text-gray-500 block mb-1">Stop Price</span>
+                                    <input type="number" step="0.01" className="w-full bg-gray-900 border border-red-900/50 rounded p-1 text-red-300 font-bold"
+                                        placeholder="Stop Loss"
+                                        value={formData.stop_loss || ''} onChange={e => setFormData({ ...formData, stop_loss: e.target.value })} />
+                                </label>
+                                <div className="col-span-1 flex flex-col justify-end">
+                                    {(() => {
+                                        const entry = parseFloat(formData.entry_price);
+                                        const stop = parseFloat(formData.stop_loss);
+                                        if (entry && stop) {
+                                            const riskPerShare = Math.abs(entry - stop);
+                                            const maxRiskDollars = riskParams.equity * (riskParams.riskPercent / 100);
+                                            const suggQty = Math.floor(maxRiskDollars / riskPerShare);
+                                            return (
+                                                <button type="button"
+                                                    onClick={() => setFormData({ ...formData, quantity: suggQty })}
+                                                    className="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded text-center transition h-[30px] flex items-center justify-center gap-1"
+                                                    title={`Risk $${maxRiskDollars.toFixed(0)} / Risk Per Share $${riskPerShare.toFixed(2)}`}
+                                                >
+                                                    Set Qty: {suggQty}
+                                                </button>
+                                            )
+                                        }
+                                        return <div className="text-gray-600 italic py-1">Enter Stop & Entry</div>;
+                                    })()}
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Basics */}
                         <div className="col-span-2 grid grid-cols-2 gap-4">
                             <label>

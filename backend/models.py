@@ -10,6 +10,7 @@ class Stock(SQLModel, table=True):
     is_watched: bool = Field(default=False)
     divergence_status: Optional[str] = None # 'bullish', 'bearish', 'dual_bullish', 'dual_bearish'
     efi_status: Optional[str] = None # 'buy', 'sell'
+    setup_signal: Optional[str] = None # 'pullback_buy', 'pullback_sell'
 
 class StockPublic(Stock):
     impulse: Optional[str] = None

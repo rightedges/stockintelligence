@@ -197,6 +197,14 @@ const Dashboard = () => {
                                             E
                                         </div>
                                     )}
+                                    {/* Setup Signal Icon */}
+                                    {stock.setup_signal && (
+                                        <div className={`ml-1 px-1 rounded text-[10px] font-bold border ${stock.setup_signal.includes('buy') ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-orange-500/20 text-orange-400 border-orange-500/30'}`}
+                                            title={`Tripe Screen Setup: ${stock.setup_signal.replace('_', ' ').toUpperCase()}`}
+                                        >
+                                            TS
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="text-xs text-gray-400 truncate w-32">{stock.name || '-'}</div>
                             </div>

@@ -23,6 +23,15 @@ def migrate():
                  print(f"Migration note (stock): {e}")
 
         try:
+            # Attempt to add the setup_signal column for Triple Screen Scans
+            session.exec(text("ALTER TABLE stock ADD COLUMN setup_signal TEXT"))
+            session.commit()
+            print("✅ SUCCESS: Added 'setup_signal' column to 'stock' table.")
+        except Exception as e:
+            if "duplicate column name" not in str(e).lower():
+                 print(f"Migration note (stock setup_signal): {e}")
+
+        try:
             # Attempt to add snapshot column to Trade table
             session.exec(text("ALTER TABLE trade ADD COLUMN snapshot TEXT"))
             session.commit()
