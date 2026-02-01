@@ -218,6 +218,26 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         s.divMacdPrice = chart.addSeries(LineSeries, { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
         s.divMacdInd = chart.addSeries(LineSeries, { priceScaleId: 'macd', color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
 
+        // SafeZone Stops (Trailing)
+        s.safeZoneLong = chart.addSeries(LineSeries, {
+            color: 'rgba(239, 68, 68, 0.8)', // Red (Stop for Longs)
+            lineWidth: 1,
+            lineStyle: 2, // Dashed
+            lastValueVisible: true,
+            priceLineVisible: false,
+            crosshairMarkerVisible: true,
+            title: 'SZ Long'
+        });
+        s.safeZoneShort = chart.addSeries(LineSeries, {
+            color: 'rgba(34, 197, 94, 0.8)', // Green (Stop for Shorts)
+            lineWidth: 1,
+            lineStyle: 2, // Dashed
+            lastValueVisible: true,
+            priceLineVisible: false,
+            crosshairMarkerVisible: true,
+            title: 'SZ Short'
+        });
+
         seriesRef.current = s;
 
         // 3. Configure Scales (Decoupled Layout)
@@ -527,10 +547,10 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             if (seenTimes.has(time)) return;
 
             if (d.efi_buy_signal) {
-                markers.push({ time, position: 'belowBar', color: '#22c55e', shape: 'arrowUp', text: 'EFI BUY' });
+                markers.push({ time, position: 'belowBar', color: '#22c55e', shape: 'arrowUp', text: 'E' });
                 seenTimes.add(time);
             } else if (d.efi_sell_signal) {
-                markers.push({ time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'EFI SELL' });
+                markers.push({ time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'E' });
                 seenTimes.add(time);
             }
         });
@@ -922,7 +942,10 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                                         entry_day_high: lastData.High,
                                                         entry_day_low: lastData.Low,
                                                         upper_channel: lastData.price_atr_h3, // 3 ATR Top
-                                                        lower_channel: lastData.price_atr_l3  // 3 ATR Bottom
+                                                        lower_channel: lastData.price_atr_l3,  // 3 ATR Bottom
+                                                        // Pass SafeZone data for Auto-Stop
+                                                        safezone_long: lastData.safezone_long,
+                                                        safezone_short: lastData.safezone_short
                                                     });
                                                 }
 

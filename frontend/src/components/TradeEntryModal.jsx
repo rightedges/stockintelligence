@@ -229,6 +229,45 @@ const TradeEntryModal = ({ onClose, onSave, snapshot, initialData = {} }) => {
                                     <input type="number" step="0.01" className="w-full bg-gray-900 border border-red-900/50 rounded p-1 text-red-300 font-bold"
                                         placeholder="Stop Loss"
                                         value={formData.stop_loss || ''} onChange={e => setFormData({ ...formData, stop_loss: e.target.value })} />
+
+                                    {/* Smart Stop Helpers */}
+                                    <div className="flex gap-1 mt-1 justify-end">
+                                        {formData.direction === 'Long' ? (
+                                            <>
+                                                {formData.entry_day_low && (
+                                                    <button type="button" onClick={() => setFormData({ ...formData, stop_loss: formData.entry_day_low.toFixed(2) })}
+                                                        className="text-[9px] px-1 py-0.5 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded border border-gray-600"
+                                                        title={`Recent Low: ${formData.entry_day_low}`}>
+                                                        Low
+                                                    </button>
+                                                )}
+                                                {formData.safezone_long && (
+                                                    <button type="button" onClick={() => setFormData({ ...formData, stop_loss: formData.safezone_long.toFixed(2) })}
+                                                        className="text-[9px] px-1 py-0.5 bg-red-900/30 hover:bg-red-900/50 text-red-400 rounded border border-red-900/50"
+                                                        title={`SafeZone Long: ${formData.safezone_long}`}>
+                                                        SZ
+                                                    </button>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <>
+                                                {formData.entry_day_high && (
+                                                    <button type="button" onClick={() => setFormData({ ...formData, stop_loss: formData.entry_day_high.toFixed(2) })}
+                                                        className="text-[9px] px-1 py-0.5 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded border border-gray-600"
+                                                        title={`Recent High: ${formData.entry_day_high}`}>
+                                                        High
+                                                    </button>
+                                                )}
+                                                {formData.safezone_short && (
+                                                    <button type="button" onClick={() => setFormData({ ...formData, stop_loss: formData.safezone_short.toFixed(2) })}
+                                                        className="text-[9px] px-1 py-0.5 bg-green-900/30 hover:bg-green-900/50 text-green-400 rounded border border-green-900/50"
+                                                        title={`SafeZone Short: ${formData.safezone_short}`}>
+                                                        SZ
+                                                    </button>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
                                 </label>
                                 <div className="col-span-1 flex flex-col justify-end">
                                     {(() => {

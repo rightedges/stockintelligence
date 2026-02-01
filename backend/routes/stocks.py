@@ -117,8 +117,51 @@ def calculate_indicators(df):
 
     # Keep compatibility with existing code that might use force_index_13
     df['force_index_13'] = df['efi']
+    df['force_index_13'] = df['efi']
     df['force_index_2'] = raw_force.ewm(span=2, adjust=False).mean()
     
+    # ---------------------------------------------------------
+    # SafeZone Calculation (Elder)
+    # ---------------------------------------------------------
+    # 1. SafeZone Long (Protects Longs)
+    # Lookback 22, Coeff 2.5
+    sz_period = 22
+    sz_coeff = 2.5
+    
+    # Downside Penetration: max(Previous Low - Low, 0)
+    # We shift L by 1 to compare PrevL vs L
+    prev_low = df['Low'].shift(1)
+    downside_penetration = (prev_low - df['Low']).clip(lower=0)
+    
+    # Average Downside Penetration: Sum / Count (of penetrations only)
+    # Rolling Sum of Penetrats and Count of Penetrations > 0
+    # Rolling sum:
+    pen_sum = downside_penetration.rolling(window=sz_period).sum()
+    pen_count = (downside_penetration > 0).astype(int).rolling(window=sz_period).sum()
+    
+    # Avoid division by zero
+    avg_pen = pen_sum / pen_count.replace(0, 1)
+    
+    # SafeZone Level: Low - (Coeff * AvgPen)
+    # This is the "Stop for Tomorrow" calculated "Today".
+    df['safezone_long'] = df['Low'] - (sz_coeff * avg_pen)
+    
+    # 2. SafeZone Short (Protects Shorts)
+    # Upside Penetration: max(High - Previous High, 0)
+    prev_high = df['High'].shift(1)
+    upside_penetration = (df['High'] - prev_high).clip(lower=0)
+    
+    up_sum = upside_penetration.rolling(window=sz_period).sum()
+    up_count = (upside_penetration > 0).astype(int).rolling(window=sz_period).sum()
+    
+    avg_up_pen = up_sum / up_count.replace(0, 1)
+    
+    df['safezone_short'] = df['High'] + (sz_coeff * avg_up_pen)
+    
+    # Fill NaN for initial periods
+    df['safezone_long'] = df['safezone_long'].bfill()
+    df['safezone_short'] = df['safezone_short'].bfill()
+
     return df
 
 @router.post("/", response_model=Stock)
