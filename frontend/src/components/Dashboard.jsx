@@ -119,40 +119,14 @@ const Dashboard = () => {
                     <TrendingUp className="text-green-500" />
                     StockAI
                     <div className="flex gap-2 ml-auto">
-                        {/* EFI Scan Button */}
-                        <button
-                            onClick={async (e) => {
-                                e.stopPropagation();
-                                if (isScanningEFI) return;
-                                setIsScanningEFI(true);
-                                try {
-                                    await scanStocksEFI();
-                                    await loadStocks();
-                                } catch (err) {
-                                    console.error("EFI Scan failed", err);
-                                } finally {
-                                    setIsScanningEFI(false);
-                                }
-                            }}
-                            disabled={isScanningEFI}
-                            className={`text-xs px-2 py-1 rounded flex items-center gap-1 transition-all border border-blue-500/30 ${isScanningEFI ? 'bg-blue-600 font-bold animate-pulse' : 'bg-gray-700 hover:bg-blue-600 text-gray-300 hover:text-white'}`}
-                            title="Scan Watchlist for EFI Signals"
-                        >
-                            {isScanningEFI ? (
-                                <div className="animate-spin rounded-full h-3 w-3 border-2 border-white/20 border-t-white" />
-                            ) : (
-                                <Activity size={12} />
-                            )}
-                            {isScanningEFI ? "SCANNING..." : "EFI SCAN"}
-                        </button>
-
-                        {/* DIV Scan Button */}
+                        {/* Unified Scan Button */}
                         <button
                             onClick={async (e) => {
                                 e.stopPropagation();
                                 if (isScanning) return;
                                 setIsScanning(true);
                                 try {
+                                    // Calls the unified backend endpoint
                                     await scanStocks();
                                     await loadStocks();
                                 } catch (err) {
@@ -162,15 +136,15 @@ const Dashboard = () => {
                                 }
                             }}
                             disabled={isScanning}
-                            className={`text-xs px-2 py-1 rounded flex items-center gap-1 transition-all border border-purple-500/30 ${isScanning ? 'bg-purple-600 font-bold animate-pulse' : 'bg-gray-700 hover:bg-purple-600 text-gray-300 hover:text-white'}`}
-                            title="Scan Watchlist for Recent Divergences"
+                            className={`text-xs px-3 py-1.5 rounded flex items-center gap-2 transition-all border border-purple-500/30 ${isScanning ? 'bg-purple-600 font-bold animate-pulse' : 'bg-gray-700 hover:bg-purple-600 text-gray-300 hover:text-white'}`}
+                            title="Run Unified Market Scan (Divergence & EFI)"
                         >
                             {isScanning ? (
                                 <div className="animate-spin rounded-full h-3 w-3 border-2 border-white/20 border-t-white" />
                             ) : (
-                                <Zap size={12} />
+                                <Zap size={14} />
                             )}
-                            {isScanning ? "SCANNING..." : "DIV SCAN"}
+                            {isScanning ? "SCANNING MARKET..." : "SCAN MARKET"}
                         </button>
                     </div>
                 </div>
