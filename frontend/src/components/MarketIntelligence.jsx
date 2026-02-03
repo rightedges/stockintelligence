@@ -4,7 +4,7 @@ import {
     ArrowUpRight,
     Zap,
     AlertTriangle,
-    CheckCircle2,
+    CheckCircle,
     Circle,
     Globe,
     BarChart3,
@@ -231,7 +231,7 @@ const TopDownRoutine = ({ regimeData }) => {
                         className={`p-3 rounded-lg border transition-all duration-300 ${step.completed ? 'bg-green-900/10 border-green-800/40' : 'bg-gray-900 border border-gray-800'}`}
                     >
                         <div className="flex items-center gap-3">
-                            {step.completed ? <CheckCircle2 className="text-green-500 flex-shrink-0" /> : <div className="w-5 h-5 rounded-full border-2 border-gray-700 flex-shrink-0" />}
+                            {step.completed ? <CheckCircle className="text-green-500 flex-shrink-0" /> : <div className="w-5 h-5 rounded-full border-2 border-gray-700 flex-shrink-0" />}
                             <span className={`text-sm font-semibold ${step.completed ? 'text-white' : 'text-gray-400'}`}>{step.text}</span>
                         </div>
                         <div className="mt-2 ml-8 text-[10px] text-gray-500 font-mono italic">
@@ -482,7 +482,7 @@ const ConfluenceGuide = ({ isOpen, onClose, regimeData }) => {
                             <h4 className={`text-sm font-black mb-4 uppercase flex items-center gap-2 ${regimeData?.confluence_details?.trend ? 'text-blue-400' : 'text-gray-500'}`}>
                                 <BarChart3 size={18} />
                                 1. Trend (The Gear)
-                                {regimeData?.confluence_details?.trend && <CheckCircle2 size={16} className="ml-auto" />}
+                                {regimeData?.confluence_details?.trend && <CheckCircle size={16} className="ml-auto" />}
                             </h4>
                             <p className="text-sm text-gray-300 leading-relaxed mb-4">
                                 Base identification using <strong className="text-white">EMA 50 & 200</strong>. Tells us if the machine is moving up or down.
@@ -494,7 +494,7 @@ const ConfluenceGuide = ({ isOpen, onClose, regimeData }) => {
                             <h4 className={`text-sm font-black mb-4 uppercase flex items-center gap-2 ${regimeData?.confluence_details?.momentum ? 'text-yellow-400' : 'text-gray-500'}`}>
                                 <Gauge size={18} />
                                 2. Momentum (The Heat)
-                                {regimeData?.confluence_details?.momentum && <CheckCircle2 size={16} className="ml-auto" />}
+                                {regimeData?.confluence_details?.momentum && <CheckCircle size={16} className="ml-auto" />}
                             </h4>
                             <p className="text-sm text-gray-300 leading-relaxed mb-4">
                                 Uses <strong className="text-white">RSI Relative Strength</strong> to distinguish quiet absorption from nervous retail churn.
@@ -506,7 +506,7 @@ const ConfluenceGuide = ({ isOpen, onClose, regimeData }) => {
                             <h4 className={`text-sm font-black mb-4 uppercase flex items-center gap-2 ${regimeData?.confluence_details?.flow ? 'text-purple-400' : 'text-gray-500'}`}>
                                 <Link size={18} />
                                 3. Flow (The Fuel)
-                                {regimeData?.confluence_details?.flow && <CheckCircle2 size={16} className="ml-auto" />}
+                                {regimeData?.confluence_details?.flow && <CheckCircle size={16} className="ml-auto" />}
                             </h4>
                             <p className="text-sm text-gray-300 leading-relaxed mb-4">
                                 Verified via <strong className="text-white">Volume SMAs</strong>. High flow confirms institutional commitment to the current phase.

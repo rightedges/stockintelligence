@@ -20,6 +20,7 @@ const Dashboard = () => {
     const [isScanning, setIsScanning] = useState(false);
     const [isScanningEFI, setIsScanningEFI] = useState(false);
     const [view, setView] = useState('weekly'); // 'weekly', 'elder' (daily), or 'intelligence'
+    const [initError, setInitError] = useState(null);
 
     useEffect(() => {
         loadStocks();
@@ -51,19 +52,21 @@ const Dashboard = () => {
             const interval = view === 'weekly' ? '1wk' : '1d';
 
             const res = await getAnalysis(symbol, period, interval);
-            setChartData(res.data.data);
+            if (!res || !res.data) throw new Error("Invalid response from server");
+
+            setChartData(res.data.data || []);
             setRegimeData({
-                regime: res.data.regime,
-                reason: res.data.regime_reason,
+                regime: res.data.regime || "Unknown",
+                reason: res.data.regime_reason || "No data",
                 volatility: res.data.volatility,
-                confidence: res.data.confidence,
-                confluence: res.data.confluence_factor,
-                confluence_details: res.data.confluence_details,
+                confidence: res.data.confidence || "Low",
+                confluence: res.data.confluence_factor || 0,
+                confluence_details: res.data.confluence_details || {},
                 macro: res.data.macro_status,
                 relative_strength: res.data.relative_strength,
                 macro_tides: res.data.macro_tides,
                 suggestion: res.data.strategic_suggestion,
-                decision: res.data.decision,
+                decision: res.data.decision || "NEUTRAL",
                 sector_analysis: res.data.sector_analysis
             });
             setSrLevels(res.data.sr_levels || []);
@@ -270,7 +273,14 @@ const Dashboard = () => {
 
                 {/* Content */}
                 <div className="flex-1 p-6 overflow-y-auto bg-gray-900">
-                    {loading ? (
+                    {initError ? (
+                        <div className="flex flex-col items-center justify-center h-full text-red-400 bg-red-900/10 rounded-2xl border border-red-500/20 p-8">
+                            <AlertTriangle size={48} className="mb-4" />
+                            <h2 className="text-xl font-bold mb-2">Analysis Engine Failure</h2>
+                            <p className="text-sm opacity-80 mb-4">{initError}</p>
+                            <button onClick={() => window.location.reload()} className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold">Retry Initialization</button>
+                        </div>
+                    ) : loading ? (
                         <div className="flex items-center justify-center h-full text-gray-400">
                             <Activity className="animate-spin mr-2" /> Loading...
                         </div>
@@ -279,9 +289,9 @@ const Dashboard = () => {
                     ) : view === 'journal' ? (
                         <TradeJournal />
                     ) : view === 'elder' ? (
-                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} f13Divergence={f13Divergence} timeframeLabel="Daily" regimeData={regimeData} />
+                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} f13Divergence={f13Divergence} timeframeLabel="Daily" regimeData={regimeData} setInitError={setInitError} />
                     ) : view === 'weekly' ? (
-                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} f13Divergence={f13Divergence} timeframeLabel="Weekly" regimeData={regimeData} />
+                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} f13Divergence={f13Divergence} timeframeLabel="Weekly" regimeData={regimeData} setInitError={setInitError} />
                     ) : (
                         <div className="flex items-center justify-center h-full text-gray-500">
                             Select a stock to view analysis

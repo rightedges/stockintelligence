@@ -11,7 +11,7 @@ import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalE
 import { X } from 'lucide-react';
 import TradeEntryModal from './TradeEntryModal';
 
-const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDivergence, f13Divergence, timeframeLabel = 'Daily', regimeData }) => {
+const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDivergence, f13Divergence, timeframeLabel = 'Daily', regimeData, setInitError }) => {
     console.log('ElderAnalysis Init', { symbol, dataLength: data?.length, timeframeLabel });
     const lastData = data && data.length > 0 ? data[data.length - 1] : null;
 
@@ -111,7 +111,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             }
         };
         fetchEntries();
-    }, [symbol]); // Removed timeframeLabel to prevent filtering
+    }, [symbol]);
 
     // Initialize Multi-Pane Integrated Professional Layout
     useEffect(() => {
@@ -145,69 +145,79 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         const containerHeight = container.clientHeight || 1000;
         const totalFlex = paneConfigs.reduce((sum, p) => sum + p.flex, 0);
 
-        paneConfigs.forEach((p, idx) => {
-            const paneDiv = document.createElement('div');
-            paneDiv.style.flex = p.flex;
-            paneDiv.style.position = 'relative';
-            paneDiv.style.width = '100%';
-            paneDiv.style.borderBottom = idx === paneConfigs.length - 1 ? 'none' : '1px solid rgba(255, 255, 255, 0.03)';
-            paneDiv.style.overflow = 'hidden';
-            container.appendChild(paneDiv);
+        try {
+            paneConfigs.forEach((p, idx) => {
+                const paneDiv = document.createElement('div');
+                paneDiv.style.flex = p.flex;
+                paneDiv.style.minHeight = '100px';
+                paneDiv.style.position = 'relative';
+                paneDiv.style.borderBottom = idx < paneConfigs.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none';
+                container.appendChild(paneDiv);
 
-            const h = (p.flex / totalFlex) * containerHeight;
+                const chart = createChart(paneDiv, {
+                    layout: {
+                        background: { type: 'solid', color: '#111827' },
+                        textColor: 'rgba(255, 255, 255, 0.9)',
+                    },
+                    grid: {
+                        vertLines: { color: 'rgba(197, 203, 206, 0.05)' },
+                        horzLines: { color: 'rgba(197, 203, 206, 0.05)' },
+                    },
+                    width: containerWidth,
+                    height: (containerHeight / totalFlex) * p.flex,
+                    timeScale: {
+                        visible: idx === paneConfigs.length - 1,
+                        borderColor: 'rgba(197, 203, 206, 0.1)',
+                        timeVisible: true,
+                    },
+                    rightPriceScale: {
+                        borderColor: 'rgba(197, 203, 206, 0.1)',
+                        visible: true,
+                        autoScale: true,
+                        scaleMargins: { top: 0.1, bottom: 0.1 },
+                        // INCREASED WIDTH TO ENSURE PERFECT ALIGNMENT ACROSS ALL NUMBER SCALES
+                        minimumWidth: 130,
+                    },
+                    leftPriceScale: { visible: false },
+                    crosshair: {
+                        mode: CrosshairMode.Normal, // AS IN POC
+                        vertLine: {
+                            labelVisible: idx === paneConfigs.length - 1,
+                            color: 'rgba(255, 255, 255, 0.75)',
+                            width: 1,
+                            style: 0,
+                            labelBackgroundColor: '#4f46e5',
+                        },
+                        horzLine: {
+                            labelBackgroundColor: '#4f46e5',
+                            color: 'rgba(255, 255, 255, 0.75)',
+                            visible: p.id === 'price', // Only price shows by default
+                            labelVisible: p.id === 'price',
+                        },
+                    },
+                    handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true },
+                    handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
+                });
 
-            const chart = createChart(paneDiv, {
-                layout: { background, textColor },
-                grid: { vertLines: { color: gridColor }, horzLines: { color: gridColor } },
-                width: containerWidth,
-                height: h,
-                timeScale: {
-                    visible: idx === paneConfigs.length - 1,
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    timeVisible: true,
-                },
-                rightPriceScale: {
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    visible: true,
-                    autoScale: true,
-                    // INCREASED WIDTH TO ENSURE PERFECT ALIGNMENT ACROSS ALL NUMBER SCALES
-                    minimumWidth: 130,
-                },
-                leftPriceScale: { visible: false },
-                crosshair: {
-                    mode: CrosshairMode.Normal, // AS IN POC
-                    vertLine: {
-                        color: 'rgba(255, 255, 255, 0.75)',
-                        width: 1,
-                        style: 0,
-                        labelBackgroundColor: '#4f46e5',
-                    },
-                    horzLine: {
-                        labelBackgroundColor: '#4f46e5',
-                        color: 'rgba(255, 255, 255, 0.75)',
-                        visible: p.id === 'price', // Only price shows by default
-                        labelVisible: p.id === 'price',
-                    },
-                },
-                handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true },
-                handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
+                charts[p.id] = chart;
+
+                const leg = document.createElement('div');
+                leg.style = `
+                    position: absolute; left: 12px; top: 6px; z-index: 10;
+                    font-family: -apple-system, sans-serif; font-size: 11px;
+                    color: rgba(255, 255, 255, 0.7); pointer-events: none;
+                    display: flex; flex-direction: column; gap: 0px;
+                    background: rgba(17, 24, 39, 0.4); padding: 2px 6px; border-radius: 4px;
+                `;
+                paneDiv.appendChild(leg);
+                legends[p.id] = leg;
             });
 
-            charts[p.id] = chart;
-
-            const leg = document.createElement('div');
-            leg.style = `
-                position: absolute; left: 12px; top: 6px; z-index: 10;
-                font-family: -apple-system, sans-serif; font-size: 11px;
-                color: rgba(255, 255, 255, 0.7); pointer-events: none;
-                display: flex; flex-direction: column; gap: 0px;
-                background: rgba(17, 24, 39, 0.4); padding: 2px 6px; border-radius: 4px;
-            `;
-            paneDiv.appendChild(leg);
-            legends[p.id] = leg;
-        });
-
-        chartsRef.current = charts;
+            chartsRef.current = charts;
+        } catch (e) {
+            console.error("Multi-Pane Init Failure", e);
+            setInitError(e.message);
+        }
         chartRef.current = charts.price;
         legendRef.current = legends;
 
