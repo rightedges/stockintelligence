@@ -327,14 +327,16 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             }
             if (sourceId !== lastHoveredId) {
                 Object.keys(charts).forEach(id => {
-                    charts[id].applyOptions({
-                        crosshair: {
-                            horzLine: {
-                                visible: id === sourceId,
-                                labelVisible: id === sourceId,
+                    if (charts[id]) {
+                        charts[id].applyOptions({
+                            crosshair: {
+                                horzLine: {
+                                    visible: id === sourceId,
+                                    labelVisible: id === sourceId,
+                                }
                             }
-                        }
-                    });
+                        });
+                    }
                 });
                 lastHoveredId = sourceId;
             }
@@ -381,8 +383,10 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 const hTotal = entries[0].contentRect.height;
                 const totalF = paneConfigs.reduce((sum, p) => sum + p.flex, 0);
                 Object.values(charts).forEach((c, idx) => {
-                    const h = (paneConfigs[idx].flex / totalF) * hTotal;
-                    c.applyOptions({ width, height: h });
+                    if (c && paneConfigs[idx]) {
+                        const h = (paneConfigs[idx].flex / totalF) * hTotal;
+                        c.applyOptions({ width, height: h });
+                    }
                 });
             }
         });
@@ -601,8 +605,8 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 const time2 = p2.Date.split('T')[0];
                 const color = macdDivergence.type === 'bearish' ? '#ef4444' : '#22c55e';
 
-                s.divMacdPrice.applyOptions({ color });
-                s.divMacdInd.applyOptions({ color });
+                if (s.divMacdPrice) s.divMacdPrice.applyOptions({ color });
+                if (s.divMacdInd) s.divMacdInd.applyOptions({ color });
 
                 const priceVal1 = macdDivergence.type === 'bearish' ? p1.High : p1.Low;
                 const priceVal2 = macdDivergence.type === 'bearish' ? p2.High : p2.Low;
