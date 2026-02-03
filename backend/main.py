@@ -13,56 +13,11 @@ def create_db_and_tables():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    create_db_and_tables()
-    
-    # Auto-migration for divergence_status
+    from migrate_db import migrate
     try:
-        with Session(engine) as session:
-            session.exec(text("ALTER TABLE stock ADD COLUMN divergence_status TEXT"))
-            session.commit()
-            print("Migrated: Added divergence_status column")
+        migrate()
     except Exception as e:
-        if "duplicate column name" not in str(e).lower():
-            print(f"Migration note (div): {e}")
-
-    # Auto-migration for efi_status
-    try:
-        with Session(engine) as session:
-            session.exec(text("ALTER TABLE stock ADD COLUMN efi_status TEXT"))
-            session.commit()
-            print("Migrated: Added efi_status column")
-    except Exception as e:
-        if "duplicate column name" not in str(e).lower():
-            print(f"Migration note (efi): {e}")
-
-    # Auto-migration for Trade fields (entry_reason, exit_snapshot)
-    try:
-        with Session(engine) as session:
-            session.exec(text("ALTER TABLE trade ADD COLUMN entry_reason TEXT"))
-            session.commit()
-            print("Migrated: Added entry_reason column")
-    except Exception as e:
-        if "duplicate column name" not in str(e).lower():
-            print(f"Migration note (trade reason): {e}")
-
-    try:
-        with Session(engine) as session:
-            session.exec(text("ALTER TABLE trade ADD COLUMN exit_snapshot TEXT"))
-            session.commit()
-            print("Migrated: Added exit_snapshot column")
-    except Exception as e:
-        if "duplicate column name" not in str(e).lower():
-            print(f"Migration note (trade exit snap): {e}")
-
-    try:
-        with Session(engine) as session:
-            session.exec(text("ALTER TABLE trade ADD COLUMN exit_reason TEXT"))
-            session.commit()
-            print("Migrated: Added exit_reason column")
-    except Exception as e:
-        if "duplicate column name" not in str(e).lower():
-            print(f"Migration note (trade exit reason): {e}")
-
+        print(f"Startup Migration Error: {e}")
     yield
     # Shutdown
 

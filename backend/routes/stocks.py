@@ -233,6 +233,9 @@ def scan_stocks(session: Session = Depends(get_session)):
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
             
+            # De-duplicate columns (ensures df['Close'] is a Series)
+            df = df.loc[:, ~df.columns.duplicated()]
+            
             # 2. Calculate Indicators
             df = calculate_indicators(df)
             
@@ -521,6 +524,9 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
         # Clean data (flatten MultiIndex columns if present, yfinance updated recently)
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
+            
+        # De-duplicate columns (ensures df['Close'] is a Series)
+        df = df.loc[:, ~df.columns.duplicated()]
             
         # Calculate Indicators using Helper
         df = calculate_indicators(df)
