@@ -108,8 +108,9 @@ def calculate_indicators(df):
     df.loc[df['efi'] < efi_ob_l, 'efi_truncated'] = df['efi_atr_l3']
     
     # Signal Dots (EFI hitting or exceeding 3-ATR)
-    df['efi_buy_signal'] = df['efi'] <= df['efi_atr_l3']
-    df['efi_sell_signal'] = df['efi'] >= df['efi_atr_h3']
+    # Ensure they are boolean and handle NaNs
+    df['efi_buy_signal'] = (df['efi'] <= df['efi_atr_l3']).fillna(False)
+    df['efi_sell_signal'] = (df['efi'] >= df['efi_atr_h3']).fillna(False)
     
     # Backwards compatibility
     df['efi_extreme_high'] = df['efi_sell_signal']
@@ -512,7 +513,7 @@ def toggle_watch(symbol: str, session: Session = Depends(get_session)):
     return stock
 
 @router.get("/{symbol}/analysis")
-def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
+def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y", session: Session = Depends(get_session)):
     # Fetch data (Use cache)
     cache_key = f"download_{symbol}_{period}_{interval}"
     df = get_cached(cache_key, ttl=900) # 15 mins for price data
@@ -524,12 +525,30 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                  raise HTTPException(status_code=404, detail="No data found for symbol")
             set_cache(cache_key, df)
         
-        # Clean data (flatten MultiIndex columns if present, yfinance updated recently)
+        # Clean data (Robust MultiIndex flattening)
         if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.get_level_values(0)
+            # Attempt to select the specific ticker if it's a multi-ticker download
+            # yfinance often returns [Attribute, Ticker] or [Ticker, Attribute]
+            try:
+                if symbol in df.columns.get_level_values(1):
+                    df = df.xs(symbol, axis=1, level=1)
+                elif symbol in df.columns.get_level_values(0):
+                    df = df.xs(symbol, axis=1, level=0)
+            except:
+                df.columns = df.columns.get_level_values(0)
             
         # De-duplicate columns (ensures df['Close'] is a Series)
         df = df.loc[:, ~df.columns.duplicated()]
+        
+        # Ensure we have the basic columns
+        required = ['Open', 'High', 'Low', 'Close', 'Volume']
+        for col in required:
+            if col not in df.columns:
+                # If we have Adj Close but not Close
+                if col == 'Close' and 'Adj Close' in df.columns:
+                    df['Close'] = df['Adj Close']
+                else:
+                    raise HTTPException(status_code=400, detail=f"Missing required column: {col}")
             
         # Calculate Indicators using Helper
         df = calculate_indicators(df)
@@ -1238,6 +1257,33 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
             "macd_divergence": macd_divergence,
             "f13_divergence": f13_divergence
         }
+
+        # --- Sidebar Sync (Update Stock Table) ---
+        # Run a quick check for sidebar status icons to keep them in sync with latest analysis
+        try:
+            statement = select(Stock).where(Stock.symbol == symbol)
+            db_stock = session.exec(statement).first()
+            if db_stock:
+                # 1. EFI Status
+                efi_buy = df['efi_buy_signal'].iloc[-1]
+                efi_sell = df['efi_sell_signal'].iloc[-1]
+                db_stock.efi_status = 'buy' if efi_buy else 'sell' if efi_sell else None
+                
+                # 2. Setup Signal (Triple Screen)
+                setup_signal = None
+                if tide_slope > 0 and force2 < 0:
+                    setup_signal = 'pullback_buy'
+                elif tide_slope < 0 and force2 > 0:
+                    setup_signal = 'pullback_sell'
+                db_stock.setup_signal = setup_signal
+                
+                # 3. Divergence
+                db_stock.divergence_status = macd_divergence.get('type') if macd_divergence else None
+                
+                session.add(db_stock)
+                session.commit()
+        except Exception as sync_err:
+            print(f"Sync error for {symbol}: {sync_err}")
 
         return clean_nans(response)
 

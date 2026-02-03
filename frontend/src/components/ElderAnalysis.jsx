@@ -133,10 +133,10 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
         const paneConfigs = [
             { id: 'price', flex: 10 },
-            { id: 'volume', flex: 1.2 },
-            { id: 'macd', flex: 2 },
-            { id: 'force13', flex: 2, hide: isWeekly },
-            { id: 'force2', flex: 1.5, hide: isWeekly }
+            { id: 'volume', flex: 1.5 },
+            { id: 'macd', flex: 3 },
+            { id: 'force13', flex: 3, hide: isWeekly },
+            { id: 'force2', flex: 2, hide: isWeekly }
         ].filter(p => !p.hide);
 
         const charts = {};
@@ -415,9 +415,10 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 const width = entries[0].contentRect.width;
                 const hTotal = entries[0].contentRect.height;
                 const totalF = paneConfigs.reduce((sum, p) => sum + p.flex, 0);
-                Object.values(charts).forEach((c, idx) => {
-                    if (c && paneConfigs[idx]) {
-                        const h = (paneConfigs[idx].flex / totalF) * hTotal;
+                paneConfigs.forEach(p => {
+                    const c = charts[p.id];
+                    if (c) {
+                        const h = (p.flex / totalF) * hTotal;
                         c.applyOptions({ width, height: h });
                     }
                 });
@@ -692,6 +693,13 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 s.candles.setMarkers(showMarkers ? markers : []);
             } catch (err) {
                 console.error("setMarkers Failure:", err);
+            }
+        }
+        if (s.force13 && typeof s.force13.setMarkers === 'function') {
+            try {
+                s.force13.setMarkers(showMarkers ? markers : []);
+            } catch (err) {
+                console.error("force13 setMarkers Failure:", err);
             }
         }
 
