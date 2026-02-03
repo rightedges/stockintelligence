@@ -454,6 +454,9 @@ def get_stocks(session: Session = Depends(get_session)):
                     if isinstance(wk_df.columns, pd.MultiIndex):
                         wk_df.columns = wk_df.columns.get_level_values(0)
                     
+                    # De-duplicate columns (ensures df['Close'] is a Series)
+                    wk_df = wk_df.loc[:, ~wk_df.columns.duplicated()]
+                    
                     # Calculate minimal indicators for impulse
                     wk_df['ema_13'] = ta.trend.ema_indicator(wk_df['Close'], window=13)
                     wk_df['macd_diff'] = ta.trend.macd_diff(wk_df['Close'])
@@ -740,8 +743,11 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
                 # Handle MultiIndex
                 if isinstance(p_data.columns, pd.MultiIndex):
                     p_close = p_data['Close']
+                    # De-duplicate if somehow multiple tickers got nested
+                    if isinstance(p_close, pd.DataFrame):
+                         p_close = p_close.loc[:, ~p_close.columns.duplicated()]
                 else:
-                    p_close = p_data # Fallback if single column (unlikely here)
+                    p_close = p_data # Fallback if single column
 
                 # Macro Trend (SPY)
                 spy_c = p_close['SPY'].iloc[-1]
