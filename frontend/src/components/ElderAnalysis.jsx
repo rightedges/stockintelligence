@@ -32,6 +32,35 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
     const [activeTrade, setActiveTrade] = useState(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Default collapsed for chart space
 
+    // Synchronization labels
+    const [syncRange, setSyncRange] = useState(null);
+    const [syncCrosshair, setSyncCrosshair] = useState(null);
+
+    // Visibility toggles with persistence
+    const loadSetting = (key, defaultValue) => {
+        const saved = localStorage.getItem(`elder_settings_${key}`);
+        return saved !== null ? JSON.parse(saved) : defaultValue;
+    };
+
+    const [showValueZones, setShowValueZones] = useState(() => loadSetting('valueZones', true));
+    const [showSafeZones, setShowSafeZones] = useState(() => loadSetting('safeZones', false));
+    const [showSRLevels, setShowSRLevels] = useState(() => loadSetting('srLevels', true));
+    const [showDivergences, setShowDivergences] = useState(() => loadSetting('divergences', true));
+    const [showEMA, setShowEMA] = useState(() => loadSetting('ema', true));
+    const [showMarkers, setShowMarkers] = useState(() => loadSetting('markers', true));
+
+    // Persist settings on change
+    useEffect(() => {
+        localStorage.setItem('elder_settings_valueZones', JSON.stringify(showValueZones));
+        localStorage.setItem('elder_settings_safeZones', JSON.stringify(showSafeZones));
+        localStorage.setItem('elder_settings_srLevels', JSON.stringify(showSRLevels));
+        localStorage.setItem('elder_settings_divergences', JSON.stringify(showDivergences));
+        localStorage.setItem('elder_settings_ema', JSON.stringify(showEMA));
+        localStorage.setItem('elder_settings_markers', JSON.stringify(showMarkers));
+    }, [showValueZones, showSafeZones, showSRLevels, showDivergences, showEMA, showMarkers]);
+
+    const priceFormatter = (price) => (price || 0).toFixed(2);
+
     const fetchActiveTrade = async () => {
         if (!symbol) return;
         try {
@@ -59,7 +88,8 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         setPersistenceKey(key);
     }, [symbol, timeframeLabel]);
 
-    const chartRef = useRef(null);
+    const chartRef = useRef(null); // Keep for compatibility/screenshot of main
+    const chartsRef = useRef({}); // Professional Multi-Pane Reference
     const seriesRef = useRef({});
     const legendRef = useRef(null);
     const srLineRefs = useRef([]);
@@ -79,267 +109,310 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         fetchEntries();
     }, [symbol]); // Removed timeframeLabel to prevent filtering
 
-    // Initialize Chart
+    // Initialize Multi-Pane Integrated Professional Layout
     useEffect(() => {
         if (!chartContainerRef.current) return;
+        const container = chartContainerRef.current;
+        container.innerHTML = '';
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.gap = '0px';
+        container.style.background = '#111827';
+        container.style.borderRadius = '12px';
+        container.style.overflow = 'hidden';
+        container.style.border = '1px solid rgba(255, 255, 255, 0.05)';
 
-        const background = { type: 'solid', color: '#111827' }; // gray-900
-        const textColor = 'rgba(255, 255, 255, 0.9)';
-        const gridColor = 'rgba(197, 203, 206, 0.1)';
-
-        const chart = createChart(chartContainerRef.current, {
-            layout: { background, textColor },
-            grid: { vertLines: { color: gridColor }, horzLines: { color: gridColor } },
-            width: chartContainerRef.current.clientWidth,
-            height: 900,
-            timeScale: { timeVisible: true, borderColor: gridColor },
-            rightPriceScale: {
-                borderColor: gridColor,
-                visible: true,
-                autoScale: true,
-                minimumWidth: 80
-            },
-            leftPriceScale: {
-                borderColor: gridColor,
-                visible: true,
-                autoScale: true,
-                minimumWidth: 80
-            },
-            crosshair: { mode: CrosshairMode.Normal },
-            localization: {
-                priceFormatter: (price) => (price || 0).toFixed(2),
-            },
-        });
-        console.log('Chart Created', chart);
-
-        chartRef.current = chart;
-
-        // Initialize Series
         const isWeekly = timeframeLabel === 'Weekly';
+        const background = { type: 'solid', color: '#111827' };
+        const textColor = 'rgba(255, 255, 255, 0.9)';
+        const gridColor = 'rgba(197, 203, 206, 0.05)';
+
+        const paneConfigs = [
+            { id: 'price', flex: 6 },
+            { id: 'volume', flex: 1.2 },
+            { id: 'macd', flex: 2 },
+            { id: 'force13', flex: 2, hide: isWeekly },
+            { id: 'force2', flex: 1.5, hide: isWeekly }
+        ].filter(p => !p.hide);
+
+        const charts = {};
+        const legends = {};
+        const containerWidth = container.clientWidth || 800;
+        const containerHeight = container.clientHeight || 1000;
+        const totalFlex = paneConfigs.reduce((sum, p) => sum + p.flex, 0);
+
+        paneConfigs.forEach((p, idx) => {
+            const paneDiv = document.createElement('div');
+            paneDiv.style.flex = p.flex;
+            paneDiv.style.position = 'relative';
+            paneDiv.style.width = '100%';
+            paneDiv.style.borderBottom = idx === paneConfigs.length - 1 ? 'none' : '1px solid rgba(255, 255, 255, 0.03)';
+            paneDiv.style.overflow = 'hidden';
+            container.appendChild(paneDiv);
+
+            const h = (p.flex / totalFlex) * containerHeight;
+
+            const chart = createChart(paneDiv, {
+                layout: { background, textColor },
+                grid: { vertLines: { color: gridColor }, horzLines: { color: gridColor } },
+                width: containerWidth,
+                height: h,
+                timeScale: {
+                    visible: idx === paneConfigs.length - 1,
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    timeVisible: true,
+                },
+                rightPriceScale: {
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    visible: true,
+                    autoScale: true,
+                    // INCREASED WIDTH TO ENSURE PERFECT ALIGNMENT ACROSS ALL NUMBER SCALES
+                    minimumWidth: 130,
+                },
+                leftPriceScale: { visible: false },
+                crosshair: {
+                    mode: CrosshairMode.Normal, // AS IN POC
+                    vertLine: {
+                        color: 'rgba(255, 255, 255, 0.75)',
+                        width: 1,
+                        style: 0,
+                        labelBackgroundColor: '#4f46e5',
+                    },
+                    horzLine: {
+                        labelBackgroundColor: '#4f46e5',
+                        color: 'rgba(255, 255, 255, 0.75)',
+                        visible: p.id === 'price', // Only price shows by default
+                        labelVisible: p.id === 'price',
+                    },
+                },
+                handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true },
+                handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
+            });
+
+            charts[p.id] = chart;
+
+            const leg = document.createElement('div');
+            leg.style = `
+                position: absolute; left: 12px; top: 6px; z-index: 10;
+                font-family: -apple-system, sans-serif; font-size: 11px;
+                color: rgba(255, 255, 255, 0.7); pointer-events: none;
+                display: flex; flex-direction: column; gap: 0px;
+                background: rgba(17, 24, 39, 0.4); padding: 2px 6px; border-radius: 4px;
+            `;
+            paneDiv.appendChild(leg);
+            legends[p.id] = leg;
+        });
+
+        chartsRef.current = charts;
+        chartRef.current = charts.price;
+        legendRef.current = legends;
+
         const s = {};
+        s.anchors = {};
 
-        // 2. Add Series
-        s.candles = chart.addSeries(CandlestickSeries, { priceScaleId: 'right' });
-        s.ema13 = chart.addSeries(LineSeries, { color: '#60a5fa', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
-
-        if (!isWeekly) {
-            s.ema26 = chart.addSeries(LineSeries, { color: '#f59e0b', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
-            s.ema22 = chart.addSeries(LineSeries, { color: 'rgba(255, 255, 255, 0.5)', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
-
-            // Price ATR Channels
-            const priceBandOptions = (style) => ({
-                color: 'rgba(255, 255, 255, 0.15)',
-                lineWidth: 1,
-                lineStyle: style,
-                lastValueVisible: false,
-                priceLineVisible: false,
-                crosshairMarkerVisible: false,
-            });
-            s.priceH1 = chart.addSeries(LineSeries, priceBandOptions(2)); // Dotted
-            s.priceL1 = chart.addSeries(LineSeries, priceBandOptions(2));
-            s.priceH2 = chart.addSeries(LineSeries, priceBandOptions(3)); // Dashed
-            s.priceL2 = chart.addSeries(LineSeries, priceBandOptions(3));
-            s.priceH3 = chart.addSeries(LineSeries, { ...priceBandOptions(0), color: 'rgba(255, 255, 255, 0.3)' }); // Solid gray
-            s.priceL3 = chart.addSeries(LineSeries, { ...priceBandOptions(0), color: 'rgba(255, 255, 255, 0.3)' });
-        }
-
-        s.volume = chart.addSeries(HistogramSeries, { priceScaleId: 'volume', priceFormat: { type: 'volume' }, lastValueVisible: false, priceLineVisible: false });
-        s.volumeSMA = chart.addSeries(LineSeries, { priceScaleId: 'volume', color: '#f59e0b', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
-
-        s.macdHist = chart.addSeries(HistogramSeries, {
-            priceScaleId: 'macd',
-            lastValueVisible: true,
-            priceLineVisible: false,
-            priceFormat: { precision: 2, minMove: 0.01 }
-        });
+        // 1. Price Pane
+        s.candles = charts.price.addSeries(CandlestickSeries);
+        s.ema13 = charts.price.addSeries(LineSeries, { color: '#60a5fa', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
 
         if (!isWeekly) {
-            s.macdSignal = chart.addSeries(LineSeries, { priceScaleId: 'macd', color: '#ef4444', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
-            s.force2 = chart.addSeries(HistogramSeries, {
-                priceScaleId: 'force2',
-                lastValueVisible: true,
-                priceLineVisible: false,
-                priceFormat: { precision: 1, minMove: 0.1 }
-            });
-            s.force13 = chart.addSeries(LineSeries, {
-                priceScaleId: 'force13',
-                color: '#60a5fa', // Blue
-                lineWidth: 3,
-                lastValueVisible: true,
-                priceLineVisible: false,
-            });
-            s.force13Sig = chart.addSeries(LineSeries, {
-                priceScaleId: 'force13',
-                color: '#ef4444', // Red
-                lineWidth: 1,
-                lastValueVisible: false,
-                priceLineVisible: false,
-            });
-            // ATR Bands
-            const bandOptions = (style) => ({
-                priceScaleId: 'force13',
-                color: 'rgba(156, 163, 175, 0.4)', // Gray-400
-                lineWidth: 1,
-                lineStyle: style,
-                lastValueVisible: false,
-                priceLineVisible: false,
-                crosshairMarkerVisible: false,
-            });
-            s.efiH1 = chart.addSeries(LineSeries, bandOptions(2)); // Dotted
-            s.efiL1 = chart.addSeries(LineSeries, bandOptions(2));
-            s.efiH2 = chart.addSeries(LineSeries, bandOptions(3)); // Dashed
-            s.efiL2 = chart.addSeries(LineSeries, bandOptions(3));
-            s.efiH3 = chart.addSeries(LineSeries, { ...bandOptions(0), color: 'rgba(156, 163, 175, 0.8)' }); // Solid gray
-            s.efiL3 = chart.addSeries(LineSeries, { ...bandOptions(0), color: 'rgba(156, 163, 175, 0.8)' });
-
-            // Zero Line (PriceLine on force13)
-            s.force13.createPriceLine({
-                price: 0,
-                color: 'rgba(255, 255, 255, 0.3)',
-                lineWidth: 1,
-                lineStyle: 2,
-                axisLabelVisible: false,
-                title: ''
-            });
+            s.ema26 = charts.price.addSeries(LineSeries, { color: '#f59e0b', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
+            s.ema22 = charts.price.addSeries(LineSeries, { color: 'rgba(255, 255, 255, 0.4)', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
+            const bandStyle = (opacity, style) => ({ color: `rgba(148, 163, 184, ${opacity})`, lineWidth: 1, lineStyle: style, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+            s.priceH1 = charts.price.addSeries(LineSeries, bandStyle(0.15, 2));
+            s.priceL1 = charts.price.addSeries(LineSeries, bandStyle(0.15, 2));
+            s.priceH2 = charts.price.addSeries(LineSeries, bandStyle(0.25, 3));
+            s.priceL2 = charts.price.addSeries(LineSeries, bandStyle(0.25, 3));
+            s.priceH3 = charts.price.addSeries(LineSeries, { ...bandStyle(0.6, 0), lineWidth: 1.5 });
+            s.priceL3 = charts.price.addSeries(LineSeries, { ...bandStyle(0.6, 0), lineWidth: 1.5 });
+            s.safeZoneLong = charts.price.addSeries(LineSeries, { color: 'rgba(239, 68, 68, 0.7)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            s.safeZoneShort = charts.price.addSeries(LineSeries, { color: 'rgba(34, 197, 94, 0.7)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            s.divMacdPrice = charts.price.addSeries(LineSeries, { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
+            s.divEfiPrice = charts.price.addSeries(LineSeries, { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
         }
 
-        // Divergence Lines (Bind to correct scales)
-        s.divMacdPrice = chart.addSeries(LineSeries, { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
-        s.divMacdInd = chart.addSeries(LineSeries, { priceScaleId: 'macd', color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        // 2. Volume Pane
+        s.volume = charts.volume.addSeries(HistogramSeries, { priceScaleId: 'right', priceFormat: { type: 'volume' }, lastValueVisible: false, priceLineVisible: false });
+        if (!isWeekly) s.volumeSMA = charts.volume.addSeries(LineSeries, { color: '#f59e0b', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
 
-        // EFI Divergence Lines
-        s.divEfiPrice = chart.addSeries(LineSeries, { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
-        // Only if not weekly (since Weekly uses same component but might not have Force 13 pane? Weekly template shows 'force13' logic might be missing/different, but safer to add if pane exists. Actually Force13 is only added if !isWeekly in lines 156+)
+        // 3. MACD Pane
+        s.macdHist = charts.macd.addSeries(HistogramSeries, { lastValueVisible: false, priceLineVisible: false, priceFormat: { precision: 2, minMove: 0.01 } });
         if (!isWeekly) {
-            s.divEfiInd = chart.addSeries(LineSeries, { priceScaleId: 'force13', color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+            s.macdSignal = charts.macd.addSeries(LineSeries, { color: '#ef4444', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+            s.divMacdInd = charts.macd.addSeries(LineSeries, { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
         }
 
-        // SafeZone Stops (Trailing)
-        s.safeZoneLong = chart.addSeries(LineSeries, {
-            color: 'rgba(239, 68, 68, 0.8)', // Red (Stop for Longs)
-            lineWidth: 1,
-            lineStyle: 2, // Dashed
-            lastValueVisible: true,
-            priceLineVisible: false,
-            crosshairMarkerVisible: true,
-            title: 'SZ Long'
-        });
-        s.safeZoneShort = chart.addSeries(LineSeries, {
-            color: 'rgba(34, 197, 94, 0.8)', // Green (Stop for Shorts)
-            lineWidth: 1,
-            lineStyle: 2, // Dashed
-            lastValueVisible: true,
-            priceLineVisible: false,
-            crosshairMarkerVisible: true,
-            title: 'SZ Short'
+        if (!isWeekly) {
+            // 4. Force 13 Pane
+            s.force13 = charts.force13.addSeries(LineSeries, { color: '#60a5fa', lineWidth: 2.5, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' } });
+            s.force13Sig = charts.force13.addSeries(LineSeries, { color: '#ef4444', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' }, crosshairMarkerVisible: false });
+            const efiBandStyle = (opacity, style) => ({ color: `rgba(148, 163, 184, ${opacity})`, lineWidth: 1, lineStyle: style, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false, priceFormat: { type: 'volume' } });
+            s.efiH1 = charts.force13.addSeries(LineSeries, efiBandStyle(0.15, 2));
+            s.efiL1 = charts.force13.addSeries(LineSeries, efiBandStyle(0.15, 2));
+            s.efiH2 = charts.force13.addSeries(LineSeries, efiBandStyle(0.25, 3));
+            s.efiL2 = charts.force13.addSeries(LineSeries, efiBandStyle(0.25, 3));
+            s.efiH3 = charts.force13.addSeries(LineSeries, { ...efiBandStyle(0.6, 0), lineWidth: 1.5 });
+            s.efiL3 = charts.force13.addSeries(LineSeries, { ...efiBandStyle(0.6, 0), lineWidth: 1.5 });
+            s.divEfiInd = charts.force13.addSeries(LineSeries, { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' }, crosshairMarkerVisible: false });
+            s.force13.createPriceLine({ price: 0, color: 'rgba(255, 255, 255, 0.3)', lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
+
+            // 5. Force 2 Pane
+            s.force2 = charts.force2.addSeries(HistogramSeries, { lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' } });
+        }
+
+        // HIDDEN ANCHORS
+        Object.keys(charts).forEach(id => {
+            if (id === 'price') return;
+            s.anchors[id] = charts[id].addSeries(LineSeries, { visible: false, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
         });
 
         seriesRef.current = s;
 
-        // 3. Configure Scales (Decoupled Layout)
-        // Main Pane (OHLC): 0% - 50%
-        chart.priceScale('right').applyOptions({
-            scaleMargins: isWeekly ? { top: 0.1, bottom: 0.3 } : { top: 0.05, bottom: 0.5 },
-        });
+        // --- Synchronization and Legend Logic ---
+        const updateLegends = (d) => {
+            if (!d || !legendRef.current) return;
+            const isWeekly = timeframeLabel === 'Weekly';
+            const l = legendRef.current;
 
-        // Volume Overlay (Bottom of OHLC Pane): 38% - 50%
-        chart.priceScale('volume').applyOptions({
-            scaleMargins: isWeekly ? { top: 0.55, bottom: 0.3 } : { top: 0.38, bottom: 0.5 },
-            visible: false
-        });
-
-        // MACD Pane: 54% - 68% (4% Gap)
-        chart.priceScale('macd').applyOptions({
-            position: 'left',
-            visible: true,
-            borderColor: gridColor,
-            scaleMargins: isWeekly ? { top: 0.75, bottom: 0 } : { top: 0.54, bottom: 0.32 },
-            autoScale: true,
-        });
-
-        if (!isWeekly) {
-            // Force 13 Pane: 71% - 84% (3% Gap)
-            chart.priceScale('force13').applyOptions({
-                position: 'left',
-                visible: true,
-                borderColor: gridColor,
-                scaleMargins: { top: 0.71, bottom: 0.16 },
-                autoScale: true,
-            });
-            // Force 2 Pane: 87% - 100% (3% Gap)
-            chart.priceScale('force2').applyOptions({
-                position: 'left',
-                visible: true,
-                borderColor: gridColor,
-                scaleMargins: { top: 0.87, bottom: 0 },
-                autoScale: true,
-            });
-        }
-
-        if (!chartContainerRef.current) return;
-        const container = chartContainerRef.current;
-
-        // Legends Container (one for each pane, using px for stability)
-        const createLegend = (topPx, side = 'left') => {
-            if (!container) return null;
-            const leg = document.createElement('div');
-            leg.style = `
-                position: absolute; ${side}: 12px; top: ${topPx}px; z-index: 100;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                font-size: 11px;
-                color: rgba(255, 255, 255, 0.9);
-                pointer-events: none;
-                display: flex; flex-direction: column; gap: 2px;
-                background: rgba(17, 24, 39, 0.85);
-                padding: 6px 10px;
-                border-radius: 6px;
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            `;
-            container.appendChild(leg);
-            return leg;
+            if (l.price) {
+                l.price.innerHTML = `
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <span style="color: #9ca3af;">O</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Open?.toFixed(2) || '0.00'}</span>
+                        <span style="color: #9ca3af;">H</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.High?.toFixed(2) || '0.00'}</span>
+                        <span style="color: #9ca3af;">L</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Low?.toFixed(2) || '0.00'}</span>
+                        <span style="color: #9ca3af;">C</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Close?.toFixed(2) || '0.00'}</span>
+                        <span style="color: #60a5fa">EMA13 ${d.ema_13?.toFixed(2) || ''}</span>
+                    </div>
+                `;
+            }
+            if (l.volume) l.volume.innerHTML = `<div style="color: #94a3b8">VOL ${d.Volume ? (d.Volume / 1000000).toFixed(2) : '0.00'}M</div>`;
+            if (l.macd) l.macd.innerHTML = `<div style="color: #34d399">MACD ${d.macd_diff?.toFixed(2) || '0.00'}</div>`;
+            if (l.force13 && !isWeekly) l.force13.innerHTML = `<div style="color: #60a5fa">FORCE (13) ${d.efi ? (d.efi / 1000000).toFixed(2) + 'M' : '0.00M'}</div>`;
+            if (l.force2 && !isWeekly) l.force2.innerHTML = `<div style="color: #a78bfa">FORCE (2) ${d.force_index_2 ? (d.force_index_2 / 1000).toFixed(1) + 'K' : '0.0K'}</div>`;
         };
 
-        const priceLegend = createLegend(80);
-        const macdLegend = createLegend(isWeekly ? 675 : 522); // All on Left
-        const force13Legend = !isWeekly ? createLegend(666) : null;
-        const force2Legend = !isWeekly ? createLegend(792) : null;
+        let isSyncingRange = false;
+        const handleTimeRangeChange = (range) => {
+            Object.values(charts).forEach(c => c.timeScale().setVisibleLogicalRange(range));
+        };
 
-        legendRef.current = { price: priceLegend, macd: macdLegend, f13: force13Legend, f2: force2Legend };
+        let isSyncing = false;
+        let lastHoveredId = 'price';
+        const handleCrosshairMove = (param, sourceId) => {
+            if (isSyncing || !seriesRef.current) return;
+            const s = seriesRef.current;
 
-        // Resizer
+            isSyncing = true;
+            if (!param.point || param.point.x < 0 || !param.time) {
+                isSyncing = true;
+                Object.keys(charts).forEach(id => {
+                    if (charts[id]) charts[id].clearCrosshairPosition();
+                });
+                updateLegends(data[data.length - 1]);
+                isSyncing = false;
+                return;
+            }
+            if (sourceId !== lastHoveredId) {
+                Object.keys(charts).forEach(id => {
+                    charts[id].applyOptions({
+                        crosshair: {
+                            horzLine: {
+                                visible: id === sourceId,
+                                labelVisible: id === sourceId,
+                            }
+                        }
+                    });
+                });
+                lastHoveredId = sourceId;
+            }
+
+            // SYNC CROSSHAIR
+            Object.keys(charts).forEach(id => {
+                if (id === sourceId) return;
+
+                const ts = s.anchors[id] || (id === 'price' ? s.candles : null);
+                if (ts) {
+                    // UNDEFINED price + horizontal line visibility FALSE (set above)
+                    // handles the 'single horizontal line' requirement perfectly.
+                    charts[id].setCrosshairPosition(undefined, param.time, ts);
+                }
+            });
+
+            // LEGEND SYNC
+            let timeStr;
+            if (typeof param.time === 'string') timeStr = param.time;
+            else if (param.time && typeof param.time === 'object') {
+                timeStr = `${param.time.year}-${String(param.time.month).padStart(2, '0')}-${String(param.time.day).padStart(2, '0')}`;
+            }
+            const item = data.find(d => d.Date && d.Date.split('T')[0] === timeStr) || data[data.length - 1];
+            const priceData = (sourceId === 'price') ? param.seriesData.get(s.candles) : null;
+
+            updateLegends({
+                ...item,
+                Open: priceData?.open || item?.Open,
+                High: priceData?.high || item?.High,
+                Low: priceData?.low || item?.Low,
+                Close: priceData?.close || priceData?.value || item?.Close,
+            });
+            isSyncing = false;
+        };
+
+        Object.keys(charts).forEach(id => {
+            charts[id].timeScale().subscribeVisibleLogicalRangeChange(handleTimeRangeChange);
+            charts[id].subscribeCrosshairMove((param) => handleCrosshairMove(param, id));
+        });
+
         const observer = new ResizeObserver(entries => {
-            if (entries[0] && chartRef.current) {
-                chartRef.current.applyOptions({ width: entries[0].contentRect.width });
+            if (entries[0]) {
+                const width = entries[0].contentRect.width;
+                const hTotal = entries[0].contentRect.height;
+                const totalF = paneConfigs.reduce((sum, p) => sum + p.flex, 0);
+                Object.values(charts).forEach((c, idx) => {
+                    const h = (paneConfigs[idx].flex / totalF) * hTotal;
+                    c.applyOptions({ width, height: h });
+                });
             }
         });
         observer.observe(container);
 
+        updateLegends(data[data.length - 1]);
+
         return () => {
-            if (legendRef.current) {
-                Object.values(legendRef.current).forEach(l => {
-                    try { if (l && container.contains(l)) container.removeChild(l); } catch (e) { }
-                });
-            }
-            legendRef.current = null;
             srLineRefs.current = [];
             observer.disconnect();
-            if (chartRef.current) {
-                chartRef.current.remove();
-                chartRef.current = null;
-            }
+            Object.values(charts).forEach(c => c.remove());
+            chartsRef.current = {};
+            legendRef.current = null;
             seriesRef.current = {};
         };
-    }, [symbol, timeframeLabel]);
+    }, [symbol, timeframeLabel, data]);
+
+    const getCombinedSnapshot = () => {
+        if (Object.keys(chartsRef.current).length === 0) return null;
+        try {
+            const paneIds = ['price', 'volume', 'macd', 'force13', 'force2'].filter(id => chartsRef.current[id]);
+            const canvases = paneIds.map(id => chartsRef.current[id].takeScreenshot());
+            const combined = document.createElement('canvas');
+            const ctx = combined.getContext('2d');
+            combined.width = canvases[0].width;
+            combined.height = canvases.reduce((sum, c) => sum + c.height, 0);
+            let currentY = 0;
+            canvases.forEach(c => {
+                ctx.drawImage(c, 0, currentY);
+                currentY += c.height;
+            });
+            return combined.toDataURL();
+        } catch (e) {
+            console.error("Failed to take combined snapshot", e);
+            return chartsRef.current.price?.takeScreenshot().toDataURL();
+        }
+    };
 
     const handleSaveJournal = async () => {
-        if (!note.trim() || !chartRef.current) return;
+        if (!note.trim()) return;
 
         setIsSaving(true);
         try {
-            const canvas = chartRef.current.takeScreenshot();
-            const snapshot = canvas.toDataURL();
-
+            const snapshot = getCombinedSnapshot();
             const entry = {
                 symbol,
                 timestamp: new Date().toISOString(),
@@ -393,8 +466,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
     // Update Series Data
     useEffect(() => {
-        console.log('Updating Series Data Effect', { hasChart: !!chartRef.current, hasData: !!data });
-        if (!chartRef.current || !data || data.length === 0) return;
+        if (!chartsRef.current.price || !data || data.length === 0) return;
         const s = seriesRef.current;
         const isWeekly = timeframeLabel === 'Weekly';
 
@@ -407,7 +479,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             }
         };
 
-        const candleData = [], ema13Data = [], ema22Data = [], ema26Data = [], priceH1Data = [], priceL1Data = [], priceH2Data = [], priceL2Data = [], priceH3Data = [], priceL3Data = [], macdHistData = [], macdSignalData = [], force2Data = [], force13Data = [], ema13DataForce = [], efiH1Data = [], efiL1Data = [], efiH2Data = [], efiL2Data = [], efiH3Data = [], efiL3Data = [], efiDotsHighData = [], efiDotsLowData = [], volumeData = [], volumeSMAData = [];
+        const candleData = [], ema13Data = [], ema22Data = [], ema26Data = [], priceH1Data = [], priceL1Data = [], priceH2Data = [], priceL2Data = [], priceH3Data = [], priceL3Data = [], macdHistData = [], macdSignalData = [], force2Data = [], force13Data = [], ema13DataForce = [], efiH1Data = [], efiL1Data = [], efiH2Data = [], efiL2Data = [], efiH3Data = [], efiL3Data = [], volumeData = [], volumeSMAData = [], szLongData = [], szShortData = [];
 
         const processedTimes = new Set();
         data.forEach(d => {
@@ -431,6 +503,9 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 if (d.price_atr_l2) priceL2Data.push({ time, value: d.price_atr_l2 });
                 if (d.price_atr_h3) priceH3Data.push({ time, value: d.price_atr_h3 });
                 if (d.price_atr_l3) priceL3Data.push({ time, value: d.price_atr_l3 });
+
+                if (d.safezone_long) szLongData.push({ time, value: d.safezone_long });
+                if (d.safezone_short) szShortData.push({ time, value: d.safezone_short });
             }
 
             if (d.macd_diff !== undefined && d.macd_diff !== null) {
@@ -483,6 +558,9 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         safeSetData(s.priceH3, priceH3Data, 'PriceH3');
         safeSetData(s.priceL3, priceL3Data, 'PriceL3');
 
+        safeSetData(s.safeZoneLong, szLongData, 'SZ Long');
+        safeSetData(s.safeZoneShort, szShortData, 'SZ Short');
+
         safeSetData(s.macdHist, macdHistData, 'MACD Hist');
         safeSetData(s.macdSignal, macdSignalData, 'MACD Signal');
 
@@ -512,12 +590,9 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 s.divMacdPrice.applyOptions({ color });
                 s.divMacdInd.applyOptions({ color });
 
-                // Price Line: Connect Highs (Bearish) or Lows (Bullish)
                 const priceVal1 = macdDivergence.type === 'bearish' ? p1.High : p1.Low;
                 const priceVal2 = macdDivergence.type === 'bearish' ? p2.High : p2.Low;
                 if (s.divMacdPrice) safeSetData(s.divMacdPrice, [{ time: time1, value: priceVal1 }, { time: time2, value: priceVal2 }], 'DivPrice');
-
-                // Indicator Line
                 if (s.divMacdInd) safeSetData(s.divMacdInd, [{ time: time1, value: p1.macd_diff || 0 }, { time: time2, value: p2.macd_diff || 0 }], 'DivInd');
             }
         } else {
@@ -525,51 +600,34 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             if (s.divMacdInd) safeSetData(s.divMacdInd, [], 'DivInd');
         }
 
-        // Render EFI Divergence Trendlines
         if (f13Divergence && data[f13Divergence.idx1] && data[f13Divergence.idx2] && !isWeekly) {
             const p1 = data[f13Divergence.idx1];
             const p2 = data[f13Divergence.idx2];
-
             if (p1?.Date && p2?.Date) {
                 const time1 = p1.Date.split('T')[0];
                 const time2 = p2.Date.split('T')[0];
-                const color = f13Divergence.type === 'bearish' ? '#ef4444' : '#22c55e'; // Red or Green
-
+                const color = f13Divergence.type === 'bearish' ? '#ef4444' : '#22c55e';
                 if (s.divEfiPrice) s.divEfiPrice.applyOptions({ color });
                 if (s.divEfiInd) s.divEfiInd.applyOptions({ color });
-
-                // Price Line
                 const priceVal1 = f13Divergence.type === 'bearish' ? p1.High : p1.Low;
                 const priceVal2 = f13Divergence.type === 'bearish' ? p2.High : p2.Low;
-                if (s.divEfiPrice && priceVal1 !== undefined && priceVal2 !== undefined) {
-                    safeSetData(s.divEfiPrice, [{ time: time1, value: priceVal1 }, { time: time2, value: priceVal2 }], 'DivEfiPrice');
-                }
-
-                // Indicator Line (EFI)
-                // Use efi_truncated or efi for plotting, avoid 0 default if undefined
+                if (s.divEfiPrice) safeSetData(s.divEfiPrice, [{ time: time1, value: priceVal1 }, { time: time2, value: priceVal2 }], 'DivEfiPrice');
                 const val1 = p1.efi_truncated ?? p1.efi;
                 const val2 = p2.efi_truncated ?? p2.efi;
-
-                if (s.divEfiInd && val1 !== undefined && val2 !== undefined) {
-                    safeSetData(s.divEfiInd, [{ time: time1, value: val1 }, { time: time2, value: val2 }], 'DivEfiInd');
-                }
+                if (s.divEfiInd) safeSetData(s.divEfiInd, [{ time: time1, value: val1 }, { time: time2, value: val2 }], 'DivEfiInd');
             }
         } else {
             if (s.divEfiPrice) safeSetData(s.divEfiPrice, [], 'DivEfiPrice');
             if (s.divEfiInd) safeSetData(s.divEfiInd, [], 'DivEfiInd');
         }
 
-        if (!data || data.length === 0) return;
-
-        // Render Signal Markers on Candles
+        // Render Markers
         const markers = [];
         const seenTimes = new Set();
-
-        data.forEach((d, idx) => {
+        data.forEach((d) => {
             if (!d || !d.Date) return;
             const time = d.Date.split('T')[0];
             if (seenTimes.has(time)) return;
-
             if (d.efi_buy_signal) {
                 markers.push({ time, position: 'belowBar', color: '#22c55e', shape: 'arrowUp', text: 'E' });
                 seenTimes.add(time);
@@ -578,163 +636,84 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 seenTimes.add(time);
             }
         });
-        try {
-            if (s.candles) {
-                if (!s.markersPlugin) {
-                    s.markersPlugin = createSeriesMarkers(s.candles, []);
-                }
-                s.markersPlugin.setMarkers(markers);
-            }
-        } catch (e) {
-            console.error('Error setting markers plugin', e);
-        }
-
-        // Support & Resistance Lines Cleanup
         if (s.candles) {
-            srLineRefs.current.forEach(line => {
-                try { s.candles.removePriceLine(line); } catch (e) { }
-            });
-            srLineRefs.current = [];
+            if (!s.markersPlugin) s.markersPlugin = createSeriesMarkers(s.candles, []);
+            s.markersPlugin.setMarkers(showMarkers ? markers : []);
         }
 
-        srLevels.forEach(level => {
-            if (!level || typeof level.price !== 'number' || !level.type) return;
-            const line = s.candles.createPriceLine({
-                price: level.price,
-                color: level.type === 'resistance' ? '#ef4444' : '#22c55e',
-                lineWidth: 1.5,
-                lineStyle: 1,
-                axisLabelVisible: false,
-                title: (level.type || 'SR').toUpperCase(),
-            });
-            srLineRefs.current.push(line);
+        // --- Populate Anchor Series for perfect alignment ---
+        const timeAnchorData = data.map(d => ({ time: d.Date.split('T')[0], value: 0 }));
+        Object.keys(s.anchors || {}).forEach(id => {
+            safeSetData(s.anchors[id], timeAnchorData, `Anchor-${id}`);
         });
 
-        chartRef.current.timeScale().fitContent();
-    }, [data, symbol, srLevels]);
+        chartsRef.current.price.timeScale().fitContent();
+    }, [data, symbol, srLevels, showMarkers]);
 
-    // Legend interaction Logic
+    // Visibility Control Effect
     useEffect(() => {
-        console.log('Legend Interaction Effect', { hasChart: !!chartRef.current, hasData: !!data });
-        if (!chartRef.current || !data || data.length === 0) return;
-
-        const chart = chartRef.current;
         const s = seriesRef.current;
+        if (!s || !s.candles) return;
 
-        const updateLegend = (d) => {
-            if (!d || !legendRef.current) return;
-            const isWeekly = timeframeLabel === 'Weekly';
-            const { price, macd, f13, f2 } = legendRef.current;
-
-            if (price) {
-                price.innerHTML = `
-                    <div style="font-size: 13px; font-weight: 700; color: #e5e7eb; margin-bottom: 2px;">
-                        ${symbol} <span style="font-size: 10px; color: #9ca3af; font-weight: 400;">${timeframeLabel}</span>
-                    </div>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <span style="color: #9ca3af;">O</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Open?.toFixed(2) || '0.00'}</span>
-                        <span style="color: #9ca3af;">H</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.High?.toFixed(2) || '0.00'}</span>
-                        <span style="color: #9ca3af;">L</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Low?.toFixed(2) || '0.00'}</span>
-                        <span style="color: #9ca3af;">C</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Close?.toFixed(2) || '0.00'}</span>
-                        <span style="color: #60a5fa">EMA13 ${d.ema_13?.toFixed(2) || ''}</span>
-                        ${!isWeekly ? `<span style="color: #f59e0b">EMA26 ${d.ema_26?.toFixed(2) || ''}</span>` : ''}
-                        ${!isWeekly ? `<span style="color: rgba(255, 255, 255, 0.7)">EMA22 ${d.ema_22?.toFixed(2) || ''} (Channels)</span>` : ''}
-                        <span style="color: #94a3b8">Vol ${d.Volume ? (d.Volume / 1000000).toFixed(2) : '0.00'}M</span>
-                    </div>
-                `;
-            }
-
-            if (macd) {
-                macd.innerHTML = `
-                    <div style="font-weight: 700; color: #34d399; margin-bottom: 2px;">MACD Histogram</div>
-                    <div style="display: flex; gap: 8px;">
-                        <span style="color: #34d399">Value ${d.macd_diff?.toFixed(2) || '0.00'}</span>
-                        ${!isWeekly ? `<span style="color: #ef4444">Signal ${d.macd_signal?.toFixed(2) || '0.00'}</span>` : ''}
-                    </div>
-                `;
-            }
-
-            if (f13 && !isWeekly) {
-                let extremeText = '';
-                if (d.efi_buy_signal) extremeText = ' (BOTTOM EXTREME)';
-                if (d.efi_sell_signal) extremeText = ' (TOP EXTREME)';
-
-                f13.innerHTML = `
-                    <div style="font-weight: 700; color: #60a5fa; margin-bottom: 2px;">Force Index (ATR Channels)</div>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <span style="color: #60a5fa">EFI ${d.efi ? (d.efi / 1000000).toFixed(2) + 'M' : '0.00M'}${extremeText}</span>
-                        <span style="color: #ef4444">Signal ${d.efi_signal ? (d.efi_signal / 1000000).toFixed(2) + 'M' : '0.00M'}</span>
-                    </div>
-                `;
-            }
-
-            if (f2 && !isWeekly) {
-                f2.innerHTML = `
-                    <div style="font-weight: 700; color: #a78bfa; margin-bottom: 2px;">Force Index (2)</div>
-                    <div style="color: #a78bfa">Value ${d.force_index_2 ? (d.force_index_2 / 1000).toFixed(1) + 'K' : '0.0K'}</div>
-                `;
-            }
+        const setVis = (series, visible) => {
+            if (series) series.applyOptions({ visible });
         };
 
-        const handleCrosshairMove = param => {
-            if (!s || !s.candles) return;
-            const last = data[data.length - 1];
+        // EMA Group
+        setVis(s.ema13, showEMA);
+        setVis(s.ema26, showEMA);
+        setVis(s.ema22, showEMA);
 
-            if (!param.time || !param.point || param.point.x < 0 || param.point.y < 0) {
-                updateLegend(last);
-            } else {
-                // Defensive check for param.time because it can be an object or string
-                let timeStr;
-                if (typeof param.time === 'string') {
-                    timeStr = param.time;
-                } else if (param.time && typeof param.time === 'object') {
-                    timeStr = `${param.time.year}-${String(param.time.month).padStart(2, '0')}-${String(param.time.day).padStart(2, '0')}`;
-                }
+        // Value Zones (ATR Channels)
+        setVis(s.priceH1, showValueZones);
+        setVis(s.priceL1, showValueZones);
+        setVis(s.priceH2, showValueZones);
+        setVis(s.priceL2, showValueZones);
+        setVis(s.priceH3, showValueZones);
+        setVis(s.priceL3, showValueZones);
+        setVis(s.efiH1, showValueZones);
+        setVis(s.efiL1, showValueZones);
+        setVis(s.efiH2, showValueZones);
+        setVis(s.efiL2, showValueZones);
+        setVis(s.efiH3, showValueZones);
+        setVis(s.efiL3, showValueZones);
 
-                if (!timeStr) {
-                    updateLegend(last);
-                    return;
-                }
+        // SafeZones
+        setVis(s.safeZoneLong, showSafeZones);
+        setVis(s.safeZoneShort, showSafeZones);
 
-                const item = data.find(d => d.Date && d.Date.split('T')[0] === timeStr) || last;
-                if (!item) return;
+        // Divergences
+        setVis(s.divMacdPrice, showDivergences);
+        setVis(s.divMacdInd, showDivergences);
+        setVis(s.divEfiPrice, showDivergences);
+        setVis(s.divEfiInd, showDivergences);
 
-                const e13 = s.ema13 ? param.seriesData.get(s.ema13) : null;
-                const e26 = s.ema26 ? param.seriesData.get(s.ema26) : null;
-                const mh = s.macdHist ? param.seriesData.get(s.macdHist) : null;
-                const ms = s.macdSignal ? param.seriesData.get(s.macdSignal) : null;
-                const f2 = s.force2 ? param.seriesData.get(s.force2) : null;
-                const priceData = param.seriesData.get(s.candles);
+        // S/R levels are handled in a separate effect below
+    }, [showValueZones, showSafeZones, showDivergences, showEMA]);
+    // Dedicated S/R Levels Effect
+    useEffect(() => {
+        const s = seriesRef.current;
+        if (!s || !s.candles) return;
 
-                updateLegend({
-                    ...item,
-                    Open: priceData?.open || item?.Open,
-                    High: priceData?.high || item?.High,
-                    Low: priceData?.low || item?.Low,
-                    Close: priceData?.close || priceData?.value || item?.Close,
-                    ema_13: e13?.value ?? item?.ema_13,
-                    ema_26: e26?.value ?? item?.ema_26,
-                    ema_22: item?.ema_22,
-                    macd_diff: mh?.value ?? item?.macd_diff,
-                    macd_signal: ms?.value ?? item?.macd_signal,
-                    force_index_2: f2?.value ?? item?.force_index_2,
-                    // Use item values for EFI fields since they aren't easily extracted from multiple series
-                    efi: item?.efi,
-                    efi_signal: item?.efi_signal,
-                    efi_extreme_high: item?.efi_extreme_high,
-                    efi_extreme_low: item?.efi_extreme_low,
-                    Volume: s.volume ? param.seriesData.get(s.volume)?.value || item?.Volume : item?.Volume,
+        // Clear existing lines
+        srLineRefs.current.forEach(line => s.candles.removePriceLine(line));
+        srLineRefs.current = [];
+
+        // Re-create only if enabled
+        if (showSRLevels && srLevels) {
+            srLevels.forEach(level => {
+                const line = s.candles.createPriceLine({
+                    price: level.price,
+                    color: level.type === 'resistance' ? '#ef4444' : '#22c55e',
+                    lineWidth: 1.5,
+                    lineStyle: 1,
+                    axisLabelVisible: false,
+                    title: (level.type || 'SR').toUpperCase(),
                 });
-            }
-        };
-
-        chart.subscribeCrosshairMove(handleCrosshairMove);
-        updateLegend(data[data.length - 1]);
-
-        return () => {
-            chart.unsubscribeCrosshairMove(handleCrosshairMove);
-        };
-    }, [data, symbol, timeframeLabel]);
+                srLineRefs.current.push(line);
+            });
+        }
+    }, [showSRLevels, srLevels]);
 
     return (
         <div className="flex flex-col lg:flex-row gap-6 items-start">
@@ -743,10 +722,92 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
                 <div className="bg-blue-600/10 border border-blue-500/30 p-8 rounded-3xl shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl -mr-20 -mt-20" />
-                    <h3 className="font-black flex items-center gap-2 mb-6 text-white text-xl italic tracking-tighter">
-                        <Info className="text-blue-400" />
-                        TRIPLE SCREEN STRATEGY
-                    </h3>
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8 bg-gray-900/40 p-6 rounded-2xl border border-white/5 backdrop-blur-sm">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                                <Info className="text-blue-400" size={24} />
+                            </div>
+                            <div>
+                                <h3 className="font-black text-white text-2xl italic tracking-tighter">
+                                    TRIPLE SCREEN STRATEGY
+                                </h3>
+                                <div className="text-gray-400 text-xs font-medium uppercase tracking-widest mt-0.5">
+                                    {symbol} • {timeframeLabel} Analysis
+                                </div>
+                            </div>
+                        </div>
+
+                        {regimeData && (
+                            <div className="flex flex-wrap items-center gap-3 bg-black/40 p-2 pl-4 rounded-xl border border-white/5 shadow-inner">
+                                {/* Macro Status */}
+                                <div className="flex items-center gap-2" title={`Macro: ${regimeData.macro_status} | Trend: ${regimeData.regime}`}>
+                                    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${regimeData.macro_status === 'Risk-On' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                                        <Globe size={12} />
+                                        {regimeData.macro_status}
+                                    </div>
+                                </div>
+
+                                <div className="w-[1px] h-4 bg-gray-800" />
+
+                                {/* Sector Status */}
+                                <div className="flex items-center gap-2" title={`Sector: ${regimeData.sector_analysis?.stock_sector}`}>
+                                    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${regimeData.sector_analysis?.is_leading ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'bg-gray-700/50 text-gray-400 border border-gray-600/50'}`}>
+                                        <Layers size={12} />
+                                        {regimeData.sector_analysis?.is_leading ? 'Leading Sector' : regimeData.sector_analysis?.stock_sector || 'Sector'}
+                                    </div>
+                                </div>
+
+                                <div className="w-[1px] h-4 bg-gray-800" />
+
+                                {/* Strategic Verdict */}
+                                <div className="flex items-center gap-3 ml-2">
+                                    <div className={`px-3 py-1 rounded text-[10px] uppercase font-black tracking-widest flex items-center gap-2 ${(regimeData.decision?.includes('Buy') || regimeData.decision?.includes('Bullish')) ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.5)]' :
+                                        (regimeData.decision?.includes('Avoid') || regimeData.decision?.includes('Short')) ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]' :
+                                            'bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.5)]'
+                                        }`}>
+                                        {(regimeData.decision?.includes('Buy') || regimeData.decision?.includes('Bullish')) ? <ArrowUpRight size={14} strokeWidth={3} /> : <ShieldCheck size={14} strokeWidth={3} />}
+                                        {regimeData.decision?.split('.')[0] || 'N/A'}
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => {
+                                                const snapshot = getCombinedSnapshot();
+                                                if (snapshot) {
+                                                    setSnapshot(snapshot);
+                                                    if (lastData) {
+                                                        setTradeModalInitialData({
+                                                            symbol,
+                                                            entry_day_high: lastData.High,
+                                                            entry_day_low: lastData.Low,
+                                                            upper_channel: lastData.price_atr_h3,
+                                                            lower_channel: lastData.price_atr_l3,
+                                                            safezone_long: lastData.safezone_long,
+                                                            safezone_short: lastData.safezone_short
+                                                        });
+                                                    }
+                                                    setShowTradeModal(true);
+                                                }
+                                            }}
+                                            className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-[10px] uppercase font-bold tracking-wider flex items-center gap-2 transition-all shadow-lg border border-blue-400/30"
+                                        >
+                                            <Plus size={12} />
+                                            Log Trade
+                                        </button>
+
+                                        <button
+                                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                                            className={`px-3 py-1.5 rounded-lg text-[10px] uppercase font-bold tracking-wider flex items-center gap-2 transition-all shadow-lg border ${isSidebarOpen ? 'bg-blue-500 text-white border-blue-400' : 'bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700'}`}
+                                            title={isSidebarOpen ? "Hide Analysis Notes" : "Show Analysis Notes"}
+                                        >
+                                            <Notebook size={14} />
+                                            {isSidebarOpen ? 'Hide Notes' : 'Notes'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
 
                     {/* Divergence Alerts (Unified - Top Banner) */}
@@ -944,84 +1005,44 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                     </div>
                 </div>
 
+                {/* Chart Logic & Visibility Card */}
+                <div className="bg-gray-900/40 border border-white/5 p-6 rounded-2xl backdrop-blur-sm shadow-xl">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                            <Layers className="text-blue-400" size={18} />
+                        </div>
+                        <h4 className="font-black text-white text-sm uppercase tracking-widest italic">
+                            Chart Engine & Visibility
+                        </h4>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                        {[
+                            { id: 'ema', label: 'EMA (13/22/26)', state: showEMA, setter: setShowEMA, icon: Zap, color: 'blue' },
+                            { id: 'zones', label: 'Value Zones', state: showValueZones, setter: setShowValueZones, icon: Layers, color: 'indigo' },
+                            { id: 'sr', label: 'S/SR Levels', state: showSRLevels, setter: setShowSRLevels, icon: ShieldCheck, color: 'purple' },
+                            { id: 'div', label: 'Divergence', state: showDivergences, setter: setShowDivergences, icon: AlertTriangle, color: 'amber' },
+                            { id: 'safe', label: 'SafeZone Stops', state: showSafeZones, setter: setShowSafeZones, icon: ShieldCheck, color: 'red' },
+                            { id: 'markers', label: 'Force Signals', state: showMarkers, setter: setShowMarkers, icon: Search, color: 'emerald' }
+                        ].map((t) => (
+                            <button
+                                key={t.id}
+                                onClick={() => t.setter(!t.state)}
+                                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all border ${t.state
+                                    ? `bg-${t.color}-500/20 text-${t.color}-400 border-${t.color}-500/40 shadow-[0_4px_12px_rgba(0,0,0,0.3)]`
+                                    : 'bg-gray-800/40 text-gray-500 border-white/5 hover:bg-gray-800/60'
+                                    }`}
+                            >
+                                <t.icon size={14} className={t.state ? `text-${t.color}-400` : 'text-gray-600'} />
+                                {t.label}
+                                {t.state && <div className={`w-1.5 h-1.5 rounded-full bg-${t.color}-400 animate-pulse`} />}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 <div className="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-2xl overflow-hidden relative">
 
-                    {/* --- Market Context Header --- */}
-                    {regimeData && (
-                        <div className="absolute top-6 left-6 right-6 z-20 flex flex-wrap items-center gap-4 px-4 py-2 bg-gray-900/80 border border-gray-700/50 rounded-xl backdrop-blur-md shadow-lg transform transition-all hover:bg-gray-900/95">
-
-                            {/* Macro Status */}
-                            <div className="flex items-center gap-2" title={`Macro: ${regimeData.macro_status} | Trend: ${regimeData.regime}`}>
-                                <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${regimeData.macro_status === 'Risk-On' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
-                                    <Globe size={12} />
-                                    {regimeData.macro_status}
-                                </div>
-                            </div>
-
-                            <div className="w-[1px] h-4 bg-gray-700" />
-
-                            {/* Sector Status */}
-                            <div className="flex items-center gap-2" title={`Sector: ${regimeData.sector_analysis?.stock_sector}`}>
-                                <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${regimeData.sector_analysis?.is_leading ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'bg-gray-700/50 text-gray-400 border border-gray-600/50'}`}>
-                                    <Layers size={12} />
-                                    {regimeData.sector_analysis?.is_leading ? 'Leading Sector' : regimeData.sector_analysis?.stock_sector || 'Sector'}
-                                </div>
-                            </div>
-
-                            <div className="w-[1px] h-4 bg-gray-700" />
-
-                            {/* Strategic Verdict */}
-                            <div className="flex items-center gap-2 ml-auto">
-                                <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest hidden sm:block">Strategy ({timeframeLabel})</span>
-                                <div className={`px-3 py-1 rounded text-[10px] uppercase font-black tracking-widest flex items-center gap-2 ${(regimeData.decision?.includes('Buy') || regimeData.decision?.includes('Bullish')) ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.5)]' :
-                                    (regimeData.decision?.includes('Avoid') || regimeData.decision?.includes('Short')) ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]' :
-                                        'bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.5)]'
-                                    }`}>
-                                    {(regimeData.decision?.includes('Buy') || regimeData.decision?.includes('Bullish')) ? <ArrowUpRight size={14} strokeWidth={3} /> : <ShieldCheck size={14} strokeWidth={3} />}
-                                    {regimeData.decision?.split('.')[0] || 'N/A'}
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        if (chartRef.current) {
-                                            const canvas = chartRef.current.takeScreenshot();
-                                            if (canvas) {
-                                                setSnapshot(canvas.toDataURL());
-
-                                                // Auto-populate Daily Context
-                                                if (lastData) {
-                                                    setTradeModalInitialData({
-                                                        symbol,
-                                                        entry_day_high: lastData.High,
-                                                        entry_day_low: lastData.Low,
-                                                        upper_channel: lastData.price_atr_h3, // 3 ATR Top
-                                                        lower_channel: lastData.price_atr_l3,  // 3 ATR Bottom
-                                                        // Pass SafeZone data for Auto-Stop
-                                                        safezone_long: lastData.safezone_long,
-                                                        safezone_short: lastData.safezone_short
-                                                    });
-                                                }
-
-                                                setShowTradeModal(true);
-                                            }
-                                        }
-                                    }}
-                                    className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-[10px] uppercase font-bold tracking-wider flex items-center gap-2 transition-all shadow-lg ml-2"
-                                >
-                                    <Plus size={12} />
-                                    Log Trade
-                                </button>
-
-                                <button
-                                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                                    className={`ml-2 px-3 py-1.5 rounded text-[10px] uppercase font-bold tracking-wider flex items-center gap-2 transition-all shadow-lg border ${isSidebarOpen ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : 'bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600'}`}
-                                    title={isSidebarOpen ? "Hide Analysis Notes" : "Show Analysis Notes"}
-                                >
-                                    <Notebook size={14} />
-                                    {isSidebarOpen ? 'Hide Notes' : 'Notes'}
-                                </button>
-                            </div>
-                        </div>
-                    )}
 
 
 
@@ -1049,13 +1070,13 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
                             <button
                                 onClick={() => {
-                                    if (chartRef.current) {
-                                        const canvas = chartRef.current.takeScreenshot();
-                                        setSnapshot(canvas.toDataURL());
+                                    const snapshot = getCombinedSnapshot();
+                                    if (snapshot) {
+                                        setSnapshot(snapshot);
                                         setTradeModalInitialData({
                                             ...activeTrade,
                                             exit_date: new Date().toISOString().split('T')[0],
-                                            exit_price: lastData.Close, // Auto-fill current price
+                                            exit_price: lastData.Close,
                                             exit_day_high: lastData.High,
                                             exit_day_low: lastData.Low,
                                             upper_channel: lastData.price_atr_h3,
@@ -1214,8 +1235,8 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                             </div>
                         )
                     }
-                </div >
-            </div >
+                </div>
+            </div>
 
             {/* Image Preview Modal */}
             {
@@ -1254,7 +1275,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                     />
                 )
             }
-        </div >
+        </div>
     );
 };
 
