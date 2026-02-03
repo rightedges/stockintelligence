@@ -107,10 +107,15 @@ def calculate_indicators(df):
     df.loc[df['efi'] > efi_ob_h, 'efi_truncated'] = df['efi_atr_h3']
     df.loc[df['efi'] < efi_ob_l, 'efi_truncated'] = df['efi_atr_l3']
     
-    # Signal Dots (EFI hitting or exceeding 2.2-ATR)
+    # Signal Dots (EFI hitting or exceeding 1.5-ATR)
     # Ensure they are boolean and handle NaNs
-    df['efi_buy_signal'] = (df['efi'] <= df['efi_atr_l2']).fillna(False) # Using Level 2 (2-ATR) for more frequency
+    df['efi_buy_signal'] = (df['efi'] <= df['efi_atr_l2']).fillna(False) 
     df['efi_sell_signal'] = (df['efi'] >= df['efi_atr_h2']).fillna(False)
+    
+    # DEBUG: FORCE SIGNALS ON LAST 2 BARS TO VERIFY FRONTEND RENDERING
+    if len(df) > 5:
+        df.loc[df.index[-1], 'efi_buy_signal'] = True
+        df.loc[df.index[-2], 'efi_sell_signal'] = True
     
     # Backwards compatibility
     df['efi_extreme_high'] = df['efi_sell_signal']

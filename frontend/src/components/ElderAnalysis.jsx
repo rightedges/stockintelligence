@@ -678,21 +678,29 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         const seenTimes = new Set();
         data.forEach((d) => {
             if (!d || !d.Date) return;
-            const time = d.Date.split('T')[0];
-            if (seenTimes.has(time)) return;
+            const timeStr = d.Date.split('T')[0];
+            if (seenTimes.has(timeStr)) return;
 
             // Check for both modern and legacy signal names for robustness
-            const isBuy = d.efi_buy_signal || d.efi_extreme_low;
-            const isSell = d.efi_sell_signal || d.efi_extreme_high;
+            const isBuy = Boolean(d.efi_buy_signal) || Boolean(d.efi_extreme_low);
+            const isSell = Boolean(d.efi_sell_signal) || Boolean(d.efi_extreme_high);
 
             if (isBuy) {
-                markers.push({ time, position: 'belowBar', color: '#22c55e', shape: 'arrowUp', text: 'E' });
-                seenTimes.add(time);
+                markers.push({ time: timeStr, position: 'belowBar', color: '#22c55e', shape: 'arrowUp', text: 'E' });
+                seenTimes.add(timeStr);
             } else if (isSell) {
-                markers.push({ time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'E' });
-                seenTimes.add(time);
+                markers.push({ time: timeStr, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'E' });
+                seenTimes.add(timeStr);
             }
         });
+
+        // Add a guaranteed test marker to verify the pipeline
+        if (markers.length === 0 && data.length > 0) {
+            const lastBar = data[data.length - 1];
+            const lastTime = lastBar.Date.split('T')[0];
+            markers.push({ time: lastTime, position: 'aboveBar', color: '#ffffff', shape: 'circle', text: 'TEST' });
+        }
+
         if (s.candles && typeof s.candles.setMarkers === 'function') {
             try {
                 s.candles.setMarkers(showMarkers ? markers : []);

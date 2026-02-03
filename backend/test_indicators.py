@@ -12,8 +12,12 @@ except ImportError:
     sys.exit(1)
 
 def test_indicators(symbol):
-    print(f"--- Testing {symbol} ---")
+    print(f"\n--- Testing {symbol} ---")
     df = yf.download(symbol, period="1y", interval="1d", progress=False)
+    if df.empty:
+        print(f"No data for {symbol}")
+        return
+        
     if isinstance(df.columns, pd.MultiIndex):
         try:
             if symbol in df.columns.get_level_values(1):
@@ -27,10 +31,10 @@ def test_indicators(symbol):
     df = calculate_indicators(df)
     
     analysis_data = df.to_dict(orient="records")
-    last_bars = analysis_data[-10:]
+    last_bars = analysis_data[-5:]
     
     for i, bar in enumerate(last_bars):
-        print(f"Bar {i}: EFI Buy: {bar.get('efi_buy_signal')}, EFI Sell: {bar.get('efi_sell_signal')}, EFI: {bar.get('efi')}, L3: {bar.get('efi_atr_l3')}")
+        print(f"Date: {bar.get('Date') or i}, EFI: {bar.get('efi'):.0f}, L2: {bar.get('efi_atr_l2'):.0f}, H2: {bar.get('efi_atr_h2'):.0f}, Buy: {bar.get('efi_buy_signal')}, Sell: {bar.get('efi_sell_signal')}")
     
     buy_count = sum(1 for b in analysis_data if b.get('efi_buy_signal'))
     sell_count = sum(1 for b in analysis_data if b.get('efi_sell_signal'))
@@ -38,4 +42,5 @@ def test_indicators(symbol):
     print(f"Total Sell Signals: {sell_count}")
 
 if __name__ == "__main__":
-    test_indicators("TSLA")
+    for s in ["NVDA", "AAPL", "MSFT", "GOOGL"]:
+        test_indicators(s)
