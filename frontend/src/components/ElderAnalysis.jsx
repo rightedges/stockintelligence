@@ -30,6 +30,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
     const [tradeModalInitialData, setTradeModalInitialData] = useState({});
     const [snapshot, setSnapshot] = useState(null);
     const [activeTrade, setActiveTrade] = useState(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Default collapsed for chart space
 
     const fetchActiveTrade = async () => {
         if (!symbol) return;
@@ -958,6 +959,15 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                     <Plus size={12} />
                                     Log Trade
                                 </button>
+
+                                <button
+                                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                                    className={`ml-2 px-3 py-1.5 rounded text-[10px] uppercase font-bold tracking-wider flex items-center gap-2 transition-all shadow-lg border ${isSidebarOpen ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : 'bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600'}`}
+                                    title={isSidebarOpen ? "Hide Analysis Notes" : "Show Analysis Notes"}
+                                >
+                                    <Notebook size={14} />
+                                    {isSidebarOpen ? 'Hide Notes' : 'Notes'}
+                                </button>
                             </div>
                         </div>
                     )}
@@ -1015,13 +1025,13 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             </div>
 
             {/* Sidebar Area (Right) */}
-            <div className="w-full lg:w-[450px] flex-shrink-0 flex flex-col gap-6 lg:sticky lg:top-6">
+            <div className={`flex-shrink-0 flex flex-col gap-6 lg:sticky lg:top-6 transition-all duration-300 ${isSidebarOpen ? 'w-full lg:w-[450px] opacity-100' : 'w-0 lg:w-0 overflow-hidden opacity-0 p-0 m-0 border-0'}`}>
                 {/* Quick Journal Input */}
                 <div className="bg-gray-800 border-2 border-blue-500/20 p-6 rounded-2xl shadow-xl">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                             <Notebook className="text-blue-400" size={20} />
-                            <h3 className="text-lg font-bold text-white">Trading Journal</h3>
+                            <h3 className="text-lg font-bold text-white">Analysis Notes</h3>
                         </div>
                         <button
                             onClick={() => setShowJournal(!showJournal)}
