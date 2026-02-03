@@ -4,8 +4,7 @@ import {
     CandlestickSeries,
     LineSeries,
     HistogramSeries,
-    CrosshairMode,
-    createSeriesMarkers
+    CrosshairMode
 } from 'lightweight-charts';
 import { Zap, Info, Notebook, Camera, Calendar, Trash2, Search, AlertTriangle, Edit, ShieldCheck, ArrowUpRight, Globe, Layers, Plus } from 'lucide-react';
 import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalEntry, getActiveTrade } from '../services/api';
@@ -38,8 +37,13 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
     // Visibility toggles with persistence
     const loadSetting = (key, defaultValue) => {
-        const saved = localStorage.getItem(`elder_settings_${key}`);
-        return saved !== null ? JSON.parse(saved) : defaultValue;
+        try {
+            const saved = localStorage.getItem(`elder_settings_${key}`);
+            return saved !== null ? JSON.parse(saved) : defaultValue;
+        } catch (e) {
+            console.warn(`Error loading setting ${key}`, e);
+            return defaultValue;
+        }
     };
 
     const [showValueZones, setShowValueZones] = useState(() => loadSetting('valueZones', true));
@@ -637,8 +641,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             }
         });
         if (s.candles) {
-            if (!s.markersPlugin) s.markersPlugin = createSeriesMarkers(s.candles, []);
-            s.markersPlugin.setMarkers(showMarkers ? markers : []);
+            s.candles.setMarkers(showMarkers ? markers : []);
         }
 
         // --- Populate Anchor Series for perfect alignment ---
