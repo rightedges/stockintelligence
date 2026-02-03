@@ -680,10 +680,15 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             if (!d || !d.Date) return;
             const time = d.Date.split('T')[0];
             if (seenTimes.has(time)) return;
-            if (d.efi_buy_signal) {
+
+            // Check for both modern and legacy signal names for robustness
+            const isBuy = d.efi_buy_signal || d.efi_extreme_low;
+            const isSell = d.efi_sell_signal || d.efi_extreme_high;
+
+            if (isBuy) {
                 markers.push({ time, position: 'belowBar', color: '#22c55e', shape: 'arrowUp', text: 'E' });
                 seenTimes.add(time);
-            } else if (d.efi_sell_signal) {
+            } else if (isSell) {
                 markers.push({ time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'E' });
                 seenTimes.add(time);
             }
@@ -1080,24 +1085,42 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
                     <div className="flex flex-wrap items-center gap-3">
                         {[
-                            { id: 'ema', label: 'EMA (13/22/26)', state: showEMA, setter: setShowEMA, icon: Zap, color: 'blue' },
-                            { id: 'zones', label: 'Value Zones', state: showValueZones, setter: setShowValueZones, icon: Layers, color: 'indigo' },
-                            { id: 'sr', label: 'S/SR Levels', state: showSRLevels, setter: setShowSRLevels, icon: ShieldCheck, color: 'purple' },
-                            { id: 'div', label: 'Divergence', state: showDivergences, setter: setShowDivergences, icon: AlertTriangle, color: 'amber' },
-                            { id: 'safe', label: 'SafeZone Stops', state: showSafeZones, setter: setShowSafeZones, icon: ShieldCheck, color: 'red' },
-                            { id: 'markers', label: 'Force Signals', state: showMarkers, setter: setShowMarkers, icon: Search, color: 'emerald' }
+                            {
+                                id: 'ema', label: 'EMA (13/22/26)', state: showEMA, setter: setShowEMA, icon: Zap, color: 'blue',
+                                activeClass: 'bg-blue-500/20 text-blue-400 border-blue-500/40 shadow-[0_4px_12px_rgba(0,0,0,0.3)]', indicator: 'bg-blue-400'
+                            },
+                            {
+                                id: 'zones', label: 'Value Zones', state: showValueZones, setter: setShowValueZones, icon: Layers, color: 'indigo',
+                                activeClass: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40 shadow-[0_4px_12px_rgba(0,0,0,0.3)]', indicator: 'bg-indigo-400'
+                            },
+                            {
+                                id: 'sr', label: 'S/SR Levels', state: showSRLevels, setter: setShowSRLevels, icon: ShieldCheck, color: 'purple',
+                                activeClass: 'bg-purple-500/20 text-purple-400 border-purple-500/40 shadow-[0_4px_12px_rgba(0,0,0,0.3)]', indicator: 'bg-purple-400'
+                            },
+                            {
+                                id: 'div', label: 'Divergence', state: showDivergences, setter: setShowDivergences, icon: AlertTriangle, color: 'amber',
+                                activeClass: 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-[0_4px_12px_rgba(0,0,0,0.3)]', indicator: 'bg-amber-400'
+                            },
+                            {
+                                id: 'safe', label: 'SafeZone Stops', state: showSafeZones, setter: setShowSafeZones, icon: ShieldCheck, color: 'red',
+                                activeClass: 'bg-red-500/20 text-red-400 border-red-500/40 shadow-[0_4px_12px_rgba(0,0,0,0.3)]', indicator: 'bg-red-400'
+                            },
+                            {
+                                id: 'markers', label: 'Force Signals', state: showMarkers, setter: setShowMarkers, icon: Search, color: 'emerald',
+                                activeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_4px_12px_rgba(0,0,0,0.3)]', indicator: 'bg-emerald-400'
+                            }
                         ].map((t) => (
                             <button
                                 key={t.id}
                                 onClick={() => t.setter(!t.state)}
                                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all border ${t.state
-                                    ? `bg-${t.color}-500/20 text-${t.color}-400 border-${t.color}-500/40 shadow-[0_4px_12px_rgba(0,0,0,0.3)]`
+                                    ? t.activeClass
                                     : 'bg-gray-800/40 text-gray-500 border-white/5 hover:bg-gray-800/60'
                                     }`}
                             >
-                                <t.icon size={14} className={t.state ? `text-${t.color}-400` : 'text-gray-600'} />
+                                <t.icon size={14} className={t.state ? (t.id === 'markers' ? 'text-emerald-400' : `text-${t.color}-400`) : 'text-gray-600'} />
                                 {t.label}
-                                {t.state && <div className={`w-1.5 h-1.5 rounded-full bg-${t.color}-400 animate-pulse`} />}
+                                {t.state && <div className={`w-1.5 h-1.5 rounded-full ${t.indicator} animate-pulse`} />}
                             </button>
                         ))}
                     </div>
