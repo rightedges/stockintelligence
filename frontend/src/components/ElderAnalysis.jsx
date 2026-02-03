@@ -132,7 +132,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         const gridColor = 'rgba(197, 203, 206, 0.05)';
 
         const paneConfigs = [
-            { id: 'price', flex: 6 },
+            { id: 'price', flex: 10 },
             { id: 'volume', flex: 1.2 },
             { id: 'macd', flex: 2 },
             { id: 'force13', flex: 2, hide: isWeekly },
@@ -1146,7 +1146,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         </div>
                     )}
 
-                    <div ref={chartContainerRef} className="w-full h-[900px] relative overflow-hidden" />
+                    <div ref={chartContainerRef} className="w-full h-[1100px] relative overflow-hidden" />
                 </div>
             </div>
 

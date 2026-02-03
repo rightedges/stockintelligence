@@ -22,7 +22,7 @@ const StockChart = ({ data, srLevels = [], colors = {} }) => {
             chartContainerRef.current.innerHTML = '';
 
             const width = chartContainerRef.current.clientWidth;
-            const height = 600;
+            const height = 800;
 
             const chart = createChart(chartContainerRef.current, {
                 layout: { background, textColor },
@@ -247,7 +247,7 @@ const StockChart = ({ data, srLevels = [], colors = {} }) => {
     }, [data, colors]);
 
     return (
-        <div ref={chartContainerRef} className="w-full h-[600px] bg-[#242424] relative overflow-hidden" />
+        <div ref={chartContainerRef} className="w-full h-[800px] bg-[#242424] relative overflow-hidden" />
     );
 };
 
