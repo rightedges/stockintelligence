@@ -276,7 +276,10 @@ const Dashboard = () => {
                     {initError ? (
                         <div className="flex flex-col items-center justify-center h-full text-red-400 bg-red-900/10 rounded-2xl border border-red-500/20 p-8">
                             <AlertTriangle size={48} className="mb-4" />
-                            <h2 className="text-xl font-bold mb-2">Analysis Engine Failure</h2>
+                            <h2 className="text-xl font-bold mb-2">
+                                Analysis Engine Failure
+                                <span className="text-[10px] bg-red-600 px-2 py-0.5 rounded ml-2 font-mono animate-pulse">ACTIVE_V6_FORCE_REFRESH_1140PM</span>
+                            </h2>
                             <p className="text-sm opacity-80 mb-4">{initError}</p>
                             <button onClick={() => window.location.reload()} className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold">Retry Initialization</button>
                         </div>

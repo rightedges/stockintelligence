@@ -687,8 +687,12 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 seenTimes.add(time);
             }
         });
-        if (s.candles) {
-            s.candles.setMarkers(showMarkers ? markers : []);
+        if (s.candles && typeof s.candles.setMarkers === 'function') {
+            try {
+                s.candles.setMarkers(showMarkers ? markers : []);
+            } catch (err) {
+                console.error("setMarkers Failure:", err);
+            }
         }
 
         // --- Populate Anchor Series for perfect alignment ---
