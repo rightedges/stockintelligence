@@ -12,7 +12,7 @@ import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalE
 import { X } from 'lucide-react';
 import TradeEntryModal from './TradeEntryModal';
 
-const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDivergence, timeframeLabel = 'Daily', regimeData }) => {
+const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDivergence, f13Divergence, timeframeLabel = 'Daily', regimeData }) => {
     console.log('ElderAnalysis Init', { symbol, dataLength: data?.length, timeframeLabel });
     const lastData = data && data.length > 0 ? data[data.length - 1] : null;
 
@@ -192,32 +192,27 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             s.efiH3 = chart.addSeries(LineSeries, { ...bandOptions(0), color: 'rgba(156, 163, 175, 0.8)' }); // Solid gray
             s.efiL3 = chart.addSeries(LineSeries, { ...bandOptions(0), color: 'rgba(156, 163, 175, 0.8)' });
 
-            // Signal Dots
-            s.efiDotsHigh = chart.addSeries(LineSeries, {
-                priceScaleId: 'force13',
-                color: '#ef4444',
-                lineWidth: 0,
-                pointShape: 'circle',
-                pointSize: 4,
-                lastValueVisible: false,
-                priceLineVisible: false,
-                crosshairMarkerVisible: false,
-            });
-            s.efiDotsLow = chart.addSeries(LineSeries, {
-                priceScaleId: 'force13',
-                color: '#22c55e',
-                lineWidth: 0,
-                pointShape: 'circle',
-                pointSize: 4,
-                lastValueVisible: false,
-                priceLineVisible: false,
-                crosshairMarkerVisible: false,
+            // Zero Line (PriceLine on force13)
+            s.force13.createPriceLine({
+                price: 0,
+                color: 'rgba(255, 255, 255, 0.3)',
+                lineWidth: 1,
+                lineStyle: 2,
+                axisLabelVisible: false,
+                title: ''
             });
         }
 
         // Divergence Lines (Bind to correct scales)
         s.divMacdPrice = chart.addSeries(LineSeries, { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
         s.divMacdInd = chart.addSeries(LineSeries, { priceScaleId: 'macd', color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+
+        // EFI Divergence Lines
+        s.divEfiPrice = chart.addSeries(LineSeries, { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        // Only if not weekly (since Weekly uses same component but might not have Force 13 pane? Weekly template shows 'force13' logic might be missing/different, but safer to add if pane exists. Actually Force13 is only added if !isWeekly in lines 156+)
+        if (!isWeekly) {
+            s.divEfiInd = chart.addSeries(LineSeries, { priceScaleId: 'force13', color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        }
 
         // SafeZone Stops (Trailing)
         s.safeZoneLong = chart.addSeries(LineSeries, {
@@ -463,9 +458,6 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 if (d.efi_atr_l2) efiL2Data.push({ time, value: d.efi_atr_l2 });
                 if (d.efi_atr_h3) efiH3Data.push({ time, value: d.efi_atr_h3 });
                 if (d.efi_atr_l3) efiL3Data.push({ time, value: d.efi_atr_l3 });
-
-                if (d.efi_extreme_high) efiDotsHighData.push({ time, value: d.efi_truncated });
-                if (d.efi_extreme_low) efiDotsLowData.push({ time, value: d.efi_truncated });
             }
 
             if (d.Volume) {
@@ -505,9 +497,6 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         safeSetData(s.efiH3, efiH3Data, 'EFI H3');
         safeSetData(s.efiL3, efiL3Data, 'EFI L3');
 
-        safeSetData(s.efiDotsHigh, efiDotsHighData, 'EFI High');
-        safeSetData(s.efiDotsLow, efiDotsLowData, 'EFI Low');
-
         safeSetData(s.volume, volumeData, 'Volume');
         safeSetData(s.volumeSMA, volumeSMAData, 'Volume SMA');
 
@@ -534,6 +523,40 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         } else {
             if (s.divMacdPrice) safeSetData(s.divMacdPrice, [], 'DivPrice');
             if (s.divMacdInd) safeSetData(s.divMacdInd, [], 'DivInd');
+        }
+
+        // Render EFI Divergence Trendlines
+        if (f13Divergence && data[f13Divergence.idx1] && data[f13Divergence.idx2] && !isWeekly) {
+            const p1 = data[f13Divergence.idx1];
+            const p2 = data[f13Divergence.idx2];
+
+            if (p1?.Date && p2?.Date) {
+                const time1 = p1.Date.split('T')[0];
+                const time2 = p2.Date.split('T')[0];
+                const color = f13Divergence.type === 'bearish' ? '#ef4444' : '#22c55e'; // Red or Green
+
+                if (s.divEfiPrice) s.divEfiPrice.applyOptions({ color });
+                if (s.divEfiInd) s.divEfiInd.applyOptions({ color });
+
+                // Price Line
+                const priceVal1 = f13Divergence.type === 'bearish' ? p1.High : p1.Low;
+                const priceVal2 = f13Divergence.type === 'bearish' ? p2.High : p2.Low;
+                if (s.divEfiPrice && priceVal1 !== undefined && priceVal2 !== undefined) {
+                    safeSetData(s.divEfiPrice, [{ time: time1, value: priceVal1 }, { time: time2, value: priceVal2 }], 'DivEfiPrice');
+                }
+
+                // Indicator Line (EFI)
+                // Use efi_truncated or efi for plotting, avoid 0 default if undefined
+                const val1 = p1.efi_truncated ?? p1.efi;
+                const val2 = p2.efi_truncated ?? p2.efi;
+
+                if (s.divEfiInd && val1 !== undefined && val2 !== undefined) {
+                    safeSetData(s.divEfiInd, [{ time: time1, value: val1 }, { time: time2, value: val2 }], 'DivEfiInd');
+                }
+            }
+        } else {
+            if (s.divEfiPrice) safeSetData(s.divEfiPrice, [], 'DivEfiPrice');
+            if (s.divEfiInd) safeSetData(s.divEfiInd, [], 'DivEfiInd');
         }
 
         if (!data || data.length === 0) return;
@@ -754,6 +777,34 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                             );
                         }
 
+                        return null;
+                    })()}
+
+                    {/* EFI Divergence Alert */}
+                    {(() => {
+                        const isFresh = (f13Divergence?.recency < 5);
+                        if (f13Divergence && isFresh) {
+                            return (
+                                <div className={`mb-8 p-4 rounded-xl border-l-4 flex items-start gap-4 shadow-lg animate-in fade-in slide-in-from-top-2 duration-500 delay-150 ${f13Divergence.type === 'bearish'
+                                    ? 'bg-orange-900/30 border-orange-500/40 shadow-orange-900/10'
+                                    : 'bg-teal-900/30 border-teal-500/40 shadow-teal-900/10'
+                                    }`}>
+                                    <div className={`p-2 rounded-lg ${f13Divergence.type === 'bearish' ? 'bg-orange-500/20' : 'bg-teal-500/20'}`}>
+                                        <Zap size={24} className={f13Divergence.type === 'bearish' ? 'text-orange-400' : 'text-teal-400'} />
+                                    </div>
+                                    <div>
+                                        <h4 className={`font-black uppercase tracking-widest text-sm mb-1 ${f13Divergence.type === 'bearish' ? 'text-orange-400' : 'text-teal-400'}`}>
+                                            FORCE INDEX {f13Divergence.type} DIVERGENCE
+                                        </h4>
+                                        <p className="text-gray-300 text-sm leading-relaxed">
+                                            {f13Divergence.type === 'bearish'
+                                                ? "Price made a higher high, but Volume/Force is falling. Smart money is withdrawing."
+                                                : "Price made a lower low, but Volume/Force is rising. Selling pressure is drying up."}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        }
                         return null;
                     })()}
 

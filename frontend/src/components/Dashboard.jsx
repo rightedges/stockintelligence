@@ -14,6 +14,7 @@ const Dashboard = () => {
     const [srLevels, setSrLevels] = useState([]);
     const [elderTactics, setElderTactics] = useState(null);
     const [macdDivergence, setMacdDivergence] = useState(null);
+    const [f13Divergence, setF13Divergence] = useState(null);
     const [newSymbol, setNewSymbol] = useState('');
     const [loading, setLoading] = useState(false);
     const [isScanning, setIsScanning] = useState(false);
@@ -68,6 +69,7 @@ const Dashboard = () => {
             setSrLevels(res.data.sr_levels || []);
             setElderTactics(res.data.elder_tactics || null);
             setMacdDivergence(res.data.macd_divergence || null);
+            setF13Divergence(res.data.f13_divergence || null);
         } catch (err) {
             console.error("Failed to load analysis", err);
         } finally {
@@ -277,9 +279,9 @@ const Dashboard = () => {
                     ) : view === 'journal' ? (
                         <TradeJournal />
                     ) : view === 'elder' ? (
-                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} timeframeLabel="Daily" regimeData={regimeData} />
+                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} f13Divergence={f13Divergence} timeframeLabel="Daily" regimeData={regimeData} />
                     ) : view === 'weekly' ? (
-                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} timeframeLabel="Weekly" regimeData={regimeData} />
+                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} f13Divergence={f13Divergence} timeframeLabel="Weekly" regimeData={regimeData} />
                     ) : (
                         <div className="flex items-center justify-center h-full text-gray-500">
                             Select a stock to view analysis

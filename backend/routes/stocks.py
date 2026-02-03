@@ -1223,7 +1223,8 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y"):
             },
             "sr_levels": sr_levels,
             "elder_tactics": elder_tactics,
-            "macd_divergence": macd_divergence
+            "macd_divergence": macd_divergence,
+            "f13_divergence": f13_divergence
         }
 
         return clean_nans(response)
