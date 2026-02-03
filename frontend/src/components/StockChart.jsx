@@ -33,6 +33,7 @@ const StockChart = ({ data, srLevels = [], colors = {} }) => {
                     timeVisible: true,
                     secondsVisible: false,
                     borderColor: gridColor,
+                    borderColor: '#374151',
                 },
                 rightPriceScale: {
                     visible: true,
@@ -49,35 +50,52 @@ const StockChart = ({ data, srLevels = [], colors = {} }) => {
                 },
             });
 
-            // --- Series Creation ---
+            // --- Defensive Series Creation Wrapper ---
+            const createSeries = (type, options = {}) => {
+                if (!chart) return null;
+                try {
+                    if (type === 'Candlestick' && chart.addCandlestickSeries) return chart.addCandlestickSeries(options);
+                    if (type === 'Line' && chart.addLineSeries) return chart.addLineSeries(options);
+                    if (type === 'Histogram' && chart.addHistogramSeries) return chart.addHistogramSeries(options);
+                    if (chart.addSeries) {
+                        const SeriesTypes = { 'Candlestick': CandlestickSeries, 'Line': LineSeries, 'Histogram': HistogramSeries };
+                        return chart.addSeries(SeriesTypes[type], options);
+                    }
+                    console.warn(`Chart missing series methods. Keys: ${Object.keys(chart).join(', ')}`);
+                    return null;
+                } catch (err) {
+                    console.error(`Local Series Creation Error [${type}]:`, err);
+                    return null;
+                }
+            };
 
             // Price & EMAs (Right Scale)
-            const candleSeries = chart.addCandlestickSeries({
+            const candleSeries = createSeries('Candlestick', {
                 upColor: '#26a69a', downColor: '#ef5350', borderVisible: false, wickUpColor: '#26a69a', wickDownColor: '#ef5350',
                 priceScaleId: 'right',
             });
-            const ema50Series = chart.addLineSeries({ color: 'rgba(41, 98, 255, 1)', lineWidth: 2, priceScaleId: 'right', lastValueVisible: false, priceLineVisible: false });
-            const ema200Series = chart.addLineSeries({ color: 'rgba(255, 165, 0, 1)', lineWidth: 2, priceScaleId: 'right', lastValueVisible: false, priceLineVisible: false });
+            const ema50Series = createSeries('Line', { color: 'rgba(41, 98, 255, 1)', lineWidth: 2, priceScaleId: 'right', lastValueVisible: false, priceLineVisible: false });
+            const ema200Series = createSeries('Line', { color: 'rgba(255, 165, 0, 1)', lineWidth: 2, priceScaleId: 'right', lastValueVisible: false, priceLineVisible: false });
 
             // Volume (Custom 'volume' Scale)
-            const volumeSeries = chart.addHistogramSeries({
+            const volumeSeries = createSeries('Histogram', {
                 color: '#26a69a',
                 priceFormat: { type: 'volume' },
                 priceScaleId: 'volume',
                 lastValueVisible: false,
                 priceLineVisible: false,
             });
-            const volSmaSeries = chart.addLineSeries({ color: '#ffffff', lineWidth: 1, priceScaleId: 'volume', lastValueVisible: false, priceLineVisible: false });
+            const volSmaSeries = createSeries('Line', { color: '#ffffff', lineWidth: 1, priceScaleId: 'volume', lastValueVisible: false, priceLineVisible: false });
 
             // RSI (Custom 'rsi' Scale - LEFT)
-            const rsiSeries = chart.addLineSeries({
+            const rsiSeries = createSeries('Line', {
                 color: '#ba68c8', lineWidth: 2,
                 priceScaleId: 'rsi',
                 lastValueVisible: false,
                 priceLineVisible: false,
             });
-            const rsiOverbought = chart.addLineSeries({ color: 'rgba(255, 255, 255, 0.3)', lineWidth: 1, lineStyle: 2, priceScaleId: 'rsi', lastValueVisible: false, priceLineVisible: false });
-            const rsiOversold = chart.addLineSeries({ color: 'rgba(255, 255, 255, 0.3)', lineWidth: 1, lineStyle: 2, priceScaleId: 'rsi', lastValueVisible: false, priceLineVisible: false });
+            const rsiOverbought = createSeries('Line', { color: 'rgba(255, 255, 255, 0.3)', lineWidth: 1, lineStyle: 2, priceScaleId: 'rsi', lastValueVisible: false, priceLineVisible: false });
+            const rsiOversold = createSeries('Line', { color: 'rgba(255, 255, 255, 0.3)', lineWidth: 1, lineStyle: 2, priceScaleId: 'rsi', lastValueVisible: false, priceLineVisible: false });
 
             // --- Pane Layout ---
 

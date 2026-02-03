@@ -175,12 +175,11 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         visible: true,
                         autoScale: true,
                         scaleMargins: { top: 0.1, bottom: 0.1 },
-                        // INCREASED WIDTH TO ENSURE PERFECT ALIGNMENT ACROSS ALL NUMBER SCALES
                         minimumWidth: 130,
                     },
                     leftPriceScale: { visible: false },
                     crosshair: {
-                        mode: CrosshairMode.Normal, // AS IN POC
+                        mode: CrosshairMode.Normal,
                         vertLine: {
                             labelVisible: idx === paneConfigs.length - 1,
                             color: 'rgba(255, 255, 255, 0.75)',
@@ -191,7 +190,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         horzLine: {
                             labelBackgroundColor: '#4f46e5',
                             color: 'rgba(255, 255, 255, 0.75)',
-                            visible: p.id === 'price', // Only price shows by default
+                            visible: p.id === 'price',
                             labelVisible: p.id === 'price',
                         },
                     },
@@ -199,6 +198,8 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                     handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
                 });
 
+                if (!chart) throw new Error(`Chart Creation Failed for pane: ${p.id}`);
+                console.log(`Pane Init [${p.id}]:`, Object.keys(chart));
                 charts[p.id] = chart;
 
                 const leg = document.createElement('div');
@@ -216,67 +217,99 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             chartsRef.current = charts;
         } catch (e) {
             console.error("Multi-Pane Init Failure", e);
-            setInitError(e.message);
+            setInitError(`CHART INIT FAILED: ${e.message}. Please verify lightweight-charts version.`);
         }
         chartRef.current = charts.price;
         legendRef.current = legends;
 
+        // --- Defensive Series Creation Wrapper ---
+        const createSeries = (chart, type, options = {}) => {
+            if (!chart) return null;
+            try {
+                // v4/v5 modern methods
+                if (type === 'Candlestick' && chart.addCandlestickSeries) return chart.addCandlestickSeries(options);
+                if (type === 'Line' && chart.addLineSeries) return chart.addLineSeries(options);
+                if (type === 'Histogram' && chart.addHistogramSeries) return chart.addHistogramSeries(options);
+
+                // Fallback for older versions or weird module binding
+                if (chart.addSeries) {
+                    const SeriesTypes = { 'Candlestick': CandlestickSeries, 'Line': LineSeries, 'Histogram': HistogramSeries };
+                    return chart.addSeries(SeriesTypes[type], options);
+                }
+
+                throw new Error(`MISSING SERIES METHODS! Keys: ${Object.keys(chart).join(', ')}`);
+            } catch (err) {
+                console.error(`Series Creation Error [${type}]:`, err);
+                const keys = chart ? Object.keys(chart).join(', ') : 'null';
+                setInitError(`SERIES CRASH [${type}]: ${err.message}. Available methods: ${keys}`);
+                return null;
+            }
+        };
+
         const s = {};
         s.anchors = {};
 
+        if (!charts.price) return; // Fail safe
+
         // 1. Price Pane
-        s.candles = charts.price.addCandlestickSeries();
-        s.ema13 = charts.price.addLineSeries({ color: '#60a5fa', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
+        s.candles = createSeries(charts.price, 'Candlestick');
+        if (!s.candles) return; // Stop if core series fails
+
+        s.ema13 = createSeries(charts.price, 'Line', { color: '#60a5fa', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
 
         if (!isWeekly) {
-            s.ema26 = charts.price.addLineSeries({ color: '#f59e0b', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
-            s.ema22 = charts.price.addLineSeries({ color: 'rgba(255, 255, 255, 0.4)', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
+            s.ema26 = createSeries(charts.price, 'Line', { color: '#f59e0b', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
+            s.ema22 = createSeries(charts.price, 'Line', { color: 'rgba(255, 255, 255, 0.4)', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
             const bandStyle = (opacity, style) => ({ color: `rgba(148, 163, 184, ${opacity})`, lineWidth: 1, lineStyle: style, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
-            s.priceH1 = charts.price.addLineSeries(bandStyle(0.15, 2));
-            s.priceL1 = charts.price.addLineSeries(bandStyle(0.15, 2));
-            s.priceH2 = charts.price.addLineSeries(bandStyle(0.25, 3));
-            s.priceL2 = charts.price.addLineSeries(bandStyle(0.25, 3));
-            s.priceH3 = charts.price.addLineSeries({ ...bandStyle(0.6, 0), lineWidth: 1.5 });
-            s.priceL3 = charts.price.addLineSeries({ ...bandStyle(0.6, 0), lineWidth: 1.5 });
-            s.safeZoneLong = charts.price.addLineSeries({ color: 'rgba(239, 68, 68, 0.7)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
-            s.safeZoneShort = charts.price.addLineSeries({ color: 'rgba(34, 197, 94, 0.7)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
-            s.divMacdPrice = charts.price.addLineSeries({ color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
-            s.divEfiPrice = charts.price.addLineSeries({ color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
+            s.priceH1 = createSeries(charts.price, 'Line', bandStyle(0.15, 2));
+            s.priceL1 = createSeries(charts.price, 'Line', bandStyle(0.15, 2));
+            s.priceH2 = createSeries(charts.price, 'Line', bandStyle(0.25, 3));
+            s.priceL2 = createSeries(charts.price, 'Line', bandStyle(0.25, 3));
+            s.priceH3 = createSeries(charts.price, 'Line', { ...bandStyle(0.6, 0), lineWidth: 1.5 });
+            s.priceL3 = createSeries(charts.price, 'Line', { ...bandStyle(0.6, 0), lineWidth: 1.5 });
+            s.safeZoneLong = createSeries(charts.price, 'Line', { color: 'rgba(239, 68, 68, 0.7)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            s.safeZoneShort = createSeries(charts.price, 'Line', { color: 'rgba(34, 197, 94, 0.7)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            s.divMacdPrice = createSeries(charts.price, 'Line', { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
+            s.divEfiPrice = createSeries(charts.price, 'Line', { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
         }
 
         // 2. Volume Pane
-        s.volume = charts.volume.addHistogramSeries({ priceScaleId: 'right', priceFormat: { type: 'volume' }, lastValueVisible: false, priceLineVisible: false });
-        if (!isWeekly) s.volumeSMA = charts.volume.addLineSeries({ color: '#f59e0b', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
-
-        // 3. MACD Pane
-        s.macdHist = charts.macd.addHistogramSeries({ lastValueVisible: false, priceLineVisible: false, priceFormat: { precision: 2, minMove: 0.01 } });
-        if (!isWeekly) {
-            s.macdSignal = charts.macd.addLineSeries({ color: '#ef4444', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
-            s.divMacdInd = charts.macd.addLineSeries({ color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        if (charts.volume) {
+            s.volume = createSeries(charts.volume, 'Histogram', { priceScaleId: 'right', priceFormat: { type: 'volume' }, lastValueVisible: false, priceLineVisible: false });
+            if (!isWeekly) s.volumeSMA = createSeries(charts.volume, 'Line', { color: '#f59e0b', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
         }
 
-        if (!isWeekly) {
+        // 3. MACD Pane
+        if (charts.macd) {
+            s.macdHist = createSeries(charts.macd, 'Histogram', { lastValueVisible: false, priceLineVisible: false, priceFormat: { precision: 2, minMove: 0.01 } });
+            if (!isWeekly) {
+                s.macdSignal = createSeries(charts.macd, 'Line', { color: '#ef4444', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+                s.divMacdInd = createSeries(charts.macd, 'Line', { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+            }
+        }
+
+        if (!isWeekly && charts.force13 && charts.force2) {
             // 4. Force 13 Pane
-            s.force13 = charts.force13.addLineSeries({ color: '#60a5fa', lineWidth: 2.5, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' } });
-            s.force13Sig = charts.force13.addLineSeries({ color: '#ef4444', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' }, crosshairMarkerVisible: false });
+            s.force13 = createSeries(charts.force13, 'Line', { color: '#60a5fa', lineWidth: 2.5, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' } });
+            s.force13Sig = createSeries(charts.force13, 'Line', { color: '#ef4444', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' }, crosshairMarkerVisible: false });
             const efiBandStyle = (opacity, style) => ({ color: `rgba(148, 163, 184, ${opacity})`, lineWidth: 1, lineStyle: style, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false, priceFormat: { type: 'volume' } });
-            s.efiH1 = charts.force13.addLineSeries(efiBandStyle(0.15, 2));
-            s.efiL1 = charts.force13.addLineSeries(efiBandStyle(0.15, 2));
-            s.efiH2 = charts.force13.addLineSeries(efiBandStyle(0.25, 3));
-            s.efiL2 = charts.force13.addLineSeries(efiBandStyle(0.25, 3));
-            s.efiH3 = charts.force13.addLineSeries({ ...efiBandStyle(0.6, 0), lineWidth: 1.5 });
-            s.efiL3 = charts.force13.addLineSeries({ ...efiBandStyle(0.6, 0), lineWidth: 1.5 });
-            s.divEfiInd = charts.force13.addLineSeries({ color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' }, crosshairMarkerVisible: false });
+            s.efiH1 = createSeries(charts.force13, 'Line', efiBandStyle(0.15, 2));
+            s.efiL1 = createSeries(charts.force13, 'Line', efiBandStyle(0.15, 2));
+            s.efiH2 = createSeries(charts.force13, 'Line', efiBandStyle(0.25, 3));
+            s.efiL2 = createSeries(charts.force13, 'Line', efiBandStyle(0.25, 3));
+            s.efiH3 = createSeries(charts.force13, 'Line', { ...efiBandStyle(0.6, 0), lineWidth: 1.5 });
+            s.efiL3 = createSeries(charts.force13, 'Line', { ...efiBandStyle(0.6, 0), lineWidth: 1.5 });
+            s.divEfiInd = createSeries(charts.force13, 'Line', { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' }, crosshairMarkerVisible: false });
             s.force13.createPriceLine({ price: 0, color: 'rgba(255, 255, 255, 0.3)', lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
 
             // 5. Force 2 Pane
-            s.force2 = charts.force2.addHistogramSeries({ lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' } });
+            s.force2 = createSeries(charts.force2, 'Histogram', { lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' } });
         }
 
         // HIDDEN ANCHORS
         Object.keys(charts).forEach(id => {
             if (id === 'price') return;
-            s.anchors[id] = charts[id].addLineSeries({ visible: false, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+            s.anchors[id] = createSeries(charts[id], 'Line', { visible: false, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
         });
 
         seriesRef.current = s;
