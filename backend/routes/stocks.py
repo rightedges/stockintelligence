@@ -440,55 +440,78 @@ def get_stocks(session: Session = Depends(get_session)):
     # Sort by is_watched (descending -> True first) then symbol (ascending)
     statement = select(Stock).order_by(Stock.is_watched.desc(), Stock.symbol)
     stocks = session.exec(statement).all()
-    public_stocks = []
     
-    # Process weekly impulse for sidebar coloring
-    # This is optimizing to do 1 request per stock (could be better but ok for <20 stocks)
+    # 1. Identify which stocks need weekly impulse
+    needed_tickers = []
+    cached_impulses = {}
+    
     for stock in stocks:
+        cache_key = f"impulse_wk_{stock.symbol}"
+        impulse = get_cached(cache_key, ttl=3600)
+        if impulse:
+            cached_impulses[stock.symbol] = impulse
+        else:
+            needed_tickers.append(stock.symbol)
+            
+    # 2. Batch fetch missing weekly data
+    if needed_tickers:
         try:
-             # Check cache for fetching weekly data
-            cache_key = f"impulse_wk_{stock.symbol}"
-            impulse = get_cached(cache_key, ttl=3600) # Cache for 1 hour
+            # Multi-ticker download is much faster than sequential
+            batch_df = yf.download(needed_tickers, period="1y", interval="1wk", progress=False, group_by='ticker')
             
-            if not impulse:
-                # Fetch only last ~50 weeks to calculate indicators
-                wk_df = yf.download(stock.symbol, period="1y", interval="1wk", progress=False)
-                if not wk_df.empty:
-                    if isinstance(wk_df.columns, pd.MultiIndex):
-                        wk_df.columns = wk_df.columns.get_level_values(0)
-                    
-                    # De-duplicate columns (ensures df['Close'] is a Series)
-                    wk_df = wk_df.loc[:, ~wk_df.columns.duplicated()]
-                    
-                    # Calculate minimal indicators for impulse
-                    wk_df['ema_13'] = ta.trend.ema_indicator(wk_df['Close'], window=13)
-                    wk_df['macd_diff'] = ta.trend.macd_diff(wk_df['Close'])
-                    
-                    slope_ema = wk_df['ema_13'].diff().iloc[-1]
-                    slope_macd = wk_df['macd_diff'].diff().iloc[-1]
-                    
-                    if slope_ema > 0 and slope_macd > 0:
-                        impulse = "green"
-                    elif slope_ema < 0 and slope_macd < 0:
-                        impulse = "red"
+            for symbol in needed_tickers:
+                try:
+                    # Extract dataframe for this specific symbol
+                    if len(needed_tickers) > 1:
+                        wk_df = batch_df[symbol]
                     else:
+                        wk_df = batch_df
+                        
+                    if not wk_df.empty:
+                        # Calculate impulse
+                        wk_df['ema_13'] = ta.trend.ema_indicator(wk_df['Close'], window=13)
+                        wk_df['macd_diff'] = ta.trend.macd_diff(wk_df['Close'])
+                        
+                        slope_ema = wk_df['ema_13'].diff().iloc[-1]
+                        slope_macd = wk_df['macd_diff'].diff().iloc[-1]
+                        
                         impulse = "blue"
-                    
-                    set_cache(cache_key, impulse)
-            
-            # Create StockPublic instance
-            s_pub = StockPublic.model_validate(stock)
-            s_pub.impulse = impulse
-            public_stocks.append(s_pub)
-            
+                        if slope_ema > 0 and slope_macd > 0: impulse = "green"
+                        elif slope_ema < 0 and slope_macd < 0: impulse = "red"
+                        
+                        cached_impulses[symbol] = impulse
+                        set_cache(f"impulse_wk_{symbol}", impulse)
+                except Exception as e:
+                    print(f"Error processing batch impulse for {symbol}: {e}")
+                    cached_impulses[symbol] = "blue"
         except Exception as e:
-            print(f"Error calc weekly impulse for {stock.symbol}: {e}")
-            # Fallback
-            s_pub = StockPublic.model_validate(stock)
-            s_pub.impulse = "blue"
-            public_stocks.append(s_pub)
+            print(f"Error in batch download: {e}")
+            for symbol in needed_tickers:
+                cached_impulses[symbol] = "blue"
 
+    # 3. Build final list
+    public_stocks = []
+    for stock in stocks:
+        s_pub = StockPublic.model_validate(stock)
+        s_pub.impulse = cached_impulses.get(stock.symbol, "blue")
+        public_stocks.append(s_pub)
+        
     return public_stocks
+
+def get_stock_info_cached(symbol: str):
+    """Helper to get and cache Ticker.info (expensive network op)"""
+    cache_key = f"stock_info_{symbol}"
+    info = get_cached(cache_key, ttl=86400) # Cache for 24h
+    if info is None:
+        try:
+            info = yf.Ticker(symbol).info
+            # Filter info to keep cache size reasonable (only need sector/name/industry)
+            essential = {k: info.get(k) for k in ['sector', 'longName', 'industry', 'shortName'] if k in info}
+            set_cache(cache_key, essential)
+            return essential
+        except:
+            return {}
+    return info
 
 @router.delete("/{symbol}")
 def delete_stock(symbol: str, session: Session = Depends(get_session)):
@@ -875,13 +898,9 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y", se
                 
                 leading_sector = max(sector_performance, key=sector_performance.get) if sector_performance else "Unknown"
                 
-                # Check if stock is in leading sector
-                try:
-                    info = yf.Ticker(symbol).info
-                    stock_sector = info.get('sector', 'Unknown')
-                except Exception:
-                    stock_sector = "Unknown"
-                
+                # Check if stock is in leading sector (Using Cached Info)
+                info = get_stock_info_cached(symbol)
+                stock_sector = info.get('sector', 'Unknown')
                 is_leading_sector = stock_sector == leading_sector
 
                 # 3. Relative Strength (1mo return vs SPY)
