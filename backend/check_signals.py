@@ -3,7 +3,7 @@ import json
 
 def check_signals(symbol):
     print(f"--- Checking {symbol} signals ---")
-    url = f"http://localhost:8000/api/stocks/{symbol}/analysis?period=1y&interval=1d"
+    url = f"http://localhost:8000/stocks/{symbol}/analysis?period=1y&interval=1d"
     try:
         response = requests.get(url)
         if response.status_code == 200:

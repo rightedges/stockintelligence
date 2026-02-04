@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
+import * as LW from 'lightweight-charts';
+const {
     createChart,
     CandlestickSeries,
     LineSeries,
     HistogramSeries,
-    CrosshairMode
-} from 'lightweight-charts';
+    CrosshairMode,
+    createSeriesMarkers
+} = LW;
+console.log("DEBUG: lightweight-charts version:", typeof LW.version === 'function' ? LW.version() : LW.version || "unknown");
+console.log("DEBUG: createSeriesMarkers exists?", typeof createSeriesMarkers);
 import { Zap, Info, Notebook, Camera, Calendar, Trash2, Search, AlertTriangle, Edit, ShieldCheck, ArrowUpRight, Globe, Layers, Plus } from 'lucide-react';
 import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalEntry, getActiveTrade } from '../services/api';
 import { X } from 'lucide-react';
@@ -135,7 +139,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             { id: 'price', flex: 10 },
             { id: 'volume', flex: 1.5 },
             { id: 'macd', flex: 3 },
-            { id: 'force13', flex: 3, hide: isWeekly },
+            { id: 'force13', flex: 4, hide: isWeekly }, // Increased for better band visibility
             { id: 'force2', flex: 2, hide: isWeekly }
         ].filter(p => !p.hide);
 
@@ -226,22 +230,23 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         const createSeries = (chart, type, options = {}) => {
             if (!chart) return null;
             try {
-                // v4/v5 modern methods
-                if (type === 'Candlestick' && chart.addCandlestickSeries) return chart.addCandlestickSeries(options);
-                if (type === 'Line' && chart.addLineSeries) return chart.addLineSeries(options);
-                if (type === 'Histogram' && chart.addHistogramSeries) return chart.addHistogramSeries(options);
-
-                // Fallback for older versions or weird module binding
-                if (chart.addSeries) {
+                let series;
+                if (type === 'Candlestick' && chart.addCandlestickSeries) {
+                    series = chart.addCandlestickSeries(options);
+                } else if (type === 'Line' && chart.addLineSeries) {
+                    series = chart.addLineSeries(options);
+                } else if (type === 'Histogram' && chart.addHistogramSeries) {
+                    series = chart.addHistogramSeries(options);
+                } else if (chart.addSeries) {
                     const SeriesTypes = { 'Candlestick': CandlestickSeries, 'Line': LineSeries, 'Histogram': HistogramSeries };
-                    return chart.addSeries(SeriesTypes[type], options);
+                    series = chart.addSeries(SeriesTypes[type], options);
                 }
 
-                throw new Error(`MISSING SERIES METHODS! Keys: ${Object.keys(chart).join(', ')}`);
+                if (!series) throw new Error(`MISSING SERIES METHODS for ${type}`);
+                return series;
             } catch (err) {
                 console.error(`Series Creation Error [${type}]:`, err);
-                const keys = chart ? Object.keys(chart).join(', ') : 'null';
-                setInitError(`SERIES CRASH [${type}]: ${err.message}. Available methods: ${keys}`);
+                setInitError(`SERIES ERROR [${type}]: ${err.message}`);
                 return null;
             }
         };
@@ -253,7 +258,14 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
         // 1. Price Pane
         s.candles = createSeries(charts.price, 'Candlestick');
-        if (!s.candles) return; // Stop if core series fails
+        if (!s.candles) return;
+
+        // Initialize markers primitive (v5 API)
+        s.markers = {};
+        if (createSeriesMarkers) {
+            s.markers.candles = createSeriesMarkers(s.candles);
+            console.log("DEBUG [Markers]: Initialized markers for candles");
+        }
 
         s.ema13 = createSeries(charts.price, 'Line', { color: '#60a5fa', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
 
@@ -673,49 +685,6 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             if (s.divEfiInd) safeSetData(s.divEfiInd, [], 'DivEfiInd');
         }
 
-        // Render Markers
-        const markers = [];
-        const seenTimes = new Set();
-        data.forEach((d) => {
-            if (!d || !d.Date) return;
-            const timeStr = d.Date.split('T')[0];
-            if (seenTimes.has(timeStr)) return;
-
-            // Check for both modern and legacy signal names for robustness
-            const isBuy = Boolean(d.efi_buy_signal) || Boolean(d.efi_extreme_low);
-            const isSell = Boolean(d.efi_sell_signal) || Boolean(d.efi_extreme_high);
-
-            if (isBuy) {
-                markers.push({ time: timeStr, position: 'belowBar', color: '#22c55e', shape: 'arrowUp', text: 'E' });
-                seenTimes.add(timeStr);
-            } else if (isSell) {
-                markers.push({ time: timeStr, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'E' });
-                seenTimes.add(timeStr);
-            }
-        });
-
-        // Add a guaranteed test marker to verify the pipeline
-        if (markers.length === 0 && data.length > 0) {
-            const lastBar = data[data.length - 1];
-            const lastTime = lastBar.Date.split('T')[0];
-            markers.push({ time: lastTime, position: 'aboveBar', color: '#ffffff', shape: 'circle', text: 'TEST' });
-        }
-
-        if (s.candles && typeof s.candles.setMarkers === 'function') {
-            try {
-                s.candles.setMarkers(showMarkers ? markers : []);
-            } catch (err) {
-                console.error("setMarkers Failure:", err);
-            }
-        }
-        if (s.force13 && typeof s.force13.setMarkers === 'function') {
-            try {
-                s.force13.setMarkers(showMarkers ? markers : []);
-            } catch (err) {
-                console.error("force13 setMarkers Failure:", err);
-            }
-        }
-
         // --- Populate Anchor Series for perfect alignment ---
         const timeAnchorData = data.map(d => ({ time: d.Date.split('T')[0], value: 0 }));
         Object.keys(s.anchors || {}).forEach(id => {
@@ -723,7 +692,68 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         });
 
         chartsRef.current.price.timeScale().fitContent();
-    }, [data, symbol, srLevels, showMarkers]);
+    }, [data, symbol, srLevels]);
+
+    // Dedicated Marker Effect with slight delay to ensure series are painted
+    useEffect(() => {
+        const s = seriesRef.current;
+        console.log(`DEBUG [Markers-v3]: Dependency Trigger. symbol=${symbol}, showMarkers=${showMarkers}, hasSeries=${!!s?.candles}, dataLength=${data?.length}`);
+
+        if (!s || !s.candles || !data || data.length === 0) {
+            console.warn(`DEBUG [Markers-v3]: Effect skipped. Guard condition not met.`);
+            return;
+        }
+
+        const applyMarkers = () => {
+            console.log(`DEBUG [Markers-v3]: applyMarkers Executing. showMarkers=${showMarkers}`);
+            const markers = [];
+            const seenTimes = new Set();
+
+            data.forEach((d) => {
+                const timeStr = d.Date.split('T')[0];
+                if (seenTimes.has(timeStr)) return;
+
+                const isBuy = Boolean(d.efi_buy_signal);
+                const isSell = Boolean(d.efi_sell_signal);
+
+                if (isBuy || isSell) {
+                    console.log(`DEBUG [Signal-Verify] ${timeStr}: Buy=${isBuy}, Sell=${isSell}, EFI=${d.efi?.toFixed(0)}, Sig=${d.efi_signal?.toFixed(0)}, L2=${d.efi_atr_l2?.toFixed(0)}, H2=${d.efi_atr_h2?.toFixed(0)}`);
+                }
+
+                if (isBuy) {
+                    markers.push({ time: timeStr, position: 'belowBar', color: '#22c55e', shape: 'arrowUp', text: 'E' });
+                    seenTimes.add(timeStr);
+                } else if (isSell) {
+                    markers.push({ time: timeStr, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'E' });
+                    seenTimes.add(timeStr);
+                }
+            });
+
+            const lastBar = data[data.length - 1];
+            const lastTime = lastBar.Date.split('T')[0];
+
+            const markersToApply = showMarkers ? markers : [];
+
+            // V5 MARKERS API CALL
+            if (s.markers?.candles) {
+                try {
+                    s.markers.candles.setMarkers(markersToApply);
+                } catch (err) {
+                    console.error("DEBUG [Markers-v5]: Failed to apply markers", err);
+                }
+            }
+
+            // Global exposure for manual testing via console
+            window.FORCE_MARKERS = () => {
+                const m = [{ time: lastTime, position: 'inBar', color: '#ff00ff', shape: 'square', text: 'FORCED', size: 2 }];
+                if (s.markers?.candles) s.markers.candles.setMarkers(m);
+            };
+        };
+
+        // Delay slightly to let the chart engine breathe after potential data updates
+        const timer = setTimeout(applyMarkers, 100);
+        return () => clearTimeout(timer);
+    }, [data, symbol, showMarkers]);
 
     // Visibility Control Effect
     useEffect(() => {
@@ -897,7 +927,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                     : 'bg-green-900/30 border-green-500/40 shadow-green-900/10'
                                     }`}>
                                     <div className={`p-2 rounded-lg ${macdDivergence.type === 'bearish' ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
-                                        <AlertTriangle size={24} className={macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'} />
+                                        <Info size={24} className={macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'} />
                                     </div>
                                     <div>
                                         <h4 className={`font-black uppercase tracking-widest text-sm mb-1 ${macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'}`}>
@@ -1106,7 +1136,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                                 activeClass: 'bg-purple-500/20 text-purple-400 border-purple-500/40 shadow-[0_4px_12px_rgba(0,0,0,0.3)]', indicator: 'bg-purple-400'
                             },
                             {
-                                id: 'div', label: 'Divergence', state: showDivergences, setter: setShowDivergences, icon: AlertTriangle, color: 'amber',
+                                id: 'div', label: 'Divergence', state: showDivergences, setter: setShowDivergences, icon: Info, color: 'amber',
                                 activeClass: 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-[0_4px_12px_rgba(0,0,0,0.3)]', indicator: 'bg-amber-400'
                             },
                             {
@@ -1120,7 +1150,10 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         ].map((t) => (
                             <button
                                 key={t.id}
-                                onClick={() => t.setter(!t.state)}
+                                onClick={() => {
+                                    console.log(`DEBUG [Button]: Toggling ${t.id}. Old state: ${t.state}`);
+                                    t.setter(!t.state);
+                                }}
                                 className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all border ${t.state
                                     ? t.activeClass
                                     : 'bg-gray-800/40 text-gray-500 border-white/5 hover:bg-gray-800/60'

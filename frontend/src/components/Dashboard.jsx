@@ -4,7 +4,7 @@ import StockChart from './StockChart';
 import MarketIntelligence from './MarketIntelligence';
 import ElderAnalysis from './ElderAnalysis';
 import TradeJournal from './TradeJournal';
-import { Plus, Trash2, TrendingUp, Activity, Brain, LineChart, Star, Zap, Notebook } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, Activity, Brain, LineChart, Star, Zap, Notebook, AlertTriangle } from 'lucide-react';
 
 const Dashboard = () => {
     const [stocks, setStocks] = useState([]);

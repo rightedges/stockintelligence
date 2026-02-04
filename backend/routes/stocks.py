@@ -85,10 +85,9 @@ def calculate_indicators(df):
     df['efi_signal'] = df['efi'].ewm(span=13, adjust=False).mean()
     
     # EFI ATR = smoothed absolute bar-to-bar change of EFI
-    # Use RMA (SMA with alpha=1/N) equivalent for TV consistency if possible, 
-    # but EMA (ewm) 13 is the Elder standard for smoothing here.
+    # Using 22-period smoothing for more stable bands, reducing false zone entries.
     efi_range = (df['efi'] - df['efi'].shift(1)).abs()
-    efi_atr = efi_range.ewm(span=13, adjust=False).mean()
+    efi_atr = efi_range.ewm(span=22, adjust=False).mean()
     
     # Upper/Lower Bands centered on Signal
     df['efi_atr_h1'] = df['efi_signal'] + efi_atr * 1
@@ -99,27 +98,25 @@ def calculate_indicators(df):
     df['efi_atr_l3'] = df['efi_signal'] - efi_atr * 3
     
     # Truncation Logic (Extreme Value Handling)
-    # Capping EFI if it exceeds 4-ATR for visual stability in plots
-    efi_ob_h = df['efi_signal'] + efi_atr * 4
-    efi_ob_l = df['efi_signal'] - efi_atr * 4
+    # Increased to 5-ATR so that 3nd-ATR signals are clearly visible as penetrations
+    efi_ob_h = df['efi_signal'] + efi_atr * 5
+    efi_ob_l = df['efi_signal'] - efi_atr * 5
     
     df['efi_truncated'] = df['efi']
-    df.loc[df['efi'] > efi_ob_h, 'efi_truncated'] = df['efi_atr_h3']
-    df.loc[df['efi'] < efi_ob_l, 'efi_truncated'] = df['efi_atr_l3']
+    df.loc[df['efi'] > efi_ob_h, 'efi_truncated'] = df['efi_signal'] + efi_atr * 4
+    df.loc[df['efi'] < efi_ob_l, 'efi_truncated'] = df['efi_signal'] - efi_atr * 4
     
-    # Signal Dots (EFI hitting or exceeding 1.5-ATR)
-    # Ensure they are boolean and handle NaNs
-    df['efi_buy_signal'] = (df['efi'] <= df['efi_atr_l2']).fillna(False) 
-    df['efi_sell_signal'] = (df['efi'] >= df['efi_atr_h2']).fillna(False)
+    # Signal Dots (EFI hitting or exceeding 3-ATR) - Trigger Logic (First crossover)
+    # Increased threshold to 3-ATR to capture true momentum exhausts
+    efi_in_buy_zone = (df['efi'] <= df['efi_atr_l3'])
+    efi_in_sell_zone = (df['efi'] >= df['efi_atr_h3'])
     
-    # DEBUG: FORCE SIGNALS ON LAST 2 BARS TO VERIFY FRONTEND RENDERING
-    if len(df) > 5:
-        df.loc[df.index[-1], 'efi_buy_signal'] = True
-        df.loc[df.index[-2], 'efi_sell_signal'] = True
+    df['efi_buy_signal'] = (efi_in_buy_zone & (~efi_in_buy_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+    df['efi_sell_signal'] = (efi_in_sell_zone & (~efi_in_sell_zone.shift(1).fillna(False))).fillna(False).astype(bool)
     
-    # Backwards compatibility
-    df['efi_extreme_high'] = df['efi_sell_signal']
-    df['efi_extreme_low'] = df['efi_buy_signal']
+    # Remove old/aliased signal names to prevent confusion/persistence
+    if 'efi_extreme_high' in df.columns: del df['efi_extreme_high']
+    if 'efi_extreme_low' in df.columns: del df['efi_extreme_low']
 
     # Keep compatibility with existing code that might use force_index_13
     df['force_index_13'] = df['efi']
@@ -1289,6 +1286,13 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y", se
                 session.commit()
         except Exception as sync_err:
             print(f"Sync error for {symbol}: {sync_err}")
+
+        # DEBUG: Verify signals in response
+        active_buys = [d for d in data if d.get('efi_buy_signal')]
+        active_sells = [d for d in data if d.get('efi_sell_signal')]
+        print(f"DEBUG [{symbol}]: Active Buys={len(active_buys)}, Active Sells={len(active_sells)}")
+        if active_buys: print(f"DEBUG: Sample Buy Bar: {active_buys[0].get('Date')}")
+        if active_sells: print(f"DEBUG: Sample Sell Bar: {active_sells[0].get('Date')}")
 
         return clean_nans(response)
 
