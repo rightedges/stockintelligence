@@ -139,7 +139,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             { id: 'price', flex: 10 },
             { id: 'volume', flex: 1.5 },
             { id: 'macd', flex: 3 },
-            { id: 'force13', flex: 4, hide: isWeekly }, // Increased for better band visibility
+            { id: 'force13', flex: 4 }, // Enabled for both Daily and Weekly
             { id: 'force2', flex: 2, hide: isWeekly }
         ].filter(p => !p.hide);
 
@@ -300,7 +300,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             }
         }
 
-        if (!isWeekly && charts.force13 && charts.force2) {
+        if (charts.force13) {
             // 4. Force 13 Pane
             s.force13 = createSeries(charts.force13, 'Line', { color: '#60a5fa', lineWidth: 2.5, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' } });
             s.force13Sig = createSeries(charts.force13, 'Line', { color: '#ef4444', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' }, crosshairMarkerVisible: false });
@@ -313,7 +313,9 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             s.efiL3 = createSeries(charts.force13, 'Line', { ...efiBandStyle(0.6, 0), lineWidth: 1.5 });
             s.divEfiInd = createSeries(charts.force13, 'Line', { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' }, crosshairMarkerVisible: false });
             s.force13.createPriceLine({ price: 0, color: 'rgba(255, 255, 255, 0.3)', lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
+        }
 
+        if (charts.force2) {
             // 5. Force 2 Pane
             s.force2 = createSeries(charts.force2, 'Histogram', { lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' } });
         }
@@ -588,7 +590,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 });
             }
 
-            if (!isWeekly && d.efi_truncated !== undefined && d.efi_truncated !== null) {
+            if (d.efi_truncated !== undefined && d.efi_truncated !== null) {
                 force13Data.push({ time, value: d.efi_truncated });
                 if (d.efi_signal) ema13DataForce.push({ time, value: d.efi_signal });
                 if (d.efi_atr_h1) efiH1Data.push({ time, value: d.efi_atr_h1 });
