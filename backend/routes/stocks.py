@@ -5,6 +5,7 @@ import pandas as pd
 import ta
 import logging
 import requests
+import json
 from database import get_session
 from models import Stock, StockPublic
 from cache import get_cached, set_cache
@@ -14,7 +15,7 @@ router = APIRouter(prefix="/stocks", tags=["stocks"])
 logger = logging.getLogger(__name__)
 
 
-def calculate_indicators(df):
+def calculate_indicators(df, dynamic_configs=None):
     if len(df) < 2:
         return df
         
@@ -169,6 +170,157 @@ def calculate_indicators(df):
     # Fill NaN for initial periods
     df['safezone_long'] = df['safezone_long'].bfill()
     df['safezone_short'] = df['safezone_short'].bfill()
+
+    # --- NEW INDICATORS (Feb 2026) ---
+
+    # 1. Guppy Multiple Moving Average (GMMA)
+    # Short Term: 3, 5, 8, 10, 12, 15
+    for period in [3, 5, 8, 10, 12, 15]:
+        df[f'guppy_short_{period}'] = ta.trend.EMAIndicator(close=df['Close'], window=period).ema_indicator()
+    
+    # Long Term: 30, 35, 40, 45, 50, 60
+    for period in [30, 35, 40, 45, 50, 60]:
+        df[f'guppy_long_{period}'] = ta.trend.EMAIndicator(close=df['Close'], window=period).ema_indicator()
+
+    # Guppy Signal: Short Term Group Average vs Long Term Group Average
+    short_cols = [f'guppy_short_{p}' for p in [3, 5, 8, 10, 12, 15]]
+    long_cols = [f'guppy_long_{p}' for p in [30, 35, 40, 45, 50, 60]]
+    
+    df['guppy_short_avg'] = df[short_cols].mean(axis=1)
+    df['guppy_long_avg'] = df[long_cols].mean(axis=1)
+    
+    # Clean NaNs for accurate comparison
+    # Use 0 for comparison to avoid boolean errors, but realistically we need valid data
+    # We'll just rely on pandas alignment
+    
+    df['guppy_signal'] = 0
+    # Bullish Crossover (Short crosses above Long)
+    df.loc[(df['guppy_short_avg'] > df['guppy_long_avg']) & (df['guppy_short_avg'].shift(1) <= df['guppy_long_avg'].shift(1)), 'guppy_signal'] = 1
+    # Bearish Crossover (Short crosses below Long)
+    df.loc[(df['guppy_short_avg'] < df['guppy_long_avg']) & (df['guppy_short_avg'].shift(1) >= df['guppy_long_avg'].shift(1)), 'guppy_signal'] = -1
+
+    # 2. Bollinger Bands (20, 2)
+    bb = ta.volatility.BollingerBands(close=df['Close'], window=20, window_dev=2)
+    df['bb_upper'] = bb.bollinger_hband()
+    df['bb_middle'] = bb.bollinger_mavg()
+    df['bb_lower'] = bb.bollinger_lband()
+
+    # 3. ATR Volatility Stop (Chandelier Exit-like)
+    # Logic: Long Stop = HighestHigh(22) - 3*ATR(22)
+    #        Short Stop = LowestLow(22) + 3*ATR(22)
+    # Simple Volatility Stop Implementation
+    atr_period = 22
+    atr_mult = 3.0
+    
+    # Calculate ATR
+    # ta.volatility.AverageTrueRange
+    atr_obj = ta.volatility.AverageTrueRange(high=df['High'], low=df['Low'], close=df['Close'], window=atr_period)
+    df['atr_val'] = atr_obj.average_true_range()
+    
+    # Calculate Highest High and Lowest Low
+    df['hh22'] = df['High'].rolling(window=atr_period).max()
+    df['ll22'] = df['Low'].rolling(window=atr_period).min()
+    
+    df['chandelier_long'] = df['hh22'] - (df['atr_val'] * atr_mult)
+    df['chandelier_short'] = df['ll22'] + (df['atr_val'] * atr_mult)
+    
+    # Determine which stop to use based on trend
+    # Logic: If Close > Previous Short Stop, switch to Long. If Close < Previous Long Stop, switch to Short.
+    # We will compute a single 'volatility_stop' column.
+    
+    # Vectorized approach is hard for state-dependent logic, but we can do a simplified loop or fill
+    # For now, let's provide both 'chandelier_long' and 'chandelier_short' to frontend and let it choose,
+    # OR simpler: just return them and let frontend visualizer handle "active" State if needed.
+    # Actually, a single line is better for charts.
+    
+    # Iterative calculation for 'volatility_stop'
+    # Initialize with Long Stop
+    stop_vals = [df['chandelier_long'].iloc[0]]
+    trend = 1 # 1 for Long, -1 for Short
+    
+    # Retrieve numpy arrays for speed
+    closes = df['Close'].values
+    long_stops = df['chandelier_long'].values
+    short_stops = df['chandelier_short'].values
+    
+    # Pre-allocate output array
+    final_stops = [0.0] * len(df)
+    
+    # Simple efficient loop (skip first 'atr_period' indices roughly)
+    curr_trend = 1
+    curr_stop = 0.0
+    
+    for i in range(len(df)):
+        if i < atr_period:
+            final_stops[i] = None # Not enough data
+            continue
+            
+        c = closes[i]
+        ls = long_stops[i]
+        ss = short_stops[i]
+        prev_c = closes[i-1]
+        
+        # If we were Long
+        if curr_trend == 1:
+            # Check for breakdown
+            if c < curr_stop:
+                curr_trend = -1
+                curr_stop = ss
+            else:
+                # Update Long Stop (it never moves down)
+                curr_stop = max(curr_stop, ls)
+        # If we were Short
+        else:
+            # Check for breakout
+            if c > curr_stop:
+                curr_trend = 1
+                curr_stop = ls
+            else:
+                # Update Short Stop (it never moves up)
+                curr_stop = min(curr_stop, ss)
+                
+        final_stops[i] = curr_stop
+
+    df['volatility_stop'] = final_stops
+    df = df.drop(columns=['hh22', 'll22', 'chandelier_long', 'chandelier_short']) # Keep atr_val if needed or drop
+
+    # --- END NEW INDICATORS ---
+
+    # --- DYNAMIC INDICATORS ---
+    if dynamic_configs:
+        for config in dynamic_configs:
+            ctype = config.get('type')
+            params = config.get('params', {})
+            
+            if ctype == 'ema':
+                window = params.get('window', 13)
+                col_name = f'ema_{window}'
+                if col_name not in df.columns:
+                    df[col_name] = ta.trend.ema_indicator(df['Close'], window=window)
+            
+            elif ctype == 'sma':
+                window = params.get('window', 20)
+                col_name = f'sma_{window}'
+                if col_name not in df.columns:
+                    df[col_name] = ta.trend.sma_indicator(df['Close'], window=window)
+
+            elif ctype == 'rsi':
+                window = params.get('window', 14)
+                col_name = f'rsi_{window}'
+                if col_name not in df.columns:
+                    df[col_name] = ta.momentum.rsi(df['Close'], window=window)
+
+            elif ctype == 'macd':
+                fast = params.get('fast', 12)
+                slow = params.get('slow', 26)
+                sign = params.get('signal', 9)
+                # We need to be careful with column naming if multiple MACDs are requested
+                prefix = f'macd_{fast}_{slow}_{sign}'
+                if f'{prefix}_diff' not in df.columns:
+                    macd = ta.trend.MACD(df['Close'], window_fast=fast, window_slow=slow, window_sign=sign)
+                    df[f'{prefix}'] = macd.macd()
+                    df[f'{prefix}_signal'] = macd.macd_signal()
+                    df[f'{prefix}_diff'] = macd.macd_diff()
 
     return df
 
@@ -543,7 +695,7 @@ def toggle_watch(symbol: str, session: Session = Depends(get_session)):
     return stock
 
 @router.get("/{symbol}/analysis")
-def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y", session: Session = Depends(get_session)):
+def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y", indicators: str = None, session: Session = Depends(get_session)):
     # Fetch data (Use cache)
     cache_key = f"download_{symbol}_{period}_{interval}"
     df = get_cached(cache_key, ttl=900) # 15 mins for price data
@@ -580,8 +732,16 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y", se
                 else:
                     raise HTTPException(status_code=400, detail=f"Missing required column: {col}")
             
+        # Parse dynamic indicators if provided
+        dynamic_configs = None
+        if indicators:
+            try:
+                dynamic_configs = json.loads(indicators)
+            except Exception as e:
+                logger.error(f"Failed to parse dynamic indicators for {symbol}: {e}")
+
         # Calculate Indicators using Helper
-        df = calculate_indicators(df)
+        df = calculate_indicators(df, dynamic_configs=dynamic_configs)
 
         # --- Support & Resistance Detection ---
         # Look for local extrema in the last 100 days

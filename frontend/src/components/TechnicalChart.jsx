@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as LW from 'lightweight-charts';
 const {
     createChart,
@@ -15,7 +15,7 @@ import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalE
 import { X } from 'lucide-react';
 // TradeEntryModal moved to Dashboard
 
-const ElderAnalysis = ({
+const TechnicalChart = ({
     data,
     symbol,
     srLevels = [],
@@ -26,10 +26,10 @@ const ElderAnalysis = ({
     regimeData,
     setInitError,
     onLogTrade,
-    indicators, // Props from Dashboard
+    indicatorConfigs, // Props from Dashboard
     isSidebarOpen // Props from Dashboard
 }) => {
-    console.log('ElderAnalysis Init', { symbol, dataLength: data?.length, timeframeLabel });
+    console.log('TechnicalChart Init', { symbol, dataLength: data?.length, timeframeLabel });
     const lastData = data && data.length > 0 ? data[data.length - 1] : null;
 
     const chartContainerRef = useRef();
@@ -52,45 +52,84 @@ const ElderAnalysis = ({
     const [syncRange, setSyncRange] = useState(null);
     const [syncCrosshair, setSyncCrosshair] = useState(null);
 
-    // Destructure indicators from props (with defaults if missing)
-    const {
-        showEMA = true,
-        showValueZones = true,
-        showSafeZones = false,
-        showSRLevels = true,
-        showDivergences = true,
-        showMarkers = true,
-        // Panes
-        showVolume = true,
-        showMACD = true,
-        showForce13 = true,
-        showForce2 = true
-    } = indicators || {};
-
     // Ref to access current visibility inside event listeners/loops
-    const visibilityRef = useRef({
-        ema: showEMA,
-        valueZones: showValueZones,
-        safeZones: showSafeZones,
-        divergences: showDivergences,
-        srLevels: showSRLevels,
-        markers: showMarkers
-    });
+    const visibilityRef = useRef(indicatorConfigs);
 
     const lastLegendDataRef = useRef(null);
     useEffect(() => {
-        visibilityRef.current = {
-            ema: showEMA,
-            valueZones: showValueZones,
-            safeZones: showSafeZones,
-            divergences: showDivergences,
-            srLevels: showSRLevels,
-            markers: showMarkers
-        };
-        // LocalStorage logic moved to Dashboard
-    }, [showValueZones, showSafeZones, showSRLevels, showDivergences, showEMA, showMarkers]);
+        visibilityRef.current = indicatorConfigs;
+    }, [indicatorConfigs]);
+
+    // Helpers to extract visibility from the new multi-instance config
+    const getVis = (type) => {
+        const item = [...(indicatorConfigs.overlays || []), ...(indicatorConfigs.panes || []), ...(indicatorConfigs.signals || [])]
+            .find(i => i.type === type);
+        return item ? item.visible : false;
+    };
+
+    const showValueZones = getVis('valueZones');
+    const showEMA = getVis('ema'); // Helper for legacy blocks if any
+    const showForceZones = getVis('forceZones');
+    const showGuppySignals = getVis('guppySignals');
+    const showSRLevels = getVis('srLevels');
+    const showSafeZones = getVis('safeZones');
+    const showGuppy = getVis('guppy');
+    const showBollinger = getVis('bollinger');
+    const showATRStop = getVis('atrStop');
+    const showVolume = getVis('volume');
+    const showMACD = getVis('macd');
+    const showForce13 = getVis('force13');
+    const showForce2 = getVis('force2');
+    const showMacdDivergence = getVis('macdDivergence');
+    const showForceDivergence = getVis('forceDivergence');
+    const showForceMarkers = getVis('forceMarkers');
 
     const priceFormatter = (price) => (price || 0).toFixed(2);
+
+    // --- Defensive Series Creation Wrapper ---
+    const createSeries = useCallback((chart, type, options = {}) => {
+        if (!chart) return null;
+        try {
+            let series;
+            if (type === 'Candlestick' && chart.addCandlestickSeries) {
+                series = chart.addCandlestickSeries(options);
+            } else if (type === 'Line' && chart.addLineSeries) {
+                series = chart.addLineSeries(options);
+            } else if (type === 'Histogram' && chart.addHistogramSeries) {
+                series = chart.addHistogramSeries(options);
+            } else if (chart.addSeries) {
+                const SeriesTypes = { 'Candlestick': CandlestickSeries, 'Line': LineSeries, 'Histogram': HistogramSeries };
+                series = chart.addSeries(SeriesTypes[type], options);
+            }
+
+            if (!series) throw new Error(`MISSING SERIES METHODS for ${type}`);
+            return series;
+        } catch (err) {
+            console.error(`Series Creation Error[${type}]: `, err);
+            return null;
+        }
+    }, []);
+
+    const safeSetData = useCallback((series, seriesData, label) => {
+        if (!series) return;
+        try {
+            // Sanitization: lightweight-charts requires numbers or strings for values.
+            // It throws assertions on null/NaN.
+            const sanitized = (seriesData || []).filter(item => {
+                if (item.open !== undefined) {
+                    // Candlestick data
+                    return item.open != null && item.high != null && item.low != null && item.close != null &&
+                        !isNaN(item.open) && !isNaN(item.high) && !isNaN(item.low) && !isNaN(item.close);
+                } else {
+                    // Value-based data (Line, Histogram)
+                    return item.value != null && !isNaN(item.value);
+                }
+            });
+            series.setData(sanitized);
+        } catch (err) {
+            console.error(`FAILED to set ${label}:`, err);
+        }
+    }, []);
 
     const fetchActiveTrade = async () => {
         if (!symbol) return;
@@ -145,10 +184,18 @@ const ElderAnalysis = ({
 
     const resizeRAF = useRef(null);
 
+    const paneConfigs = [
+        { id: 'price', flex: 10, visible: true },
+        { id: 'volume', flex: 1.5, visible: indicatorConfigs.panes.find(p => p.type === 'volume')?.visible },
+        { id: 'macd', flex: 3.5, visible: indicatorConfigs.panes.find(p => p.type === 'macd')?.visible },
+        { id: 'force13', flex: 4, visible: indicatorConfigs.panes.find(p => p.type === 'force13')?.visible },
+        { id: 'force2', flex: 2, visible: indicatorConfigs.panes.find(p => p.type === 'force2')?.visible }
+    ].filter(p => p.visible !== false);
+
     // Initialize Multi-Pane Integrated Professional Layout
     useEffect(() => {
         let isAlive = true; // Safety flag for async operations/callbacks
-        console.log('ElderAnalysis: Initializing Layout...', { timeframeLabel, indicators });
+        console.log('TechnicalChart: Initializing Layout...', { timeframeLabel, indicatorConfigs });
         prevWidth.current = 0; // Force reset on every new mount/symbol change
 
         if (!chartContainerRef.current) return;
@@ -170,14 +217,6 @@ const ElderAnalysis = ({
         const textColor = 'rgba(255, 255, 255, 0.9)';
         const gridColor = 'rgba(197, 203, 206, 0.05)';
 
-        const paneConfigs = [
-            { id: 'price', flex: 10 },
-            { id: 'volume', flex: 1.5, hide: !showVolume },
-            { id: 'macd', flex: 3, hide: !showMACD },
-            { id: 'force13', flex: 4, hide: !showForce13 },
-            { id: 'force2', flex: 2, hide: isWeekly || !showForce2 }
-        ].filter(p => !p.hide);
-
         const charts = {};
         const legends = {};
         // Use getBoundingClientRect for precision, with fallback
@@ -185,7 +224,7 @@ const ElderAnalysis = ({
         const containerWidth = rect.width || container.clientWidth || 800;
         const containerHeight = rect.height || 1000;
 
-        console.log('[ElderAnalysis] Container Dimensions Init:', {
+        console.log('[TechnicalChart] Container Dimensions Init:', {
             rectWidth: rect.width,
             rectHeight: rect.height,
             clientWidth: container.clientWidth,
@@ -266,30 +305,6 @@ const ElderAnalysis = ({
                     border: 1px solid rgba(255, 255, 255, 0.05);
                 `;
 
-                // Add click listener for toggles
-                leg.addEventListener('click', (e) => {
-                    const btn = e.target.closest('[data-toggle]');
-                    if (btn) {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        const id = btn.dataset.toggle;
-                        console.log(`Legend Toggle Clicked: ${id}`);
-
-                        // Map IDs to Setters
-                        const setters = {
-                            'ema': setShowEMA,
-                            'zones': setShowValueZones,
-                            'sr': setShowSRLevels,
-                            'div': setShowDivergences,
-                            'safe': setShowSafeZones,
-                            'markers': setShowMarkers
-                        };
-
-                        if (setters[id]) {
-                            setters[id](prev => !prev);
-                        }
-                    }
-                });
 
                 paneDiv.appendChild(leg);
                 legends[p.id] = leg;
@@ -298,42 +313,16 @@ const ElderAnalysis = ({
             chartsRef.current = charts;
         } catch (e) {
             console.error("Multi-Pane Init Failure", e);
-            setInitError(`CHART INIT FAILED: ${e.message}`);
+            setInitError(`CHART INIT FAILED: ${e.message} `);
         }
         chartRef.current = charts.price;
         legendRef.current = legends;
 
-        // --- Defensive Series Creation Wrapper ---
-        const createSeries = (chart, type, options = {}) => {
-            if (!chart) return null;
-            try {
-                let series;
-                if (type === 'Candlestick' && chart.addCandlestickSeries) {
-                    series = chart.addCandlestickSeries(options);
-                } else if (type === 'Line' && chart.addLineSeries) {
-                    series = chart.addLineSeries(options);
-                } else if (type === 'Histogram' && chart.addHistogramSeries) {
-                    series = chart.addHistogramSeries(options);
-                } else if (chart.addSeries) {
-                    const SeriesTypes = { 'Candlestick': CandlestickSeries, 'Line': LineSeries, 'Histogram': HistogramSeries };
-                    series = chart.addSeries(SeriesTypes[type], options);
-                }
-
-                if (!series) throw new Error(`MISSING SERIES METHODS for ${type}`);
-                return series;
-            } catch (err) {
-                console.error(`Series Creation Error [${type}]:`, err);
-                return null;
-            }
-        };
-
-        const s = {};
-        s.anchors = {};
-
-        if (!charts.price) return; // Fail safe
+        const s = { anchors: {}, overlays: {}, panes: {} };
+        if (!chartsRef.current.price) return;
 
         // 1. Price Pane
-        s.candles = createSeries(charts.price, 'Candlestick');
+        s.candles = createSeries(chartsRef.current.price, 'Candlestick');
         if (!s.candles) return;
 
         // Initialize markers primitive (v5 API)
@@ -341,67 +330,94 @@ const ElderAnalysis = ({
             s.markers = { candles: createSeriesMarkers(s.candles) };
         }
 
-        s.ema13 = createSeries(charts.price, 'Line', { color: '#60a5fa', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
+        // Static/Internal Overlays (Linked to specific UI features)
+        const bandStyle = (opacity, style) => ({ color: `rgba(148, 163, 184, ${opacity})`, lineWidth: 1, lineStyle: style, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        // s.ema13 and s.ema26 removed: now handled by dynamic indicatorConfigs
+        s.ema22 = createSeries(chartsRef.current.price, 'Line', { color: 'rgba(255, 255, 255, 0.4)', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
+        s.priceH1 = createSeries(chartsRef.current.price, 'Line', bandStyle(0.15, 2));
+        s.priceL1 = createSeries(chartsRef.current.price, 'Line', bandStyle(0.15, 2));
+        s.priceH2 = createSeries(chartsRef.current.price, 'Line', bandStyle(0.25, 3));
+        s.priceL2 = createSeries(chartsRef.current.price, 'Line', bandStyle(0.25, 3));
+        s.priceH3 = createSeries(chartsRef.current.price, 'Line', { ...bandStyle(0.6, 0), lineWidth: 1.5 });
+        s.priceL3 = createSeries(chartsRef.current.price, 'Line', { ...bandStyle(0.6, 0), lineWidth: 1.5 });
 
-        if (!isWeekly) {
-            s.ema26 = createSeries(charts.price, 'Line', { color: '#f59e0b', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
-            s.ema22 = createSeries(charts.price, 'Line', { color: 'rgba(255, 255, 255, 0.4)', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
-            const bandStyle = (opacity, style) => ({ color: `rgba(148, 163, 184, ${opacity})`, lineWidth: 1, lineStyle: style, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
-            s.priceH1 = createSeries(charts.price, 'Line', bandStyle(0.15, 2));
-            s.priceL1 = createSeries(charts.price, 'Line', bandStyle(0.15, 2));
-            s.priceH2 = createSeries(charts.price, 'Line', bandStyle(0.25, 3));
-            s.priceL2 = createSeries(charts.price, 'Line', bandStyle(0.25, 3));
-            s.priceH3 = createSeries(charts.price, 'Line', { ...bandStyle(0.6, 0), lineWidth: 1.5 });
-            s.priceL3 = createSeries(charts.price, 'Line', { ...bandStyle(0.6, 0), lineWidth: 1.5 });
-            s.safeZoneLong = createSeries(charts.price, 'Line', { color: 'rgba(239, 68, 68, 0.7)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
-            s.safeZoneShort = createSeries(charts.price, 'Line', { color: 'rgba(34, 197, 94, 0.7)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
-            s.divMacdPrice = createSeries(charts.price, 'Line', { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
-            s.divEfiPrice = createSeries(charts.price, 'Line', { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
-        }
+        s.safeZoneLong = createSeries(chartsRef.current.price, 'Line', { color: 'rgba(239, 68, 68, 0.7)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+        s.safeZoneShort = createSeries(chartsRef.current.price, 'Line', { color: 'rgba(34, 197, 94, 0.7)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+
+        const bbStyle = (color) => ({ color: color, lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        s.bbUpper = createSeries(chartsRef.current.price, 'Line', bbStyle('rgba(34, 211, 238, 0.6)'));
+        s.bbMiddle = createSeries(chartsRef.current.price, 'Line', bbStyle('rgba(34, 211, 238, 0.8)'));
+        s.bbLower = createSeries(chartsRef.current.price, 'Line', bbStyle('rgba(34, 211, 238, 0.6)'));
+
+        s.atrStop = createSeries(chartsRef.current.price, 'Line', { color: '#ec4899', lineWidth: 2, lineStyle: 0, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+
+        s.guppySeries = [];
+        const createGuppy = (period, isLong) => {
+            const color = isLong ? 'rgba(239, 68, 68, 0.6)' : 'rgba(59, 130, 246, 0.6)';
+            const series = createSeries(chartsRef.current.price, 'Line', { color, lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+            if (series) s.guppySeries.push({ series, id: `guppy_${isLong ? 'long' : 'short'}_${period}` });
+        };
+        [3, 5, 8, 10, 12, 15].forEach(p => createGuppy(p, false));
+        [30, 35, 40, 45, 50, 60].forEach(p => createGuppy(p, true));
+
+        // Signals & Divergence (On Price Chart)
+        s.divMacdPrice = createSeries(chartsRef.current.price, 'Line', { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
+        s.divEfiPrice = createSeries(chartsRef.current.price, 'Line', { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
 
         // 2. Volume Pane
-        if (charts.volume) {
-            s.volume = createSeries(charts.volume, 'Histogram', { priceScaleId: 'right', priceFormat: { type: 'volume' }, lastValueVisible: false, priceLineVisible: false });
-            if (!isWeekly) s.volumeSMA = createSeries(charts.volume, 'Line', { color: '#f59e0b', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
+        if (chartsRef.current.volume) {
+            s.volume = createSeries(chartsRef.current.volume, 'Histogram', { priceScaleId: 'right', priceFormat: { type: 'volume' }, lastValueVisible: false, priceLineVisible: false });
+            s.volumeSMA = createSeries(chartsRef.current.volume, 'Line', { color: '#f59e0b', lineWidth: 1, lastValueVisible: false, priceLineVisible: false });
         }
 
         // 3. MACD Pane
-        if (charts.macd) {
-            s.macdHist = createSeries(charts.macd, 'Histogram', { lastValueVisible: false, priceLineVisible: false, priceFormat: { precision: 2, minMove: 0.01 } });
-            if (!isWeekly) {
-                s.macdSignal = createSeries(charts.macd, 'Line', { color: '#ef4444', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
-                s.divMacdInd = createSeries(charts.macd, 'Line', { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
-            }
+        if (chartsRef.current.macd) {
+            s.macdHist = createSeries(chartsRef.current.macd, 'Histogram', { lastValueVisible: false, priceLineVisible: false, priceFormat: { precision: 2, minMove: 0.01 } });
+            s.macdSignal = createSeries(chartsRef.current.macd, 'Line', { color: '#ef4444', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+            s.divMacdInd = createSeries(chartsRef.current.macd, 'Line', { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
         }
 
-        if (charts.force13) {
-            // 4. Force 13 Pane
-            s.force13 = createSeries(charts.force13, 'Line', { color: '#60a5fa', lineWidth: 2.5, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' } });
-            s.force13Sig = createSeries(charts.force13, 'Line', { color: '#ef4444', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' }, crosshairMarkerVisible: false });
+        // 4. Force 13 Pane
+        if (chartsRef.current.force13) {
+            s.force13 = createSeries(chartsRef.current.force13, 'Line', { color: '#60a5fa', lineWidth: 2.5, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' } });
+            s.force13Sig = createSeries(chartsRef.current.force13, 'Line', { color: '#ef4444', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' }, crosshairMarkerVisible: false });
             const efiBandStyle = (opacity, style) => ({ color: `rgba(148, 163, 184, ${opacity})`, lineWidth: 1, lineStyle: style, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false, priceFormat: { type: 'volume' } });
-            s.efiH1 = createSeries(charts.force13, 'Line', efiBandStyle(0.15, 2));
-            s.efiL1 = createSeries(charts.force13, 'Line', efiBandStyle(0.15, 2));
-            s.efiH2 = createSeries(charts.force13, 'Line', efiBandStyle(0.25, 3));
-            s.efiL2 = createSeries(charts.force13, 'Line', efiBandStyle(0.25, 3));
-            s.efiH3 = createSeries(charts.force13, 'Line', { ...efiBandStyle(0.6, 0), lineWidth: 1.5 });
-            s.efiL3 = createSeries(charts.force13, 'Line', { ...efiBandStyle(0.6, 0), lineWidth: 1.5 });
-            s.divEfiInd = createSeries(charts.force13, 'Line', { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' }, crosshairMarkerVisible: false });
+            s.efiH1 = createSeries(chartsRef.current.force13, 'Line', efiBandStyle(0.15, 2));
+            s.efiL1 = createSeries(chartsRef.current.force13, 'Line', efiBandStyle(0.15, 2));
+            s.efiH2 = createSeries(chartsRef.current.force13, 'Line', efiBandStyle(0.25, 3));
+            s.efiL2 = createSeries(chartsRef.current.force13, 'Line', efiBandStyle(0.25, 3));
+            s.efiH3 = createSeries(chartsRef.current.force13, 'Line', { ...efiBandStyle(0.6, 0), lineWidth: 1.5 });
+            s.efiL3 = createSeries(chartsRef.current.force13, 'Line', { ...efiBandStyle(0.6, 0), lineWidth: 1.5 });
+            s.divEfiInd = createSeries(chartsRef.current.force13, 'Line', { color: 'rgba(255, 165, 0, 0.8)', lineWidth: 2, lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' }, crosshairMarkerVisible: false });
             s.force13.createPriceLine({ price: 0, color: 'rgba(255, 255, 255, 0.3)', lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
         }
 
-        if (charts.force2) {
+        if (chartsRef.current.force2) {
             // 5. Force 2 Pane
-            s.force2 = createSeries(charts.force2, 'Histogram', { lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' } });
+            s.force2 = createSeries(chartsRef.current.force2, 'Histogram', { lastValueVisible: false, priceLineVisible: false, priceFormat: { type: 'volume' } });
         }
 
         // HIDDEN ANCHORS
-        Object.keys(charts).forEach(id => {
+        Object.keys(chartsRef.current).forEach(id => {
             if (id === 'price') return;
-            s.anchors[id] = createSeries(charts[id], 'Line', { visible: false, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+            s.anchors[id] = createSeries(chartsRef.current[id], 'Line', { visible: false, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
         });
 
         seriesRef.current = s;
 
+        return () => {
+            isAlive = false;
+            Object.values(chartsRef.current).forEach(c => {
+                try { c.remove(); } catch (e) { }
+            });
+            chartsRef.current = {};
+        };
+    }, [symbol, timeframeLabel, isSidebarOpen, createSeries, showVolume, showMACD, showForce13, showForce2]);
+
+    // Hook 2 logic merged into Hook 4
+
+    useEffect(() => {
+        let isAlive = true;
         // --- Synchronization and Legend Logic ---
         const updateLegends = (d) => {
             if (!d || !legendRef.current) return;
@@ -411,44 +427,34 @@ const ElderAnalysis = ({
             const l = legendRef.current;
             const vis = visibilityRef.current; // Access current state
 
-            // Eye Icons
-            const eyeOpen = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
-            const eyeClosed = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>`;
-
-            const btn = (id, active, color) => `
-                <span data-toggle="${id}" title="Toggle ${id}" style="
-                    cursor: pointer; pointer-events: auto; display: inline-flex; align-items: center; 
-                    color: ${active ? color : '#6b7280'}; margin-right: 6px; 
-                    opacity: ${active ? 1 : 0.6}; transition: opacity 0.2s;
-                ">
-                    ${active ? eyeOpen : eyeClosed}
-                </span>
-            `;
-
             if (l.price) {
+                let overlaysHtml = '';
+                const confs = visibilityRef.current;
+                if (confs && confs.overlays) {
+                    confs.overlays.forEach(cfg => {
+                        if (cfg.visible && ['ema', 'sma'].includes(cfg.type)) {
+                            const val = d[`${cfg.type}_${cfg.params?.window}`];
+                            if (val != null) {
+                                overlaysHtml += `<span style="color: ${cfg.color || '#9ca3af'}; font-size: 10px; margin-left: 8px;">${cfg.type.toUpperCase()}(${cfg.params.window}) ${val.toFixed(2)}</span>`;
+                            }
+                        }
+                    });
+                }
+
                 l.price.innerHTML = `
-                    <div style="display: flex; flex-direction: column; gap: 2px;">
-                        <div style="display: flex; gap: 6px; align-items: center;">
-                            <span style="color: #9ca3af;">O</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Open?.toFixed(2) || '0.00'}</span>
-                            <span style="color: #9ca3af;">H</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.High?.toFixed(2) || '0.00'}</span>
-                            <span style="color: #9ca3af;">L</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Low?.toFixed(2) || '0.00'}</span>
-                            <span style="color: #9ca3af;">C</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Close?.toFixed(2) || '0.00'}</span>
-                        </div>
-                        <div style="display: flex; gap: 8px; align-items: center; padding-top: 2px;">
-                            ${btn('ema', vis.ema, '#60a5fa')} <span style="color: #60a5fa; opacity: ${vis.ema ? 1 : 0.5}">EMA13</span>
-                            ${btn('zones', vis.valueZones, '#818cf8')} <span style="color: #818cf8; opacity: ${vis.valueZones ? 1 : 0.5}">Zones</span>
-                            ${btn('sr', vis.srLevels, '#c084fc')} <span style="color: #c084fc; opacity: ${vis.srLevels ? 1 : 0.5}">SR</span>
-                            ${btn('div', vis.divergences, '#fbbf24')}  <span style="color: #fbbf24; opacity: ${vis.divergences ? 1 : 0.5}">Div</span>
-                            ${btn('safe', vis.safeZones, '#ef4444')}  <span style="color: #ef4444; opacity: ${vis.safeZones ? 1 : 0.5}">Safe</span>
-                            ${btn('markers', vis.markers, '#10b981')} <span style="color: #10b981; opacity: ${vis.markers ? 1 : 0.5}">Sig</span>
-                        </div>
+                    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                        <span style="color: #9ca3af;">O</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Open?.toFixed(2) || '0.00'}</span>
+                        <span style="color: #9ca3af;">H</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.High?.toFixed(2) || '0.00'}</span>
+                        <span style="color: #9ca3af;">L</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Low?.toFixed(2) || '0.00'}</span>
+                        <span style="color: #9ca3af;">C</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Close?.toFixed(2) || '0.00'}</span>
+                        ${overlaysHtml}
                     </div>
                 `;
             }
             if (l.volume) l.volume.innerHTML = `<div style="color: #94a3b8">VOL ${d.Volume ? (d.Volume / 1000000).toFixed(2) : '0.00'}M</div>`;
             if (l.macd) l.macd.innerHTML = `<div style="color: #34d399">MACD ${d.macd_diff?.toFixed(2) || '0.00'}</div>`;
-            if (l.force13 && !isWeekly) l.force13.innerHTML = `<div style="color: #60a5fa">FORCE (13) ${d.efi ? (d.efi / 1000000).toFixed(2) + 'M' : '0.00M'}</div>`;
-            if (l.force2 && !isWeekly) l.force2.innerHTML = `<div style="color: #a78bfa">FORCE (2) ${d.force_index_2 ? (d.force_index_2 / 1000).toFixed(1) + 'K' : '0.0K'}</div>`;
+            if (l.force13) l.force13.innerHTML = `<div style="color: #60a5fa">FORCE (13) ${d.efi ? (d.efi / 1000000).toFixed(2) + 'M' : '0.00M'}</div>`;
+            if (l.force2) l.force2.innerHTML = `<div style="color: #a78bfa">FORCE (2) ${d.force_index_2 ? (d.force_index_2 / 1000).toFixed(1) + 'K' : '0.0K'}</div>`;
         };
         updateLegendsRef.current = updateLegends; // Assign to Ref
 
@@ -457,7 +463,7 @@ const ElderAnalysis = ({
             if (!isAlive) return; // SAFETY
             if (isSyncingRange || isResizing.current) return;
             isSyncingRange = true;
-            Object.values(charts).forEach(c => c.timeScale().setVisibleLogicalRange(range));
+            Object.values(chartsRef.current).forEach(c => c.timeScale().setVisibleLogicalRange(range));
             isSyncingRange = false;
         };
 
@@ -471,17 +477,17 @@ const ElderAnalysis = ({
             isSyncing = true;
             if (!param.point || param.point.x < 0 || !param.time) {
                 isSyncing = true;
-                Object.keys(charts).forEach(id => {
-                    if (charts[id]) charts[id].clearCrosshairPosition();
+                Object.keys(chartsRef.current).forEach(id => {
+                    if (chartsRef.current[id]) chartsRef.current[id].clearCrosshairPosition();
                 });
                 updateLegends(data[data.length - 1]);
                 isSyncing = false;
                 return;
             }
             if (sourceId !== lastHoveredId) {
-                Object.keys(charts).forEach(id => {
-                    if (charts[id]) {
-                        charts[id].applyOptions({
+                Object.keys(chartsRef.current).forEach(id => {
+                    if (chartsRef.current[id]) {
+                        chartsRef.current[id].applyOptions({
                             crosshair: {
                                 horzLine: {
                                     visible: id === sourceId,
@@ -495,14 +501,14 @@ const ElderAnalysis = ({
             }
 
             // SYNC CROSSHAIR
-            Object.keys(charts).forEach(id => {
+            Object.keys(chartsRef.current).forEach(id => {
                 if (id === sourceId) return;
 
                 const ts = s.anchors[id] || (id === 'price' ? s.candles : null);
                 if (ts) {
                     // UNDEFINED price + horizontal line visibility FALSE (set above)
                     // handles the 'single horizontal line' requirement perfectly.
-                    charts[id].setCrosshairPosition(undefined, param.time, ts);
+                    chartsRef.current[id].setCrosshairPosition(undefined, param.time, ts);
                 }
             });
 
@@ -510,7 +516,7 @@ const ElderAnalysis = ({
             let timeStr;
             if (typeof param.time === 'string') timeStr = param.time;
             else if (param.time && typeof param.time === 'object') {
-                timeStr = `${param.time.year}-${String(param.time.month).padStart(2, '0')}-${String(param.time.day).padStart(2, '0')}`;
+                timeStr = `${param.time.year} -${String(param.time.month).padStart(2, '0')} -${String(param.time.day).padStart(2, '0')} `;
             }
             const item = data.find(d => d.Date && d.Date.split('T')[0] === timeStr) || data[data.length - 1];
             const priceData = (sourceId === 'price') ? param.seriesData.get(s.candles) : null;
@@ -525,15 +531,15 @@ const ElderAnalysis = ({
             isSyncing = false;
         };
 
-        Object.keys(charts).forEach(id => {
-            charts[id].timeScale().subscribeVisibleLogicalRangeChange(handleTimeRangeChange);
-            charts[id].subscribeCrosshairMove((param) => handleCrosshairMove(param, id));
+        Object.keys(chartsRef.current).forEach(id => {
+            chartsRef.current[id].timeScale().subscribeVisibleLogicalRangeChange(handleTimeRangeChange);
+            chartsRef.current[id].subscribeCrosshairMove((param) => handleCrosshairMove(param, id));
         });
 
         // --- Robust Resize Handler ---
         const handleResize = () => {
             if (!isAlive) {
-                console.warn('[ElderAnalysis] Resize skipped: Component unmounted/not alive');
+                console.warn('[TechnicalChart] Resize skipped: Component unmounted/not alive');
                 return;
             }
 
@@ -542,7 +548,7 @@ const ElderAnalysis = ({
             resizeRAF.current = requestAnimationFrame(() => {
                 if (!isAlive) return;
                 if (!chartContainerRef.current) {
-                    console.error('[ElderAnalysis] Resize Failed: No container ref');
+                    console.error('[TechnicalChart] Resize Failed: No container ref');
                     return;
                 }
 
@@ -551,7 +557,7 @@ const ElderAnalysis = ({
                 const hTotal = chartContainerRef.current.clientHeight;
                 const rect = chartContainerRef.current.getBoundingClientRect();
 
-                console.log(`[ElderAnalysis] handleResize EXECUTE [${Date.now()}]`, {
+                console.log(`[TechnicalChart] handleResize EXECUTE[${Date.now()}]`, {
                     clientWidth: width,
                     clientHeight: hTotal,
                     rectWidth: rect.width,
@@ -560,7 +566,7 @@ const ElderAnalysis = ({
                 });
 
                 if (width === 0 || hTotal === 0) {
-                    console.warn('[ElderAnalysis] Resize Aborted: Zero Dimensions Detected');
+                    console.warn('[TechnicalChart] Resize Aborted: Zero Dimensions Detected');
                     return;
                 }
 
@@ -572,9 +578,9 @@ const ElderAnalysis = ({
 
                 // 1. Capture Visible Range BEFORE Resize (to maintain position)
                 let oldRange = null;
-                if (charts.price && prevWidth.current > 0) {
+                if (chartsRef.current.price && prevWidth.current > 0) {
                     try {
-                        oldRange = charts.price.timeScale().getVisibleLogicalRange();
+                        oldRange = chartsRef.current.price.timeScale().getVisibleLogicalRange();
                     } catch (e) { }
                 }
 
@@ -583,10 +589,10 @@ const ElderAnalysis = ({
                 const effectiveHeight = Math.max(0, hTotal - borderOffset);
 
                 paneConfigs.forEach(p => {
-                    const c = charts[p.id];
+                    const c = chartsRef.current[p.id];
                     if (c) {
                         const newHeight = Math.max(10, Math.floor((p.flex / totalF) * effectiveHeight));
-                        // console.log(`[ElderAnalysis] Resizing Pane ${p.id}:`, { width, newHeight });
+                        // console.log(`[TechnicalChart] Resizing Pane ${ p.id }: `, { width, newHeight });
                         c.applyOptions({ width, height: newHeight });
                     }
                 });
@@ -614,23 +620,25 @@ const ElderAnalysis = ({
         const observer = new ResizeObserver(entries => {
             if (entries[0] && isAlive) {
                 const { width, height } = entries[0].contentRect;
-                console.log(`[ElderAnalysis] ResizeObserver Triggered [${Date.now()}]`, { width, height });
+                console.log(`[TechnicalChart] ResizeObserver Triggered[${Date.now()}]`, { width, height });
                 handleResize();
             }
         });
-        observer.observe(container);
+        if (chartContainerRef.current) {
+            observer.observe(chartContainerRef.current);
+        }
 
         // IMMEDIATE RESIZE TRIGGERS
-        console.log('[ElderAnalysis] Scheduling Initial Resize Triggers...');
+        console.log('[TechnicalChart] Scheduling Initial Resize Triggers...');
         setTimeout(() => {
             if (isAlive) {
-                console.log('[ElderAnalysis] Trigger 1 (50ms) Firing...');
+                console.log('[TechnicalChart] Trigger 1 (50ms) Firing...');
                 handleResize();
             }
         }, 50);
         setTimeout(() => {
             if (isAlive) {
-                console.log('[ElderAnalysis] Trigger 2 (200ms) Firing...');
+                console.log('[TechnicalChart] Trigger 2 (200ms) Firing...');
                 handleResize();
             }
         }, 200);
@@ -659,8 +667,18 @@ const ElderAnalysis = ({
             }
 
             observer.disconnect();
-            Object.values(charts).forEach(c => c.remove());
-            chartsRef.current = {};
+            window.removeEventListener('resize-chart-manual', manualResizeListener);
+
+            Object.keys(chartsRef.current).forEach(id => {
+                const c = chartsRef.current[id];
+                if (c) {
+                    try {
+                        c.timeScale().unsubscribeVisibleLogicalRangeChange(handleTimeRangeChange);
+                        c.unsubscribeCrosshairMove(handleCrosshairMove);
+                    } catch (e) { }
+                }
+            });
+
             legendRef.current = null;
             seriesRef.current = {};
         };
@@ -728,7 +746,7 @@ const ElderAnalysis = ({
     const applyElderTemplate = () => {
         let template = '';
         if (timeframeLabel === 'Weekly') {
-            template = `### WEEKLY MACRO TIDE\n\n**1. TIDE ANALYSIS (EMA 13)**\n- Direction: \n- Slope Quality: \n\n**2. IMPULSE SYSTEM**\n- State: (Red/Green/Blue)\n- Restriction: \n\n**3. BIG PICTURE CONTEXT**\n- Sector Rank: \n- Major S/R Levels: \n\n**4. STRATEGIC BIAS**\n- Next Week's Goal: `;
+            template = `### WEEKLY MACRO TIDE\n\n ** 1. TIDE ANALYSIS(EMA 13) **\n - Direction: \n - Slope Quality: \n\n ** 2. IMPULSE SYSTEM **\n - State: (Red / Green / Blue) \n - Restriction: \n\n ** 3. BIG PICTURE CONTEXT **\n - Sector Rank: \n - Major S / R Levels: \n\n ** 4. STRATEGIC BIAS **\n - Next Week's Goal: `;
         } else {
             template = `### DAILY TACTICAL SETUP\n\n**1. TRIPLE SCREEN CHECK**\n- S1 (Weekly Tide): \n- S2 (Daily Wave/Force): \n- S3 (Entry Trigger): \n\n**2. EMOTIONAL SATE**\n- Current Feeling: \n- Discipline Check: \n\n**3. TRADE PLAN**\n- Entry Order (Stop/Limit): \n- Protective Stop: \n- Profit Target: \n- Risk/Reward Ratio: `;
         }
@@ -763,16 +781,42 @@ const ElderAnalysis = ({
         const s = seriesRef.current;
         const isWeekly = timeframeLabel === 'Weekly';
 
-        const safeSetData = (series, seriesData, label) => {
-            if (!series) return;
-            try {
-                series.setData(seriesData);
-            } catch (err) {
-                console.error(`FAILED to set ${label}:`, err);
-            }
-        };
+        const candleData = [], ema22Data = [], priceH1Data = [], priceL1Data = [], priceH2Data = [], priceL2Data = [], priceH3Data = [], priceL3Data = [], macdHistData = [], macdSignalData = [], force2Data = [], force13Data = [], ema13DataForce = [], efiH1Data = [], efiL1Data = [], efiH2Data = [], efiL2Data = [], efiH3Data = [], efiL3Data = [], volumeData = [], volumeSMAData = [], szLongData = [], szShortData = [];
 
-        const candleData = [], ema13Data = [], ema22Data = [], ema26Data = [], priceH1Data = [], priceL1Data = [], priceH2Data = [], priceL2Data = [], priceH3Data = [], priceL3Data = [], macdHistData = [], macdSignalData = [], force2Data = [], force13Data = [], ema13DataForce = [], efiH1Data = [], efiL1Data = [], efiH2Data = [], efiL2Data = [], efiH3Data = [], efiL3Data = [], volumeData = [], volumeSMAData = [], szLongData = [], szShortData = [];
+        // 1. Sync & Cleanup Dynamic Overlays first so they exist for data population
+        indicatorConfigs.overlays.forEach(cfg => {
+            if (['ema', 'sma'].includes(cfg.type)) {
+                if (!s.overlays[cfg.id]) {
+                    s.overlays[cfg.id] = createSeries(chartsRef.current.price, 'Line', {
+                        color: cfg.color || '#60a5fa',
+                        lineWidth: 2,
+                        lastValueVisible: false,
+                        priceLineVisible: false
+                    });
+                } else {
+                    // Update color if it changed
+                    s.overlays[cfg.id].applyOptions({ color: cfg.color || '#60a5fa' });
+                }
+            }
+        });
+
+        // Cleanup: Remove dynamic series that are no longer in configs
+        Object.keys(s.overlays || {}).forEach(id => {
+            if (!indicatorConfigs.overlays.find(o => o.id === id)) {
+                if (s.overlays[id]) chartsRef.current.price.removeSeries(s.overlays[id]);
+                delete s.overlays[id];
+            }
+        });
+
+        // New Indicators Data Containers
+        const dynamicData = {};
+        indicatorConfigs.overlays.forEach(cfg => {
+            dynamicData[cfg.id] = [];
+        });
+        const atrStopData = [];
+        const bbUpperData = [], bbMiddleData = [], bbLowerData = [];
+        const guppyData = {};
+        [3, 5, 8, 10, 12, 15, 30, 35, 40, 45, 50, 60].forEach(p => guppyData[p] = []);
 
         const processedTimes = new Set();
         data.forEach(d => {
@@ -782,34 +826,57 @@ const ElderAnalysis = ({
             processedTimes.add(time);
 
             const candleColor = d.impulse === 'green' ? '#22c55e' : d.impulse === 'red' ? '#ef4444' : '#60a5fa';
-
             candleData.push({ time, open: d.Open, high: d.High, low: d.Low, close: d.Close, color: candleColor, wickColor: candleColor, borderColor: candleColor });
-            if (d.ema_13) ema13Data.push({ time, value: d.ema_13 });
 
-            if (!isWeekly) {
-                if (d.ema_22) ema22Data.push({ time, value: d.ema_22 });
-                if (d.ema_26) ema26Data.push({ time, value: d.ema_26 });
+            // Dynamic Overlays
+            indicatorConfigs.overlays.forEach(cfg => {
+                const series = s.overlays[cfg.id];
+                if (series && cfg.visible) {
+                    const colName = `${cfg.type}_${cfg.params?.window}`;
+                    if (d[colName] !== undefined) {
+                        dynamicData[cfg.id].push({ time, value: d[colName] });
+                    }
+                }
+            });
 
-                if (d.price_atr_h1) priceH1Data.push({ time, value: d.price_atr_h1 });
-                if (d.price_atr_l1) priceL1Data.push({ time, value: d.price_atr_l1 });
-                if (d.price_atr_h2) priceH2Data.push({ time, value: d.price_atr_h2 });
-                if (d.price_atr_l2) priceL2Data.push({ time, value: d.price_atr_l2 });
-                if (d.price_atr_h3) priceH3Data.push({ time, value: d.price_atr_h3 });
-                if (d.price_atr_l3) priceL3Data.push({ time, value: d.price_atr_l3 });
+            if (d.ema_22) ema22Data.push({ time, value: d.ema_22 });
 
-                if (d.safezone_long) szLongData.push({ time, value: d.safezone_long });
-                if (d.safezone_short) szShortData.push({ time, value: d.safezone_short });
-            }
+            if (d.price_atr_h1) priceH1Data.push({ time, value: d.price_atr_h1 });
+            if (d.price_atr_l1) priceL1Data.push({ time, value: d.price_atr_l1 });
+            if (d.price_atr_h2) priceH2Data.push({ time, value: d.price_atr_h2 });
+            if (d.price_atr_l2) priceL2Data.push({ time, value: d.price_atr_l2 });
+            if (d.price_atr_h3) priceH3Data.push({ time, value: d.price_atr_h3 });
+            if (d.price_atr_l3) priceL3Data.push({ time, value: d.price_atr_l3 });
+
+            if (d.safezone_long) szLongData.push({ time, value: d.safezone_long });
+            if (d.safezone_short) szShortData.push({ time, value: d.safezone_short });
+
+            // --- NEW DATA POPULATION ---
+            if (d.volatility_stop) atrStopData.push({ time, value: d.volatility_stop });
+
+            if (d.bb_upper) bbUpperData.push({ time, value: d.bb_upper });
+            if (d.bb_middle) bbMiddleData.push({ time, value: d.bb_middle });
+            if (d.bb_lower) bbLowerData.push({ time, value: d.bb_lower });
+
+            // Guppy
+            [3, 5, 8, 10, 12, 15].forEach(p => {
+                const val = d[`guppy_short_${p}`];
+                if (val) guppyData[p].push({ time, value: val });
+            });
+            [30, 35, 40, 45, 50, 60].forEach(p => {
+                const val = d[`guppy_long_${p}`];
+                if (val) guppyData[p].push({ time, value: val });
+            });
 
             if (d.macd_diff !== undefined && d.macd_diff !== null) {
                 macdHistData.push({ time, value: d.macd_diff, color: d.macd_diff >= 0 ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)' });
             }
 
-            if (!isWeekly && d.macd_signal) {
+            if (d.macd_signal) {
                 macdSignalData.push({ time, value: d.macd_signal });
             }
 
-            if (!isWeekly && d.force_index_2 !== undefined && d.force_index_2 !== null) {
+            if (d.force_index_2 !== undefined && d.force_index_2 !== null) {
                 force2Data.push({
                     time,
                     value: d.force_index_2,
@@ -840,20 +907,36 @@ const ElderAnalysis = ({
             }
         });
 
+        indicatorConfigs.overlays.forEach(cfg => {
+            if (s.overlays[cfg.id]) {
+                safeSetData(s.overlays[cfg.id], dynamicData[cfg.id], cfg.id);
+            }
+        });
+
         safeSetData(s.candles, candleData, 'Candles');
-        safeSetData(s.ema13, ema13Data, 'EMA13');
-        safeSetData(s.ema26, ema26Data, 'EMA26');
+        // s.ema13 and s.ema26 now handled by the dynamicData loop above
         safeSetData(s.ema22, ema22Data, 'EMA22');
-        safeSetData(s.priceH1, priceH1Data, 'PriceH1');
-        safeSetData(s.priceL1, priceL1Data, 'PriceL1');
-        safeSetData(s.priceH2, priceH2Data, 'PriceH2');
-        safeSetData(s.priceL2, priceL2Data, 'PriceL2');
-        safeSetData(s.priceH3, priceH3Data, 'PriceH3');
-        safeSetData(s.priceL3, priceL3Data, 'PriceL3');
+        safeSetData(s.priceH1, priceH1Data, 'PH1');
+        safeSetData(s.priceL1, priceL1Data, 'PL1');
+        safeSetData(s.priceH2, priceH2Data, 'PH2');
+        safeSetData(s.priceL2, priceL2Data, 'PL2');
+        safeSetData(s.priceH3, priceH3Data, 'PH3');
+        safeSetData(s.priceL3, priceL3Data, 'PL3');
+        safeSetData(s.safeZoneLong, szLongData, 'SZLong');
+        safeSetData(s.safeZoneShort, szShortData, 'SZShort');
 
-        safeSetData(s.safeZoneLong, szLongData, 'SZ Long');
-        safeSetData(s.safeZoneShort, szShortData, 'SZ Short');
+        // --- SET NEW DATA ---
+        safeSetData(s.atrStop, atrStopData, 'ATRStop');
+        safeSetData(s.bbUpper, bbUpperData, 'BBUpper');
+        safeSetData(s.bbMiddle, bbMiddleData, 'BBMiddle');
+        safeSetData(s.bbLower, bbLowerData, 'BBLower');
 
+        if (s.guppySeries) {
+            s.guppySeries.forEach(g => {
+                const period = parseInt(g.id.split('_').pop());
+                safeSetData(g.series, guppyData[period], g.id);
+            });
+        }
         safeSetData(s.macdHist, macdHistData, 'MACD Hist');
         safeSetData(s.macdSignal, macdSignalData, 'MACD Signal');
 
@@ -893,7 +976,7 @@ const ElderAnalysis = ({
             if (s.divMacdInd) safeSetData(s.divMacdInd, [], 'DivInd');
         }
 
-        if (f13Divergence && data[f13Divergence.idx1] && data[f13Divergence.idx2] && !isWeekly) {
+        if (f13Divergence && data[f13Divergence.idx1] && data[f13Divergence.idx2]) {
             const p1 = data[f13Divergence.idx1];
             const p2 = data[f13Divergence.idx2];
             if (p1?.Date && p2?.Date) {
@@ -921,20 +1004,17 @@ const ElderAnalysis = ({
         });
 
         chartsRef.current.price.timeScale().fitContent();
-    }, [data, symbol, srLevels, showVolume, showMACD, showForce13, showForce2]);
+    }, [data, symbol, srLevels, indicatorConfigs, safeSetData]);
 
     // Dedicated Marker Effect with slight delay to ensure series are painted
     useEffect(() => {
         const s = seriesRef.current;
-        console.log(`DEBUG [Markers-v3]: Dependency Trigger. symbol=${symbol}, showMarkers=${showMarkers}, hasSeries=${!!s?.candles}, dataLength=${data?.length}`);
 
         if (!s || !s.candles || !data || data.length === 0) {
-            console.warn(`DEBUG [Markers-v3]: Effect skipped. Guard condition not met.`);
             return;
         }
 
         const applyMarkers = () => {
-            console.log(`DEBUG [Markers-v3]: applyMarkers Executing. showMarkers=${showMarkers}`);
             const markers = [];
             const seenTimes = new Set();
 
@@ -942,47 +1022,42 @@ const ElderAnalysis = ({
                 const timeStr = d.Date.split('T')[0];
                 if (seenTimes.has(timeStr)) return;
 
-                const isBuy = Boolean(d.efi_buy_signal);
-                const isSell = Boolean(d.efi_sell_signal);
-
-                if (isBuy || isSell) {
-                    console.log(`DEBUG [Signal-Verify] ${timeStr}: Buy=${isBuy}, Sell=${isSell}, EFI=${d.efi?.toFixed(0)}, Sig=${d.efi_signal?.toFixed(0)}, L2=${d.efi_atr_l2?.toFixed(0)}, H2=${d.efi_atr_h2?.toFixed(0)}`);
+                // 1. Force Index Signals (Elder)
+                if (showForceMarkers) {
+                    if (d.efi_buy_signal) {
+                        markers.push({ time: timeStr, position: 'belowBar', color: '#22c55e', shape: 'arrowUp', text: 'E' });
+                        seenTimes.add(timeStr);
+                    } else if (d.efi_sell_signal) {
+                        markers.push({ time: timeStr, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'E' });
+                        seenTimes.add(timeStr);
+                    }
                 }
 
-                if (isBuy) {
-                    markers.push({ time: timeStr, position: 'belowBar', color: '#22c55e', shape: 'arrowUp', text: 'E' });
-                    seenTimes.add(timeStr);
-                } else if (isSell) {
-                    markers.push({ time: timeStr, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'E' });
-                    seenTimes.add(timeStr);
+                // 2. Guppy MMA Crossover Signals
+                if (showGuppySignals && !seenTimes.has(timeStr)) {
+                    if (d.guppy_signal === 1) {
+                        markers.push({ time: timeStr, position: 'belowBar', color: '#60a5fa', shape: 'arrowUp', text: 'G' });
+                        seenTimes.add(timeStr);
+                    } else if (d.guppy_signal === -1) {
+                        markers.push({ time: timeStr, position: 'aboveBar', color: '#f87171', shape: 'arrowDown', text: 'G' });
+                        seenTimes.add(timeStr);
+                    }
                 }
             });
-
-            const lastBar = data[data.length - 1];
-            const lastTime = lastBar.Date.split('T')[0];
-
-            const markersToApply = showMarkers ? markers : [];
 
             // V5 MARKERS API CALL
             if (s.markers?.candles) {
                 try {
-                    s.markers.candles.setMarkers(markersToApply);
+                    s.markers.candles.setMarkers(markers);
                 } catch (err) {
                     console.error("DEBUG [Markers-v5]: Failed to apply markers", err);
                 }
             }
-
-            // Global exposure for manual testing via console
-            window.FORCE_MARKERS = () => {
-                const m = [{ time: lastTime, position: 'inBar', color: '#ff00ff', shape: 'square', text: 'FORCED', size: 2 }];
-                if (s.markers?.candles) s.markers.candles.setMarkers(m);
-            };
         };
 
-        // Delay slightly to let the chart engine breathe after potential data updates
         const timer = setTimeout(applyMarkers, 100);
         return () => clearTimeout(timer);
-    }, [data, symbol, showMarkers]);
+    }, [data, symbol, showForceMarkers, showGuppySignals]);
 
     // Visibility Control Effect
     useEffect(() => {
@@ -993,10 +1068,20 @@ const ElderAnalysis = ({
             if (series) series.applyOptions({ visible });
         };
 
-        // EMA Group
-        setVis(s.ema13, showEMA);
-        setVis(s.ema26, showEMA);
-        setVis(s.ema22, showEMA);
+        // Dynamic Overlays
+        Object.keys(s.overlays).forEach(id => {
+            const cfg = indicatorConfigs.overlays.find(c => c.id === id);
+            if (cfg) setVis(s.overlays[id], cfg.visible);
+        });
+
+        const getVisById = (id) => {
+            const item = [...(indicatorConfigs.overlays || []), ...(indicatorConfigs.panes || []), ...(indicatorConfigs.signals || [])]
+                .find(i => i.id === id);
+            return item ? item.visible : false;
+        };
+
+        // Legacy/Linked Series (Value Zones bases)
+        setVis(s.ema22, getVisById('ema_22') || showValueZones);
 
         // Value Zones (ATR Channels)
         setVis(s.priceH1, showValueZones);
@@ -1005,22 +1090,34 @@ const ElderAnalysis = ({
         setVis(s.priceL2, showValueZones);
         setVis(s.priceH3, showValueZones);
         setVis(s.priceL3, showValueZones);
-        setVis(s.efiH1, showValueZones);
-        setVis(s.efiL1, showValueZones);
-        setVis(s.efiH2, showValueZones);
-        setVis(s.efiL2, showValueZones);
-        setVis(s.efiH3, showValueZones);
-        setVis(s.efiL3, showValueZones);
 
         // SafeZones
         setVis(s.safeZoneLong, showSafeZones);
         setVis(s.safeZoneShort, showSafeZones);
 
+        // --- NEW VISIBILITY ---
+        setVis(s.atrStop, showATRStop);
+
+        // Bollinger
+        setVis(s.bbUpper, showBollinger);
+        setVis(s.bbMiddle, showBollinger);
+        setVis(s.bbLower, showBollinger);
+
+        // Guppy
+        if (s.guppySeries) {
+            s.guppySeries.forEach(g => setVis(g.series, showGuppy));
+        }
+
+        // EFI ATR Bands (Controlled by showForceZones)
+        ['efiH1', 'efiL1', 'efiH2', 'efiL2', 'efiH3', 'efiL3'].forEach(id => {
+            setVis(s[id], showForceZones);
+        });
+
         // Divergences
-        setVis(s.divMacdPrice, showDivergences);
-        setVis(s.divMacdInd, showDivergences);
-        setVis(s.divEfiPrice, showDivergences);
-        setVis(s.divEfiInd, showDivergences);
+        setVis(s.divMacdPrice, showMacdDivergence);
+        setVis(s.divMacdInd, showMacdDivergence);
+        setVis(s.divEfiPrice, showForceDivergence);
+        setVis(s.divEfiInd, showForceDivergence);
 
         // Refresh Legends to update Eye Icons
         if (updateLegendsRef.current && lastLegendDataRef.current) {
@@ -1028,7 +1125,7 @@ const ElderAnalysis = ({
         }
 
         // S/R levels are handled in a separate effect below
-    }, [showValueZones, showSafeZones, showDivergences, showEMA, showMarkers, showSRLevels]);
+    }, [indicatorConfigs, showValueZones, showForceZones, showSafeZones, showMacdDivergence, showForceDivergence, showForceMarkers, showEMA, showGuppy, showBollinger, showATRStop, showSRLevels]);
     // Dedicated S/R Levels Effect
     useEffect(() => {
         const s = seriesRef.current;
@@ -1313,4 +1410,4 @@ const ElderAnalysis = ({
     );
 };
 
-export default ElderAnalysis;
+export default TechnicalChart;

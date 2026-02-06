@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getStocks, addStock, deleteStock, getAnalysis, toggleWatchStock, scanStocks, scanStocksEFI } from '../services/api';
 import StockChart from './StockChart';
 import MarketIntelligence from './MarketIntelligence';
-import ElderAnalysis from './ElderAnalysis';
+import TechnicalChart from './TechnicalChart';
 import TradeJournal from './TradeJournal';
 import BacktestEngine from './BacktestEngine';
 import TradeEntryModal from './TradeEntryModal';
@@ -25,87 +25,164 @@ const Dashboard = () => {
     const [view, setView] = useState('weekly'); // 'weekly', 'elder' (daily), 'intelligence', 'backtest', 'journal'
     const [initError, setInitError] = useState(null);
 
-    // --- Indicator State (Lifted from ElderAnalysis) ---
-    const loadSetting = (key, defaultValue) => {
-        try {
-            const saved = localStorage.getItem(`elder_settings_${key}`);
-            return saved !== null ? JSON.parse(saved) : defaultValue;
-        } catch (e) {
-            console.warn(`Error loading setting ${key}`, e);
-            return defaultValue;
-        }
+    // --- Dynamic Indicator System ---
+    const INITIAL_INDICATORS = {
+        overlays: [
+            { id: 'ema_13', type: 'ema', params: { window: 13 }, visible: true, label: 'EMA', color: '#60a5fa' },
+            { id: 'ema_26', type: 'ema', params: { window: 26 }, visible: true, label: 'EMA', color: '#f59e0b' },
+            { id: 'value_zones', type: 'valueZones', visible: true, label: 'Value Zone' },
+            { id: 'safe_zones', type: 'safeZones', visible: false, label: 'Safe Zones' },
+            { id: 'sr_levels', type: 'sr_levels', visible: true, label: 'S/R Levels' },
+            { id: 'guppy', type: 'guppy', visible: false, label: 'Guppy MMA' },
+            { id: 'bollinger', type: 'bollinger', visible: false, label: 'Bollinger Bands' },
+            { id: 'atr_stop', type: 'atrStop', visible: false, label: 'ATR Volatility Stop' }
+        ],
+        panes: [
+            { id: 'volume', type: 'volume', visible: true, label: 'Volume' },
+            { id: 'macd', type: 'macd', params: { fast: 12, slow: 26, signal: 9 }, visible: true, label: 'MACD' },
+            { id: 'force13', type: 'force13', visible: true, label: 'Force Index (13)' },
+            { id: 'force2', type: 'force2', visible: true, label: 'Force Index (2)' }
+        ],
+        signals: [
+            { id: 'macd_div', type: 'macdDivergence', visible: true, label: 'MACD Divergence' },
+            { id: 'force_div', type: 'forceDivergence', visible: true, label: 'Force Divergence' },
+            { id: 'force_markers', type: 'forceMarkers', visible: true, label: 'Force Markers' },
+            { id: 'force_zones', type: 'forceZones', visible: true, label: 'Force Zones' },
+            { id: 'guppy_signals', type: 'guppySignals', visible: false, label: 'GMMA Crossovers' }
+        ]
     };
 
-    const [indicators, setIndicators] = useState({
-        showEMA: loadSetting('ema', true),
-        showValueZones: loadSetting('valueZones', true),
-        showSafeZones: loadSetting('safeZones', false),
-        showSRLevels: loadSetting('srLevels', true),
-        showDivergences: loadSetting('divergences', true),
-        showMarkers: loadSetting('markers', true),
-        // Panes
-        showVolume: loadSetting('volume', true),
-        showMACD: loadSetting('macd', true),
-        showForce13: loadSetting('force13', true),
-        showForce2: loadSetting('force2', true)
-    });
+    const getSavedConfig = (v) => {
+        if (!['elder', 'weekly'].includes(v)) return INITIAL_INDICATORS;
+        try {
+            const saved = localStorage.getItem(`elder_indicator_configs_${v}`);
+            return saved ? JSON.parse(saved) : INITIAL_INDICATORS;
+        } catch { return INITIAL_INDICATORS; }
+    };
 
-    const toggleIndicator = (key) => {
-        setIndicators(prev => {
-            const newState = { ...prev, [key]: !prev[key] };
-            // Persist immediately if not loading a template (handled separately)
-            const mapping = {
-                showEMA: 'ema',
-                showValueZones: 'valueZones',
-                showSafeZones: 'safeZones',
-                showSRLevels: 'srLevels',
-                showDivergences: 'divergences',
-                showMarkers: 'markers',
-                // Panes
-                showVolume: 'volume',
-                showMACD: 'macd',
-                showForce13: 'force13',
-                showForce2: 'force2'
-            };
-            if (mapping[key]) {
-                localStorage.setItem(`elder_settings_${mapping[key]}`, JSON.stringify(newState[key]));
+    const [indicatorConfigs, setIndicatorConfigs] = useState(() => getSavedConfig(view));
+
+    const updateIndicatorConfig = (category, id, updates) => {
+        setIndicatorConfigs(prev => {
+            const newList = prev[category].map(item =>
+                item.id === id ? { ...item, ...updates } : item
+            );
+            const newState = { ...prev, [category]: newList };
+            if (['elder', 'weekly'].includes(view)) {
+                localStorage.setItem(`elder_indicator_configs_${view}`, JSON.stringify(newState));
             }
             return newState;
         });
     };
 
+    const addIndicator = (category, config) => {
+        setIndicatorConfigs(prev => {
+            const newState = { ...prev, [category]: [...prev[category], config] };
+            if (['elder', 'weekly'].includes(view)) {
+                localStorage.setItem(`elder_indicator_configs_${view}`, JSON.stringify(newState));
+            }
+            return newState;
+        });
+    };
+
+    const removeIndicator = (category, id) => {
+        setIndicatorConfigs(prev => {
+            const newState = { ...prev, [category]: prev[category].filter(item => item.id !== id) };
+            if (['elder', 'weekly'].includes(view)) {
+                localStorage.setItem(`elder_indicator_configs_${view}`, JSON.stringify(newState));
+            }
+            return newState;
+        });
+    };
+
+    // Helper to extract dynamic parameters for API
+    const getDynamicIndicatorList = (configs) => {
+        const list = [];
+        configs.overlays.forEach(o => {
+            if (['ema', 'sma', 'rsi'].includes(o.type)) list.push({ type: o.type, params: o.params });
+        });
+        configs.panes.forEach(p => {
+            if (p.type === 'macd') list.push({ type: p.type, params: p.params });
+        });
+        return list;
+    };
+
     // --- Template Management ---
+    const [activeTemplate, setActiveTemplate] = useState(null);
     const [templates, setTemplates] = useState(() => {
         try {
             return JSON.parse(localStorage.getItem('elder_templates') || '{}');
         } catch { return {}; }
     });
+    const [defaultTemplates, setDefaultTemplates] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem('elder_default_templates') || '{}');
+        } catch { return {}; }
+    });
+
+    const prevViewRef = useRef(null);
 
     const saveTemplate = (name) => {
         if (!name) return;
-        const newTemplates = { ...templates, [name]: indicators };
+        const newTemplates = {
+            ...templates,
+            [name]: {
+                indicatorConfigs,
+                view
+            }
+        };
         setTemplates(newTemplates);
         localStorage.setItem('elder_templates', JSON.stringify(newTemplates));
+        setActiveTemplate(name);
+    };
+
+    const setDefaultTemplate = (name) => {
+        const newDefaults = {
+            ...defaultTemplates,
+            [view]: name
+        };
+        setDefaultTemplates(newDefaults);
+        localStorage.setItem('elder_default_templates', JSON.stringify(newDefaults));
     };
 
     const loadTemplate = (name) => {
         const template = templates[name];
         if (template) {
-            setIndicators(template);
-            // Optionally update individual persistence keys too, so reload keeps the template
-            Object.keys(template).forEach(key => {
-                // Re-use logic or just rely on state for session
-                // Ideally we update localstorage too
-                // For now, let's keep it simple: State wins.
-            });
+            const configData = template.indicatorConfigs || template;
+
+            if (configData.overlays && configData.panes) {
+                setIndicatorConfigs(configData);
+                // Sync to timeframe-specific storage
+                const targetView = template.view || view;
+                if (['elder', 'weekly'].includes(targetView)) {
+                    localStorage.setItem(`elder_indicator_configs_${targetView}`, JSON.stringify(configData));
+                }
+            } else {
+                console.warn("Incompatible template format detected");
+            }
+
+            if (template.view) setView(template.view);
+            setActiveTemplate(name);
         }
     };
+
+    // Auto-load default template on view change
+    useEffect(() => {
+        if (prevViewRef.current !== view) {
+            const defaultName = defaultTemplates[view];
+            if (defaultName && templates[defaultName]) {
+                loadTemplate(defaultName);
+            }
+            prevViewRef.current = view;
+        }
+    }, [view, defaultTemplates, templates]);
 
     const deleteTemplate = (name) => {
         const newTemplates = { ...templates };
         delete newTemplates[name];
         setTemplates(newTemplates);
         localStorage.setItem('elder_templates', JSON.stringify(newTemplates));
+        if (activeTemplate === name) setActiveTemplate(null);
     };
 
     useEffect(() => {
@@ -116,7 +193,28 @@ const Dashboard = () => {
         if (selectedSymbol) {
             loadAnalysis(selectedSymbol);
         }
-    }, [selectedSymbol, view]);
+    }, [selectedSymbol, view, indicatorConfigs]);
+
+    const handleSymbolChange = async (newSymbol) => {
+        const normalized = newSymbol.trim().toUpperCase();
+        if (!normalized || normalized === selectedSymbol) return;
+
+        // Just switch the symbol. loadAnalysis useEffect will handle the rest.
+        // Validation happens on the backend during analysis fetch.
+        setSelectedSymbol(normalized);
+    };
+
+    const handleAddToWatchlist = async (symbolToAdd) => {
+        const normalized = symbolToAdd.toUpperCase();
+        if (stocks.some(s => s.symbol.toUpperCase() === normalized)) return;
+
+        try {
+            const res = await addStock(normalized);
+            setStocks(prev => [...prev, res.data]);
+        } catch (err) {
+            console.error("Failed to add to watchlist", err);
+        }
+    };
 
     const loadStocks = async () => {
         try {
@@ -146,28 +244,29 @@ const Dashboard = () => {
             const period = view === 'weekly' ? '2y' : '1y';
             const interval = view === 'weekly' ? '1wk' : '1d';
 
-            const res = await getAnalysis(symbol, period, interval);
-            if (!res || !res.data) throw new Error("Invalid response from server");
+            const dynamicIndicators = getDynamicIndicatorList(indicatorConfigs);
+            const results = await getAnalysis(symbol, period, interval, dynamicIndicators);
+            if (!results || !results.data) throw new Error("Invalid response from server");
 
-            setChartData(res.data.data || []);
+            setChartData(results.data.data || []);
             setRegimeData({
-                regime: res.data.regime || "Unknown",
-                reason: res.data.regime_reason || "No data",
-                volatility: res.data.volatility,
-                confidence: res.data.confidence || "Low",
-                confluence: res.data.confluence_factor || 0,
-                confluence_details: res.data.confluence_details || {},
-                macro: res.data.macro_status,
-                relative_strength: res.data.relative_strength,
-                macro_tides: res.data.macro_tides,
-                suggestion: res.data.strategic_suggestion,
-                decision: res.data.decision || "NEUTRAL",
-                sector_analysis: res.data.sector_analysis
+                regime: results.data.regime || "Unknown",
+                reason: results.data.regime_reason || "No data",
+                volatility: results.data.volatility,
+                confidence: results.data.confidence || "Low",
+                confluence: results.data.confluence_factor || 0,
+                confluence_details: results.data.confluence_details || {},
+                macro: results.data.macro_status,
+                relative_strength: results.data.relative_strength,
+                macro_tides: results.data.macro_tides,
+                suggestion: results.data.strategic_suggestion,
+                decision: results.data.decision || "NEUTRAL",
+                sector_analysis: results.data.sector_analysis
             });
-            setSrLevels(res.data.sr_levels || []);
-            setElderTactics(res.data.elder_tactics || null);
-            setMacdDivergence(res.data.macd_divergence || null);
-            setF13Divergence(res.data.f13_divergence || null);
+            setSrLevels(results.data.sr_levels || []);
+            setElderTactics(results.data.elder_tactics || null);
+            setMacdDivergence(results.data.macd_divergence || null);
+            setF13Divergence(results.data.f13_divergence || null);
         } catch (err) {
             console.error("Failed to load analysis", err);
             setChartData([]);
@@ -247,17 +346,24 @@ const Dashboard = () => {
                 {/* TradingView-Style Top Toolbar */}
                 <TopToolbar
                     symbol={selectedSymbol}
+                    onSymbolChange={handleSymbolChange}
+                    onAddToWatchlist={handleAddToWatchlist}
+                    stocks={stocks}
                     currentView={view}
                     setView={setView}
-                    stocks={stocks}
                     onLogTrade={handleLogTrade}
                     onNotes={handleNotes}
-                    indicators={indicators}
-                    onToggleIndicator={toggleIndicator}
+                    indicatorConfigs={indicatorConfigs}
+                    onUpdateIndicator={updateIndicatorConfig}
+                    onAddIndicator={addIndicator}
+                    onRemoveIndicator={removeIndicator}
                     templates={templates}
+                    activeTemplate={activeTemplate}
                     onSaveTemplate={saveTemplate}
                     onLoadTemplate={loadTemplate}
                     onDeleteTemplate={deleteTemplate}
+                    defaultTemplates={defaultTemplates}
+                    onSetDefaultTemplate={setDefaultTemplate}
                 />
 
                 {/* View Content */}
@@ -282,35 +388,19 @@ const Dashboard = () => {
                                 <TradeJournal />
                             ) : view === 'backtest' ? (
                                 <div className="p-4"><BacktestEngine /></div>
-                            ) : view === 'elder' ? (
-                                <ElderAnalysis
-                                    key="daily-analysis"
-                                    data={chartData}
+                            ) : view === 'elder' || view === 'weekly' ? (
+                                <TechnicalChart
+                                    key={view === 'elder' ? "daily-analysis" : "weekly-analysis"}
                                     symbol={selectedSymbol}
-                                    srLevels={srLevels}
-                                    tacticalAdvice={elderTactics}
+                                    data={chartData}
+                                    indicatorConfigs={indicatorConfigs}
                                     macdDivergence={macdDivergence}
                                     f13Divergence={f13Divergence}
-                                    timeframeLabel="Daily"
+                                    srLevels={srLevels}
+                                    timeframeLabel={view === 'elder' ? 'Daily' : 'Weekly'}
                                     regimeData={regimeData}
                                     setInitError={setInitError}
                                     onLogTrade={handleLogTrade}
-                                    indicators={indicators}
-                                    isSidebarOpen={isAnalysisSidebarOpen}
-                                />
-                            ) : view === 'weekly' ? (
-                                <ElderAnalysis
-                                    key="weekly-analysis"
-                                    data={chartData}
-                                    symbol={selectedSymbol}
-                                    srLevels={srLevels}
-                                    tacticalAdvice={elderTactics}
-                                    macdDivergence={macdDivergence}
-                                    f13Divergence={f13Divergence}
-                                    timeframeLabel="Weekly"
-                                    regimeData={regimeData}
-                                    setInitError={setInitError}
-                                    indicators={indicators}
                                     isSidebarOpen={isAnalysisSidebarOpen}
                                 />
                             ) : (

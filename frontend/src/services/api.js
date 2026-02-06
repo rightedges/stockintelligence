@@ -8,8 +8,8 @@ export const getStocks = () => api.get('/stocks/');
 export const addStock = (symbol) => api.post('/stocks/', { symbol });
 export const deleteStock = (symbol) => api.delete(`/stocks/${symbol}`);
 export const toggleWatchStock = (symbol) => api.put(`/stocks/${symbol}/watch`);
-export const getAnalysis = (symbol, period = '1y', interval = '1d') =>
-    api.get(`/stocks/${symbol}/analysis`, { params: { period, interval } });
+export const getAnalysis = (symbol, period = '1y', interval = '1d', configs = null) =>
+    api.get(`/stocks/${symbol}/analysis`, { params: { period, interval, indicators: configs ? JSON.stringify(configs) : undefined } });
 
 // Journal
 export const saveJournalEntry = (entry) => api.post('/journal/', entry);

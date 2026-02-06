@@ -90,7 +90,7 @@ const Watchlist = ({
                             <span className="text-[10px] text-gray-500 truncate w-24">{stock.name || 'Stock'}</span>
                         </div>
 
-                        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1">
                             {/* Badges */}
                             {stock.divergence_status && (
                                 <span className={`text-[9px] px-1 rounded ${stock.divergence_status.includes('bear') ? 'text-red-400 bg-red-900/30' : 'text-green-400 bg-green-900/30'}`}>D</span>
