@@ -4,7 +4,12 @@ import StockChart from './StockChart';
 import MarketIntelligence from './MarketIntelligence';
 import ElderAnalysis from './ElderAnalysis';
 import TradeJournal from './TradeJournal';
-import { Plus, Trash2, TrendingUp, Activity, Brain, LineChart, Star, Zap, Notebook, AlertTriangle } from 'lucide-react';
+import BacktestEngine from './BacktestEngine';
+import TradeEntryModal from './TradeEntryModal';
+import RightSidebar from './RightSidebar';
+import TopToolbar from './TopToolbar';
+import NavSidebar from './NavSidebar';
+import { Activity, AlertTriangle } from 'lucide-react';
 
 const Dashboard = () => {
     const [stocks, setStocks] = useState([]);
@@ -15,12 +20,93 @@ const Dashboard = () => {
     const [elderTactics, setElderTactics] = useState(null);
     const [macdDivergence, setMacdDivergence] = useState(null);
     const [f13Divergence, setF13Divergence] = useState(null);
-    const [newSymbol, setNewSymbol] = useState('');
     const [loading, setLoading] = useState(false);
     const [isScanning, setIsScanning] = useState(false);
-    const [isScanningEFI, setIsScanningEFI] = useState(false);
-    const [view, setView] = useState('weekly'); // 'weekly', 'elder' (daily), or 'intelligence'
+    const [view, setView] = useState('weekly'); // 'weekly', 'elder' (daily), 'intelligence', 'backtest', 'journal'
     const [initError, setInitError] = useState(null);
+
+    // --- Indicator State (Lifted from ElderAnalysis) ---
+    const loadSetting = (key, defaultValue) => {
+        try {
+            const saved = localStorage.getItem(`elder_settings_${key}`);
+            return saved !== null ? JSON.parse(saved) : defaultValue;
+        } catch (e) {
+            console.warn(`Error loading setting ${key}`, e);
+            return defaultValue;
+        }
+    };
+
+    const [indicators, setIndicators] = useState({
+        showEMA: loadSetting('ema', true),
+        showValueZones: loadSetting('valueZones', true),
+        showSafeZones: loadSetting('safeZones', false),
+        showSRLevels: loadSetting('srLevels', true),
+        showDivergences: loadSetting('divergences', true),
+        showMarkers: loadSetting('markers', true),
+        // Panes
+        showVolume: loadSetting('volume', true),
+        showMACD: loadSetting('macd', true),
+        showForce13: loadSetting('force13', true),
+        showForce2: loadSetting('force2', true)
+    });
+
+    const toggleIndicator = (key) => {
+        setIndicators(prev => {
+            const newState = { ...prev, [key]: !prev[key] };
+            // Persist immediately if not loading a template (handled separately)
+            const mapping = {
+                showEMA: 'ema',
+                showValueZones: 'valueZones',
+                showSafeZones: 'safeZones',
+                showSRLevels: 'srLevels',
+                showDivergences: 'divergences',
+                showMarkers: 'markers',
+                // Panes
+                showVolume: 'volume',
+                showMACD: 'macd',
+                showForce13: 'force13',
+                showForce2: 'force2'
+            };
+            if (mapping[key]) {
+                localStorage.setItem(`elder_settings_${mapping[key]}`, JSON.stringify(newState[key]));
+            }
+            return newState;
+        });
+    };
+
+    // --- Template Management ---
+    const [templates, setTemplates] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem('elder_templates') || '{}');
+        } catch { return {}; }
+    });
+
+    const saveTemplate = (name) => {
+        if (!name) return;
+        const newTemplates = { ...templates, [name]: indicators };
+        setTemplates(newTemplates);
+        localStorage.setItem('elder_templates', JSON.stringify(newTemplates));
+    };
+
+    const loadTemplate = (name) => {
+        const template = templates[name];
+        if (template) {
+            setIndicators(template);
+            // Optionally update individual persistence keys too, so reload keeps the template
+            Object.keys(template).forEach(key => {
+                // Re-use logic or just rely on state for session
+                // Ideally we update localstorage too
+                // For now, let's keep it simple: State wins.
+            });
+        }
+    };
+
+    const deleteTemplate = (name) => {
+        const newTemplates = { ...templates };
+        delete newTemplates[name];
+        setTemplates(newTemplates);
+        localStorage.setItem('elder_templates', JSON.stringify(newTemplates));
+    };
 
     useEffect(() => {
         loadStocks();
@@ -45,9 +131,18 @@ const Dashboard = () => {
     };
 
     const loadAnalysis = async (symbol) => {
+        // Skip analysis load for views that don't need it or handle it internally
+        if (view === 'journal') return;
+
         setLoading(true);
+        setChartData([]); // Clear previous data
+        setRegimeData(null);
+        setSrLevels([]);
+        setElderTactics(null);
+        setMacdDivergence(null);
+        setF13Divergence(null);
+
         try {
-            // Fix: pass period as first arg, interval as second
             const period = view === 'weekly' ? '2y' : '1y';
             const interval = view === 'weekly' ? '1wk' : '1d';
 
@@ -75,17 +170,17 @@ const Dashboard = () => {
             setF13Divergence(res.data.f13_divergence || null);
         } catch (err) {
             console.error("Failed to load analysis", err);
+            setChartData([]);
+            setRegimeData(null);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleAddStock = async (e) => {
-        e.preventDefault();
-        if (!newSymbol) return;
+    const handleAddStock = async (symbol) => {
+        if (!symbol) return;
         try {
-            await addStock(newSymbol.toUpperCase());
-            setNewSymbol('');
+            await addStock(symbol.toUpperCase());
             loadStocks();
         } catch (err) {
             alert('Failed to add stock');
@@ -93,7 +188,7 @@ const Dashboard = () => {
     };
 
     const handleDeleteStock = async (symbol, e) => {
-        e.stopPropagation();
+        if (e) e.stopPropagation();
         if (confirm(`Delete ${symbol}?`)) {
             try {
                 await deleteStock(symbol);
@@ -106,202 +201,156 @@ const Dashboard = () => {
     };
 
     const handleToggleWatch = async (symbol, e) => {
-        e.stopPropagation();
+        if (e) e.stopPropagation();
         try {
             await toggleWatchStock(symbol);
-            // Optimistic update or refresh
             loadStocks();
         } catch (err) {
             console.error("Failed to toggle watch status", err);
         }
     };
 
+    const handleScan = async (e) => {
+        if (e) e.stopPropagation();
+        if (isScanning) return;
+        setIsScanning(true);
+        try {
+            await scanStocks();
+            await loadStocks();
+        } catch (err) {
+            console.error("Scan failed", err);
+        } finally {
+            setIsScanning(false);
+        }
+    };
+
+    // --- Modal & Action Handlers ---
+    const [showTradeModal, setShowTradeModal] = useState(false);
+    const [isAnalysisSidebarOpen, setIsAnalysisSidebarOpen] = useState(false);
+
+    const handleLogTrade = () => {
+        setShowTradeModal(true);
+    };
+
+    const handleNotes = () => {
+        setIsAnalysisSidebarOpen(prev => !prev);
+    };
+
     return (
-        <div className="flex h-screen bg-gray-900 text-white">
-            {/* Sidebar */}
-            <div className="w-64 bg-gray-800 border-r border-gray-700 flex flex-col">
-                <div className="p-4 border-b border-gray-700 font-bold text-xl flex items-center gap-2">
-                    <TrendingUp className="text-green-500" />
-                    StockAI
-                    <div className="flex gap-2 ml-auto">
-                        {/* Unified Scan Button */}
-                        <button
-                            onClick={async (e) => {
-                                e.stopPropagation();
-                                if (isScanning) return;
-                                setIsScanning(true);
-                                try {
-                                    // Calls the unified backend endpoint
-                                    await scanStocks();
-                                    await loadStocks();
-                                } catch (err) {
-                                    console.error("Scan failed", err);
-                                } finally {
-                                    setIsScanning(false);
-                                }
-                            }}
-                            disabled={isScanning}
-                            className={`text-xs px-3 py-1.5 rounded flex items-center gap-2 transition-all border border-purple-500/30 ${isScanning ? 'bg-purple-600 font-bold animate-pulse' : 'bg-gray-700 hover:bg-purple-600 text-gray-300 hover:text-white'}`}
-                            title="Run Unified Market Scan (Divergence & EFI)"
-                        >
-                            {isScanning ? (
-                                <div className="animate-spin rounded-full h-3 w-3 border-2 border-white/20 border-t-white" />
-                            ) : (
-                                <Zap size={14} />
-                            )}
-                            {isScanning ? "SCANNING MARKET..." : "SCAN MARKET"}
-                        </button>
-                    </div>
-                </div>
+        <div className="flex h-screen bg-black text-white overflow-hidden font-sans">
+            {/* 1. Left Navigation (Slim) */}
+            <NavSidebar currentView={view} setView={setView} />
 
-                {/* Add Stock */}
-                <form onSubmit={handleAddStock} className="p-4 border-b border-gray-700">
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            className="bg-gray-700 text-white px-2 py-1 rounded w-full border border-gray-600 focus:border-blue-500 outline-none"
-                            placeholder="Symbol..."
-                            value={newSymbol}
-                            onChange={(e) => setNewSymbol(e.target.value)}
-                        />
-                        <button type="submit" className="bg-blue-600 hover:bg-blue-700 p-1 rounded">
-                            <Plus size={20} />
-                        </button>
-                    </div>
-                </form>
+            {/* 2. Main Center Content */}
+            <div className="flex-1 flex flex-col min-w-0 bg-gray-950 relative">
 
+                {/* TradingView-Style Top Toolbar */}
+                <TopToolbar
+                    symbol={selectedSymbol}
+                    currentView={view}
+                    setView={setView}
+                    stocks={stocks}
+                    onLogTrade={handleLogTrade}
+                    onNotes={handleNotes}
+                    indicators={indicators}
+                    onToggleIndicator={toggleIndicator}
+                    templates={templates}
+                    onSaveTemplate={saveTemplate}
+                    onLoadTemplate={loadTemplate}
+                    onDeleteTemplate={deleteTemplate}
+                />
 
-                {/* Stock List */}
-                <div className="flex-1 overflow-y-auto">
-                    {stocks.map((stock) => (
-                        <div
-                            key={stock.symbol}
-                            className={`p-3 flex justify-between items-center cursor-pointer hover:bg-gray-700 transition ${selectedSymbol === stock.symbol ? 'bg-gray-700 border-l-4 border-blue-500' : ''}`}
-                            onClick={() => setSelectedSymbol(stock.symbol)}
-                        >
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <div className={`w-2 h-2 rounded-full ${stock.impulse === 'green' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' :
-                                        stock.impulse === 'red' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' :
-                                            'bg-blue-500'
-                                        }`}></div>
-                                    <div className="font-bold">{stock.symbol}</div>
-                                    {/* Divergence Icon */}
-                                    {stock.divergence_status && (
-                                        <div className={`ml-1 px-1 rounded text-[10px] font-bold border ${stock.divergence_status.includes('bearish') ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-green-500/20 text-green-400 border-green-500/30'}`}
-                                            title={`${stock.divergence_status.replace('_', ' ').toUpperCase()} Divergence Detected`}
-                                        >
-                                            D
-                                        </div>
-                                    )}
-                                    {/* EFI Icon */}
-                                    {stock.efi_status && (
-                                        <div className={`ml-1 px-1 rounded text-[10px] font-bold border ${stock.efi_status === 'sell' ? 'bg-pink-500/20 text-pink-400 border-pink-500/30' : 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'}`}
-                                            title={`EFI ${stock.efi_status.toUpperCase()} Signal`}
-                                        >
-                                            E
-                                        </div>
-                                    )}
-                                    {/* Setup Signal Icon */}
-                                    {stock.setup_signal && (
-                                        <div className={`ml-1 px-1 rounded text-[10px] font-bold border ${stock.setup_signal.includes('buy') ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-orange-500/20 text-orange-400 border-orange-500/30'}`}
-                                            title={`Tripe Screen Setup: ${stock.setup_signal.replace('_', ' ').toUpperCase()}`}
-                                        >
-                                            TS
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="text-xs text-gray-400 truncate w-32">{stock.name || '-'}</div>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={(e) => handleToggleWatch(stock.symbol, e)}
-                                    className={`p-1.5 hover:bg-gray-600 rounded-lg transition-colors ${stock.is_watched ? 'text-yellow-400' : 'text-gray-600 hover:text-yellow-400'}`}
-                                >
-                                    <Star size={16} fill={stock.is_watched ? "currentColor" : "none"} />
-                                </button>
-                                <button
-                                    onClick={(e) => handleDeleteStock(stock.symbol, e)}
-                                    className="text-gray-500 hover:text-red-500 p-1"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col min-w-0">
-                {/* Header */}
-                <div className="h-16 bg-gray-800 border-b border-gray-700 flex items-center px-6 justify-between">
-                    <div className="text-xl font-semibold">
-                        {selectedSymbol ? `${selectedSymbol} Analysis` : 'Dashboard'}
-                    </div>
-                    <div className="flex gap-4">
-                        <button
-                            onClick={() => setView('weekly')}
-                            className={`flex items-center gap-2 px-3 py-1 rounded-md transition ${view === 'weekly' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
-                        >
-                            <LineChart size={18} />
-                            Elder Weekly
-                        </button>
-                        <button
-                            onClick={() => setView('elder')}
-                            className={`flex items-center gap-2 px-3 py-1 rounded-md transition ${view === 'elder' ? 'bg-green-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
-                        >
-                            <TrendingUp size={18} />
-                            Elder Daily
-                        </button>
-                        <button
-                            onClick={() => setView('intelligence')}
-                            className={`flex items-center gap-2 px-3 py-1 rounded-md transition ${view === 'intelligence' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
-                        >
-                            <Brain size={18} />
-                            Intelligence
-                        </button>
-                        <button
-                            onClick={() => setView('journal')}
-                            className={`flex items-center gap-2 px-3 py-1 rounded-md transition ${view === 'journal' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
-                        >
-                            <Notebook size={18} />
-                            Journal
-                        </button>
-                    </div>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 p-6 overflow-y-auto bg-gray-900">
+                {/* View Content */}
+                <div className="flex-1 relative overflow-hidden">
                     {initError ? (
-                        <div className="flex flex-col items-center justify-center h-full text-red-400 bg-red-900/10 rounded-2xl border border-red-500/20 p-8">
-                            <AlertTriangle size={48} className="mb-4" />
-                            <h2 className="text-xl font-bold mb-2">
-                                Analysis Engine Failure
-                                <span className="text-[10px] bg-red-600 px-2 py-0.5 rounded ml-2 font-mono animate-pulse">ACTIVE_V6_FORCE_REFRESH_1140PM</span>
-                            </h2>
-                            <p className="text-sm opacity-80 mb-4">{initError}</p>
-                            <button onClick={() => window.location.reload()} className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold">Retry Initialization</button>
+                        <div className="absolute inset-0 flex items-center justify-center bg-red-900/10 z-50">
+                            <div className="flex flex-col items-center p-8 bg-gray-900 border border-red-500/30 rounded-2xl">
+                                <AlertTriangle size={48} className="mb-4 text-red-500" />
+                                <h2 className="text-xl font-bold mb-2 text-red-400">Analysis Engine Error</h2>
+                                <p className="text-sm opacity-80 mb-4 text-gray-400">{initError}</p>
+                                <button onClick={() => window.location.reload()} className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-500">Retry</button>
+                            </div>
                         </div>
                     ) : loading ? (
-                        <div className="flex items-center justify-center h-full text-gray-400">
-                            <Activity className="animate-spin mr-2" /> Loading...
+                        <div className="absolute inset-0 flex items-center justify-center text-gray-400 bg-black/50 z-50 backdrop-blur-sm">
+                            <Activity className="animate-spin mr-2" /> Loading Analysis...
                         </div>
-                    ) : view === 'intelligence' ? (
-                        <MarketIntelligence regimeData={regimeData} />
-                    ) : view === 'journal' ? (
-                        <TradeJournal />
-                    ) : view === 'elder' ? (
-                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} f13Divergence={f13Divergence} timeframeLabel="Daily" regimeData={regimeData} setInitError={setInitError} />
-                    ) : view === 'weekly' ? (
-                        <ElderAnalysis data={chartData} symbol={selectedSymbol} srLevels={srLevels} tacticalAdvice={elderTactics} macdDivergence={macdDivergence} f13Divergence={f13Divergence} timeframeLabel="Weekly" regimeData={regimeData} setInitError={setInitError} />
                     ) : (
-                        <div className="flex items-center justify-center h-full text-gray-500">
-                            Select a stock to view analysis
+                        <div className="h-full overflow-y-auto custom-scrollbar">
+
+                            {view === 'journal' ? (
+                                <TradeJournal />
+                            ) : view === 'backtest' ? (
+                                <div className="p-4"><BacktestEngine /></div>
+                            ) : view === 'elder' ? (
+                                <ElderAnalysis
+                                    key="daily-analysis"
+                                    data={chartData}
+                                    symbol={selectedSymbol}
+                                    srLevels={srLevels}
+                                    tacticalAdvice={elderTactics}
+                                    macdDivergence={macdDivergence}
+                                    f13Divergence={f13Divergence}
+                                    timeframeLabel="Daily"
+                                    regimeData={regimeData}
+                                    setInitError={setInitError}
+                                    onLogTrade={handleLogTrade}
+                                    indicators={indicators}
+                                    isSidebarOpen={isAnalysisSidebarOpen}
+                                />
+                            ) : view === 'weekly' ? (
+                                <ElderAnalysis
+                                    key="weekly-analysis"
+                                    data={chartData}
+                                    symbol={selectedSymbol}
+                                    srLevels={srLevels}
+                                    tacticalAdvice={elderTactics}
+                                    macdDivergence={macdDivergence}
+                                    f13Divergence={f13Divergence}
+                                    timeframeLabel="Weekly"
+                                    regimeData={regimeData}
+                                    setInitError={setInitError}
+                                    indicators={indicators}
+                                    isSidebarOpen={isAnalysisSidebarOpen}
+                                />
+                            ) : (
+                                <div className="flex items-center justify-center h-full text-gray-600">
+                                    Select a view
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* Modal Layer */}
+            {showTradeModal && (
+                <TradeEntryModal
+                    isOpen={showTradeModal}
+                    onClose={() => setShowTradeModal(false)}
+                    symbol={selectedSymbol}
+                    currentPrice={chartData && chartData.length > 0 ? chartData[chartData.length - 1].close : 0}
+                />
+            )}
+
+            {/* 3. TradingView-Style Right Sidebar */}
+            <RightSidebar
+                // Watchlist Props
+                stocks={stocks}
+                selectedSymbol={selectedSymbol}
+                onSelect={setSelectedSymbol}
+                onAdd={handleAddStock}
+                onDelete={handleDeleteStock}
+                onToggleWatch={handleToggleWatch}
+                isScanning={isScanning}
+                onScan={handleScan}
+                // Strategy Props
+                data={chartData}
+                tacticalAdvice={elderTactics}
+                isWeekly={view === 'weekly'}
+                f13Divergence={f13Divergence}
+                regimeData={regimeData}
+            />
         </div>
     );
 };

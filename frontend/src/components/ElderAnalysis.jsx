@@ -13,9 +13,22 @@ console.log("DEBUG: createSeriesMarkers exists?", typeof createSeriesMarkers);
 import { Zap, Info, Notebook, Camera, Calendar, Trash2, Search, AlertTriangle, Edit, ShieldCheck, ArrowUpRight, Globe, Layers, Plus } from 'lucide-react';
 import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalEntry, getActiveTrade } from '../services/api';
 import { X } from 'lucide-react';
-import TradeEntryModal from './TradeEntryModal';
+// TradeEntryModal moved to Dashboard
 
-const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDivergence, f13Divergence, timeframeLabel = 'Daily', regimeData, setInitError }) => {
+const ElderAnalysis = ({
+    data,
+    symbol,
+    srLevels = [],
+    tacticalAdvice,
+    macdDivergence,
+    f13Divergence,
+    timeframeLabel = 'Daily',
+    regimeData,
+    setInitError,
+    onLogTrade,
+    indicators, // Props from Dashboard
+    isSidebarOpen // Props from Dashboard
+}) => {
     console.log('ElderAnalysis Init', { symbol, dataLength: data?.length, timeframeLabel });
     const lastData = data && data.length > 0 ? data[data.length - 1] : null;
 
@@ -28,43 +41,53 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
     const [selectedImage, setSelectedImage] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [editingId, setEditingId] = useState(null);
-    const [editingNote, setEditingNote] = useState('');
-    const [showTradeModal, setShowTradeModal] = useState(false);
-    const [tradeModalInitialData, setTradeModalInitialData] = useState({});
+
+
+    // Modal state moved to Dashboard
     const [snapshot, setSnapshot] = useState(null);
     const [activeTrade, setActiveTrade] = useState(null);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Default collapsed for chart space
+    // isSidebarOpen is now a prop from Dashboard
 
     // Synchronization labels
     const [syncRange, setSyncRange] = useState(null);
     const [syncCrosshair, setSyncCrosshair] = useState(null);
 
-    // Visibility toggles with persistence
-    const loadSetting = (key, defaultValue) => {
-        try {
-            const saved = localStorage.getItem(`elder_settings_${key}`);
-            return saved !== null ? JSON.parse(saved) : defaultValue;
-        } catch (e) {
-            console.warn(`Error loading setting ${key}`, e);
-            return defaultValue;
-        }
-    };
+    // Destructure indicators from props (with defaults if missing)
+    const {
+        showEMA = true,
+        showValueZones = true,
+        showSafeZones = false,
+        showSRLevels = true,
+        showDivergences = true,
+        showMarkers = true,
+        // Panes
+        showVolume = true,
+        showMACD = true,
+        showForce13 = true,
+        showForce2 = true
+    } = indicators || {};
 
-    const [showValueZones, setShowValueZones] = useState(() => loadSetting('valueZones', true));
-    const [showSafeZones, setShowSafeZones] = useState(() => loadSetting('safeZones', false));
-    const [showSRLevels, setShowSRLevels] = useState(() => loadSetting('srLevels', true));
-    const [showDivergences, setShowDivergences] = useState(() => loadSetting('divergences', true));
-    const [showEMA, setShowEMA] = useState(() => loadSetting('ema', true));
-    const [showMarkers, setShowMarkers] = useState(() => loadSetting('markers', true));
+    // Ref to access current visibility inside event listeners/loops
+    const visibilityRef = useRef({
+        ema: showEMA,
+        valueZones: showValueZones,
+        safeZones: showSafeZones,
+        divergences: showDivergences,
+        srLevels: showSRLevels,
+        markers: showMarkers
+    });
 
-    // Persist settings on change
+    const lastLegendDataRef = useRef(null);
     useEffect(() => {
-        localStorage.setItem('elder_settings_valueZones', JSON.stringify(showValueZones));
-        localStorage.setItem('elder_settings_safeZones', JSON.stringify(showSafeZones));
-        localStorage.setItem('elder_settings_srLevels', JSON.stringify(showSRLevels));
-        localStorage.setItem('elder_settings_divergences', JSON.stringify(showDivergences));
-        localStorage.setItem('elder_settings_ema', JSON.stringify(showEMA));
-        localStorage.setItem('elder_settings_markers', JSON.stringify(showMarkers));
+        visibilityRef.current = {
+            ema: showEMA,
+            valueZones: showValueZones,
+            safeZones: showSafeZones,
+            divergences: showDivergences,
+            srLevels: showSRLevels,
+            markers: showMarkers
+        };
+        // LocalStorage logic moved to Dashboard
     }, [showValueZones, showSafeZones, showSRLevels, showDivergences, showEMA, showMarkers]);
 
     const priceFormatter = (price) => (price || 0).toFixed(2);
@@ -100,7 +123,10 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
     const chartsRef = useRef({}); // Professional Multi-Pane Reference
     const seriesRef = useRef({});
     const legendRef = useRef(null);
+    const updateLegendsRef = useRef(null); // Expose to other effects
     const srLineRefs = useRef([]);
+    const isResizing = useRef(false);
+    const prevWidth = useRef(0);
 
     // Load Journal Entries (All Timeframes)
     useEffect(() => {
@@ -117,8 +143,14 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         fetchEntries();
     }, [symbol]);
 
+    const resizeRAF = useRef(null);
+
     // Initialize Multi-Pane Integrated Professional Layout
     useEffect(() => {
+        let isAlive = true; // Safety flag for async operations/callbacks
+        console.log('ElderAnalysis: Initializing Layout...', { timeframeLabel, indicators });
+        prevWidth.current = 0; // Force reset on every new mount/symbol change
+
         if (!chartContainerRef.current) return;
         const container = chartContainerRef.current;
         container.innerHTML = '';
@@ -126,9 +158,12 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         container.style.flexDirection = 'column';
         container.style.gap = '0px';
         container.style.background = '#111827';
-        container.style.borderRadius = '12px';
+        container.style.borderRadius = '0px'; // Remove radius for full fit
         container.style.overflow = 'hidden';
-        container.style.border = '1px solid rgba(255, 255, 255, 0.05)';
+        container.style.border = 'none'; // Remove border to prevent inset
+        container.style.width = '100%'; // FORCE FULL WIDTH
+        container.style.justifyContent = 'center'; // Center content just in case
+        container.style.alignItems = 'stretch'; // Ensure children stretch
 
         const isWeekly = timeframeLabel === 'Weekly';
         const background = { type: 'solid', color: '#111827' };
@@ -137,26 +172,42 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
         const paneConfigs = [
             { id: 'price', flex: 10 },
-            { id: 'volume', flex: 1.5 },
-            { id: 'macd', flex: 3 },
-            { id: 'force13', flex: 4 }, // Enabled for both Daily and Weekly
-            { id: 'force2', flex: 2, hide: isWeekly }
+            { id: 'volume', flex: 1.5, hide: !showVolume },
+            { id: 'macd', flex: 3, hide: !showMACD },
+            { id: 'force13', flex: 4, hide: !showForce13 },
+            { id: 'force2', flex: 2, hide: isWeekly || !showForce2 }
         ].filter(p => !p.hide);
 
         const charts = {};
         const legends = {};
-        const containerWidth = container.clientWidth || 800;
-        const containerHeight = container.clientHeight || 1000;
+        // Use getBoundingClientRect for precision, with fallback
+        const rect = container.getBoundingClientRect();
+        const containerWidth = rect.width || container.clientWidth || 800;
+        const containerHeight = rect.height || 1000;
+
+        console.log('[ElderAnalysis] Container Dimensions Init:', {
+            rectWidth: rect.width,
+            rectHeight: rect.height,
+            clientWidth: container.clientWidth,
+            clientHeight: container.clientHeight,
+            resolvedWidth: containerWidth
+        });
+
         const totalFlex = paneConfigs.reduce((sum, p) => sum + p.flex, 0);
 
         try {
             paneConfigs.forEach((p, idx) => {
                 const paneDiv = document.createElement('div');
                 paneDiv.style.flex = p.flex;
+                paneDiv.style.width = '100%'; // Ensure full width
                 paneDiv.style.minHeight = '100px';
                 paneDiv.style.position = 'relative';
+                // Remove internal borders for cleaner look or keep minimal
                 paneDiv.style.borderBottom = idx < paneConfigs.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none';
                 container.appendChild(paneDiv);
+
+                const borderOffset = paneConfigs.length - 1;
+                const effectiveHeight = Math.max(0, containerHeight - borderOffset);
 
                 const chart = createChart(paneDiv, {
                     layout: {
@@ -167,8 +218,8 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         vertLines: { color: 'rgba(197, 203, 206, 0.05)' },
                         horzLines: { color: 'rgba(197, 203, 206, 0.05)' },
                     },
-                    width: containerWidth,
-                    height: (containerHeight / totalFlex) * p.flex,
+                    width: containerWidth, // Use PRECISE width
+                    height: Math.max(10, Math.floor((effectiveHeight / totalFlex) * p.flex)),
                     timeScale: {
                         visible: idx === paneConfigs.length - 1,
                         borderColor: 'rgba(197, 203, 206, 0.1)',
@@ -179,7 +230,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         visible: true,
                         autoScale: true,
                         scaleMargins: { top: 0.1, bottom: 0.1 },
-                        minimumWidth: 130,
+                        minimumWidth: 95, // FORCE FIXED WIDTH to align all stacked panes (Critical for Daily View)
                     },
                     leftPriceScale: { visible: false },
                     crosshair: {
@@ -203,7 +254,6 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 });
 
                 if (!chart) throw new Error(`Chart Creation Failed for pane: ${p.id}`);
-                console.log(`Pane Init [${p.id}]:`, Object.keys(chart));
                 charts[p.id] = chart;
 
                 const leg = document.createElement('div');
@@ -212,8 +262,35 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                     font-family: -apple-system, sans-serif; font-size: 11px;
                     color: rgba(255, 255, 255, 0.7); pointer-events: none;
                     display: flex; flex-direction: column; gap: 0px;
-                    background: rgba(17, 24, 39, 0.4); padding: 2px 6px; border-radius: 4px;
+                    background: rgba(17, 24, 39, 0.4); padding: 4px 8px; border-radius: 6px;
+                    border: 1px solid rgba(255, 255, 255, 0.05);
                 `;
+
+                // Add click listener for toggles
+                leg.addEventListener('click', (e) => {
+                    const btn = e.target.closest('[data-toggle]');
+                    if (btn) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        const id = btn.dataset.toggle;
+                        console.log(`Legend Toggle Clicked: ${id}`);
+
+                        // Map IDs to Setters
+                        const setters = {
+                            'ema': setShowEMA,
+                            'zones': setShowValueZones,
+                            'sr': setShowSRLevels,
+                            'div': setShowDivergences,
+                            'safe': setShowSafeZones,
+                            'markers': setShowMarkers
+                        };
+
+                        if (setters[id]) {
+                            setters[id](prev => !prev);
+                        }
+                    }
+                });
+
                 paneDiv.appendChild(leg);
                 legends[p.id] = leg;
             });
@@ -221,7 +298,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             chartsRef.current = charts;
         } catch (e) {
             console.error("Multi-Pane Init Failure", e);
-            setInitError(`CHART INIT FAILED: ${e.message}. Please verify lightweight-charts version.`);
+            setInitError(`CHART INIT FAILED: ${e.message}`);
         }
         chartRef.current = charts.price;
         legendRef.current = legends;
@@ -246,7 +323,6 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 return series;
             } catch (err) {
                 console.error(`Series Creation Error [${type}]:`, err);
-                setInitError(`SERIES ERROR [${type}]: ${err.message}`);
                 return null;
             }
         };
@@ -261,10 +337,8 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         if (!s.candles) return;
 
         // Initialize markers primitive (v5 API)
-        s.markers = {};
-        if (createSeriesMarkers) {
-            s.markers.candles = createSeriesMarkers(s.candles);
-            console.log("DEBUG [Markers]: Initialized markers for candles");
+        if (createSeriesMarkers && s.candles) {
+            s.markers = { candles: createSeriesMarkers(s.candles) };
         }
 
         s.ema13 = createSeries(charts.price, 'Line', { color: '#60a5fa', lineWidth: 2, lastValueVisible: false, priceLineVisible: false });
@@ -331,17 +405,43 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         // --- Synchronization and Legend Logic ---
         const updateLegends = (d) => {
             if (!d || !legendRef.current) return;
+            lastLegendDataRef.current = d; // Store for re-render
+
             const isWeekly = timeframeLabel === 'Weekly';
             const l = legendRef.current;
+            const vis = visibilityRef.current; // Access current state
+
+            // Eye Icons
+            const eyeOpen = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
+            const eyeClosed = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>`;
+
+            const btn = (id, active, color) => `
+                <span data-toggle="${id}" title="Toggle ${id}" style="
+                    cursor: pointer; pointer-events: auto; display: inline-flex; align-items: center; 
+                    color: ${active ? color : '#6b7280'}; margin-right: 6px; 
+                    opacity: ${active ? 1 : 0.6}; transition: opacity 0.2s;
+                ">
+                    ${active ? eyeOpen : eyeClosed}
+                </span>
+            `;
 
             if (l.price) {
                 l.price.innerHTML = `
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <span style="color: #9ca3af;">O</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Open?.toFixed(2) || '0.00'}</span>
-                        <span style="color: #9ca3af;">H</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.High?.toFixed(2) || '0.00'}</span>
-                        <span style="color: #9ca3af;">L</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Low?.toFixed(2) || '0.00'}</span>
-                        <span style="color: #9ca3af;">C</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Close?.toFixed(2) || '0.00'}</span>
-                        <span style="color: #60a5fa">EMA13 ${d.ema_13?.toFixed(2) || ''}</span>
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <span style="color: #9ca3af;">O</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Open?.toFixed(2) || '0.00'}</span>
+                            <span style="color: #9ca3af;">H</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.High?.toFixed(2) || '0.00'}</span>
+                            <span style="color: #9ca3af;">L</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Low?.toFixed(2) || '0.00'}</span>
+                            <span style="color: #9ca3af;">C</span> <span style="${d.Open >= d.Close ? 'color: #ef4444' : 'color: #22c55e'}">${d.Close?.toFixed(2) || '0.00'}</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center; padding-top: 2px;">
+                            ${btn('ema', vis.ema, '#60a5fa')} <span style="color: #60a5fa; opacity: ${vis.ema ? 1 : 0.5}">EMA13</span>
+                            ${btn('zones', vis.valueZones, '#818cf8')} <span style="color: #818cf8; opacity: ${vis.valueZones ? 1 : 0.5}">Zones</span>
+                            ${btn('sr', vis.srLevels, '#c084fc')} <span style="color: #c084fc; opacity: ${vis.srLevels ? 1 : 0.5}">SR</span>
+                            ${btn('div', vis.divergences, '#fbbf24')}  <span style="color: #fbbf24; opacity: ${vis.divergences ? 1 : 0.5}">Div</span>
+                            ${btn('safe', vis.safeZones, '#ef4444')}  <span style="color: #ef4444; opacity: ${vis.safeZones ? 1 : 0.5}">Safe</span>
+                            ${btn('markers', vis.markers, '#10b981')} <span style="color: #10b981; opacity: ${vis.markers ? 1 : 0.5}">Sig</span>
+                        </div>
                     </div>
                 `;
             }
@@ -350,16 +450,22 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             if (l.force13 && !isWeekly) l.force13.innerHTML = `<div style="color: #60a5fa">FORCE (13) ${d.efi ? (d.efi / 1000000).toFixed(2) + 'M' : '0.00M'}</div>`;
             if (l.force2 && !isWeekly) l.force2.innerHTML = `<div style="color: #a78bfa">FORCE (2) ${d.force_index_2 ? (d.force_index_2 / 1000).toFixed(1) + 'K' : '0.0K'}</div>`;
         };
+        updateLegendsRef.current = updateLegends; // Assign to Ref
 
         let isSyncingRange = false;
         const handleTimeRangeChange = (range) => {
+            if (!isAlive) return; // SAFETY
+            if (isSyncingRange || isResizing.current) return;
+            isSyncingRange = true;
             Object.values(charts).forEach(c => c.timeScale().setVisibleLogicalRange(range));
+            isSyncingRange = false;
         };
 
         let isSyncing = false;
         let lastHoveredId = 'price';
         const handleCrosshairMove = (param, sourceId) => {
-            if (isSyncing || !seriesRef.current) return;
+            if (!isAlive) return; // SAFETY
+            if (isSyncing || !seriesRef.current || isResizing.current) return;
             const s = seriesRef.current;
 
             isSyncing = true;
@@ -424,33 +530,154 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
             charts[id].subscribeCrosshairMove((param) => handleCrosshairMove(param, id));
         });
 
-        const observer = new ResizeObserver(entries => {
-            if (entries[0]) {
-                const width = entries[0].contentRect.width;
-                const hTotal = entries[0].contentRect.height;
+        // --- Robust Resize Handler ---
+        const handleResize = () => {
+            if (!isAlive) {
+                console.warn('[ElderAnalysis] Resize skipped: Component unmounted/not alive');
+                return;
+            }
+
+            if (resizeRAF.current) cancelAnimationFrame(resizeRAF.current);
+
+            resizeRAF.current = requestAnimationFrame(() => {
+                if (!isAlive) return;
+                if (!chartContainerRef.current) {
+                    console.error('[ElderAnalysis] Resize Failed: No container ref');
+                    return;
+                }
+
+                // Use LIVE DOM dimensions
+                const width = chartContainerRef.current.clientWidth;
+                const hTotal = chartContainerRef.current.clientHeight;
+                const rect = chartContainerRef.current.getBoundingClientRect();
+
+                console.log(`[ElderAnalysis] handleResize EXECUTE [${Date.now()}]`, {
+                    clientWidth: width,
+                    clientHeight: hTotal,
+                    rectWidth: rect.width,
+                    rectHeight: rect.height,
+                    paneCount: paneConfigs.length
+                });
+
+                if (width === 0 || hTotal === 0) {
+                    console.warn('[ElderAnalysis] Resize Aborted: Zero Dimensions Detected');
+                    return;
+                }
+
                 const totalF = paneConfigs.reduce((sum, p) => sum + p.flex, 0);
+
+                // Disable sync logic during resize to prevent loops
+                isResizing.current = true;
+                isSyncingRange = true;
+
+                // 1. Capture Visible Range BEFORE Resize (to maintain position)
+                let oldRange = null;
+                if (charts.price && prevWidth.current > 0) {
+                    try {
+                        oldRange = charts.price.timeScale().getVisibleLogicalRange();
+                    } catch (e) { }
+                }
+
+                // 2. Apply New Dimensions to All Panes
+                const borderOffset = paneConfigs.length - 1;
+                const effectiveHeight = Math.max(0, hTotal - borderOffset);
+
                 paneConfigs.forEach(p => {
                     const c = charts[p.id];
                     if (c) {
-                        const h = (p.flex / totalF) * hTotal;
-                        c.applyOptions({ width, height: h });
+                        const newHeight = Math.max(10, Math.floor((p.flex / totalF) * effectiveHeight));
+                        // console.log(`[ElderAnalysis] Resizing Pane ${p.id}:`, { width, newHeight });
+                        c.applyOptions({ width, height: newHeight });
                     }
                 });
+
+                // 3. Restore Range Logic (Anchor Right)
+                // REMOVED to allow natural left-side expansion/magnetism
+                /*
+                if (prevWidth.current > 0 && oldRange && width !== prevWidth.current) {
+                   // ... logic removed ...
+                }
+                */
+
+                prevWidth.current = width;
+
+                setTimeout(() => {
+                    if (isAlive) { // Check before updating refs
+                        isResizing.current = false;
+                        isSyncingRange = false;
+                        // console.log('[ElderAnalysis] Resize Complete & Locks Released');
+                    }
+                }, 50);
+            });
+        };
+
+        const observer = new ResizeObserver(entries => {
+            if (entries[0] && isAlive) {
+                const { width, height } = entries[0].contentRect;
+                console.log(`[ElderAnalysis] ResizeObserver Triggered [${Date.now()}]`, { width, height });
+                handleResize();
             }
         });
         observer.observe(container);
 
+        // IMMEDIATE RESIZE TRIGGERS
+        console.log('[ElderAnalysis] Scheduling Initial Resize Triggers...');
+        setTimeout(() => {
+            if (isAlive) {
+                console.log('[ElderAnalysis] Trigger 1 (50ms) Firing...');
+                handleResize();
+            }
+        }, 50);
+        setTimeout(() => {
+            if (isAlive) {
+                console.log('[ElderAnalysis] Trigger 2 (200ms) Firing...');
+                handleResize();
+            }
+        }, 200);
+
+        // Expose resize handler to parent scope ref if needed or attach to window for manual events
+        // Using a custom event listener for manual triggers from parent effects
+        const manualResizeListener = () => { if (isAlive) handleResize(); };
+        window.addEventListener('resize-chart-manual', manualResizeListener);
+
+
         updateLegends(data[data.length - 1]);
 
         return () => {
+            isAlive = false; // KILL SWITCH
+            window.removeEventListener('resize-chart-manual', manualResizeListener);
+            if (window.resizeTimeout) clearTimeout(window.resizeTimeout);
+            if (resizeRAF.current) cancelAnimationFrame(resizeRAF.current);
             srLineRefs.current = [];
+
+            // Critical Reset
+            prevWidth.current = 0;
+            isResizing.current = false;
+
+            if (chartContainerRef.current) {
+                chartContainerRef.current.style.pointerEvents = 'auto';
+            }
+
             observer.disconnect();
             Object.values(charts).forEach(c => c.remove());
             chartsRef.current = {};
             legendRef.current = null;
             seriesRef.current = {};
         };
-    }, [symbol, timeframeLabel, data]);
+    }, [symbol, timeframeLabel, data, showVolume, showMACD, showForce13, showForce2]);
+
+    // Force resize check when sidebar toggles (to catch end of CSS transition)
+    useEffect(() => {
+        // Immediate check
+        window.dispatchEvent(new Event('resize-chart-manual'));
+
+        // Checks during transition
+        const timers = [100, 200, 300, 350].map(t =>
+            setTimeout(() => window.dispatchEvent(new Event('resize-chart-manual')), t)
+        );
+
+        return () => timers.forEach(t => clearTimeout(t));
+    }, [isSidebarOpen]);
 
     const getCombinedSnapshot = () => {
         if (Object.keys(chartsRef.current).length === 0) return null;
@@ -694,7 +921,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         });
 
         chartsRef.current.price.timeScale().fitContent();
-    }, [data, symbol, srLevels]);
+    }, [data, symbol, srLevels, showVolume, showMACD, showForce13, showForce2]);
 
     // Dedicated Marker Effect with slight delay to ensure series are painted
     useEffect(() => {
@@ -795,8 +1022,13 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
         setVis(s.divEfiPrice, showDivergences);
         setVis(s.divEfiInd, showDivergences);
 
+        // Refresh Legends to update Eye Icons
+        if (updateLegendsRef.current && lastLegendDataRef.current) {
+            updateLegendsRef.current(lastLegendDataRef.current);
+        }
+
         // S/R levels are handled in a separate effect below
-    }, [showValueZones, showSafeZones, showDivergences, showEMA]);
+    }, [showValueZones, showSafeZones, showDivergences, showEMA, showMarkers, showSRLevels]);
     // Dedicated S/R Levels Effect
     useEffect(() => {
         const s = seriesRef.current;
@@ -823,357 +1055,56 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
     }, [showSRLevels, srLevels]);
 
     return (
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <div className="flex flex-col lg:flex-row gap-0 h-full bg-gray-950 overflow-y-auto custom-scrollbar relative">
             {/* Main Content Area (Left) */}
-            <div className="flex-1 flex flex-col gap-6 w-full min-w-0">
+            <div className="flex-1 flex flex-col gap-2 w-full min-w-0">
 
-                <div className="bg-blue-600/10 border border-blue-500/30 p-8 rounded-3xl shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl -mr-20 -mt-20" />
-                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8 bg-gray-900/40 p-6 rounded-2xl border border-white/5 backdrop-blur-sm">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
-                                <Info className="text-blue-400" size={24} />
-                            </div>
-                            <div>
-                                <h3 className="font-black text-white text-2xl italic tracking-tighter">
-                                    TRIPLE SCREEN STRATEGY
-                                </h3>
-                                <div className="text-gray-400 text-xs font-medium uppercase tracking-widest mt-0.5">
-                                    {symbol} • {timeframeLabel} Analysis
+                {/* Header Card Removed */}
+
+
+                {/* Divergence Alerts (Unified - Top Banner) */}
+                {(() => {
+                    const isFresh = (macdDivergence?.recency < 5);
+
+                    // 1. MACD Divergence
+                    if (macdDivergence && isFresh) {
+                        return (
+                            <div className={`mb-2 p-2 rounded-lg border-l-2 flex items-center gap-2 shadow-sm animate-in fade-in slide-in-from-top-1 duration-300 ${macdDivergence.type === 'bearish'
+                                ? 'bg-red-900/30 border-red-500/40 shadow-red-900/10'
+                                : 'bg-green-900/30 border-green-500/40 shadow-green-900/10'
+                                }`}>
+                                <div className={`p-2 rounded-lg ${macdDivergence.type === 'bearish' ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
+                                    <Info size={24} className={macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'} />
+                                </div>
+                                <div>
+                                    <h4 className={`font-black uppercase tracking-widest text-sm mb-1 ${macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'}`}>
+                                        CRITICAL {macdDivergence.type} DIVERGENCE DETECTED
+                                    </h4>
+                                    <p className="text-gray-300 text-sm leading-relaxed">
+                                        {macdDivergence.type === 'bearish'
+                                            ? "Price is making a higher high while momentum (MACD) is weakening. A sharp reversal may be imminent."
+                                            : "Price is making a lower low while momentum (MACD) is strengthening. A bottom may be forming."}
+                                    </p>
                                 </div>
                             </div>
-                        </div>
+                        );
+                    }
 
-                        {regimeData && (
-                            <div className="flex flex-wrap items-center gap-3 bg-black/40 p-2 pl-4 rounded-xl border border-white/5 shadow-inner">
-                                {/* Macro Status */}
-                                <div className="flex items-center gap-2" title={`Macro: ${regimeData.macro_status} | Trend: ${regimeData.regime}`}>
-                                    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${regimeData.macro_status === 'Risk-On' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
-                                        <Globe size={12} />
-                                        {regimeData.macro_status}
-                                    </div>
-                                </div>
+                    return null;
+                })()}
 
-                                <div className="w-[1px] h-4 bg-gray-800" />
+                {/* EFI Divergence Alert */}
 
-                                {/* Sector Status */}
-                                <div className="flex items-center gap-2" title={`Sector: ${regimeData.sector_analysis?.stock_sector}`}>
-                                    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${regimeData.sector_analysis?.is_leading ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'bg-gray-700/50 text-gray-400 border border-gray-600/50'}`}>
-                                        <Layers size={12} />
-                                        {regimeData.sector_analysis?.is_leading ? 'Leading Sector' : regimeData.sector_analysis?.stock_sector || 'Sector'}
-                                    </div>
-                                </div>
+            </div>
 
-                                <div className="w-[1px] h-4 bg-gray-800" />
+            {/* Chart Logic & Visibility Card REMOVED (Moved to Legend) */}
 
-                                {/* Strategic Verdict */}
-                                <div className="flex items-center gap-3 ml-2">
-                                    <div className={`px-3 py-1 rounded text-[10px] uppercase font-black tracking-widest flex items-center gap-2 ${(regimeData.decision?.includes('Buy') || regimeData.decision?.includes('Bullish')) ? 'bg-green-500 text-black shadow-[0_0_15px_rgba(34,197,94,0.5)]' :
-                                        (regimeData.decision?.includes('Avoid') || regimeData.decision?.includes('Short')) ? 'bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.5)]' :
-                                            'bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.5)]'
-                                        }`}>
-                                        {(regimeData.decision?.includes('Buy') || regimeData.decision?.includes('Bullish')) ? <ArrowUpRight size={14} strokeWidth={3} /> : <ShieldCheck size={14} strokeWidth={3} />}
-                                        {regimeData.decision?.split('.')[0] || 'N/A'}
-                                    </div>
+            {/* Chart Logic & Visibility Card REMOVED (Moved to Legend) */}
 
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => {
-                                                const snapshot = getCombinedSnapshot();
-                                                if (snapshot) {
-                                                    setSnapshot(snapshot);
-                                                    if (lastData) {
-                                                        setTradeModalInitialData({
-                                                            symbol,
-                                                            entry_day_high: lastData.High,
-                                                            entry_day_low: lastData.Low,
-                                                            upper_channel: lastData.price_atr_h3,
-                                                            lower_channel: lastData.price_atr_l3,
-                                                            safezone_long: lastData.safezone_long,
-                                                            safezone_short: lastData.safezone_short
-                                                        });
-                                                    }
-                                                    setShowTradeModal(true);
-                                                }
-                                            }}
-                                            className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-[10px] uppercase font-bold tracking-wider flex items-center gap-2 transition-all shadow-lg border border-blue-400/30"
-                                        >
-                                            <Plus size={12} />
-                                            Log Trade
-                                        </button>
+            <div className="w-full h-full relative overflow-hidden flex flex-col min-w-0">
 
-                                        <button
-                                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                                            className={`px-3 py-1.5 rounded-lg text-[10px] uppercase font-bold tracking-wider flex items-center gap-2 transition-all shadow-lg border ${isSidebarOpen ? 'bg-blue-500 text-white border-blue-400' : 'bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700'}`}
-                                            title={isSidebarOpen ? "Hide Analysis Notes" : "Show Analysis Notes"}
-                                        >
-                                            <Notebook size={14} />
-                                            {isSidebarOpen ? 'Hide Notes' : 'Notes'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-
-                    {/* Divergence Alerts (Unified - Top Banner) */}
-                    {(() => {
-                        const isFresh = (macdDivergence?.recency < 5);
-
-                        // 1. MACD Divergence
-                        if (macdDivergence && isFresh) {
-                            return (
-                                <div className={`mb-8 p-4 rounded-xl border-l-4 flex items-start gap-4 shadow-lg animate-in fade-in slide-in-from-top-2 duration-500 ${macdDivergence.type === 'bearish'
-                                    ? 'bg-red-900/30 border-red-500/40 shadow-red-900/10'
-                                    : 'bg-green-900/30 border-green-500/40 shadow-green-900/10'
-                                    }`}>
-                                    <div className={`p-2 rounded-lg ${macdDivergence.type === 'bearish' ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
-                                        <Info size={24} className={macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'} />
-                                    </div>
-                                    <div>
-                                        <h4 className={`font-black uppercase tracking-widest text-sm mb-1 ${macdDivergence.type === 'bearish' ? 'text-red-400' : 'text-green-400'}`}>
-                                            CRITICAL {macdDivergence.type} DIVERGENCE DETECTED
-                                        </h4>
-                                        <p className="text-gray-300 text-sm leading-relaxed">
-                                            {macdDivergence.type === 'bearish'
-                                                ? "Price is making a higher high while momentum (MACD) is weakening. A sharp reversal may be imminent."
-                                                : "Price is making a lower low while momentum (MACD) is strengthening. A bottom may be forming."}
-                                        </p>
-                                    </div>
-                                </div>
-                            );
-                        }
-
-                        return null;
-                    })()}
-
-                    {/* EFI Divergence Alert */}
-                    {(() => {
-                        const isFresh = (f13Divergence?.recency < 5);
-                        if (f13Divergence && isFresh) {
-                            return (
-                                <div className={`mb-8 p-4 rounded-xl border-l-4 flex items-start gap-4 shadow-lg animate-in fade-in slide-in-from-top-2 duration-500 delay-150 ${f13Divergence.type === 'bearish'
-                                    ? 'bg-orange-900/30 border-orange-500/40 shadow-orange-900/10'
-                                    : 'bg-teal-900/30 border-teal-500/40 shadow-teal-900/10'
-                                    }`}>
-                                    <div className={`p-2 rounded-lg ${f13Divergence.type === 'bearish' ? 'bg-orange-500/20' : 'bg-teal-500/20'}`}>
-                                        <Zap size={24} className={f13Divergence.type === 'bearish' ? 'text-orange-400' : 'text-teal-400'} />
-                                    </div>
-                                    <div>
-                                        <h4 className={`font-black uppercase tracking-widest text-sm mb-1 ${f13Divergence.type === 'bearish' ? 'text-orange-400' : 'text-teal-400'}`}>
-                                            FORCE INDEX {f13Divergence.type} DIVERGENCE
-                                        </h4>
-                                        <p className="text-gray-300 text-sm leading-relaxed">
-                                            {f13Divergence.type === 'bearish'
-                                                ? "Price made a higher high, but Volume/Force is falling. Smart money is withdrawing."
-                                                : "Price made a lower low, but Volume/Force is rising. Selling pressure is drying up."}
-                                        </p>
-                                    </div>
-                                </div>
-                            );
-                        }
-                        return null;
-                    })()}
-
-                    <div className={`grid grid-cols-1 ${isWeekly ? '' : 'lg:grid-cols-3'} gap-8 relative z-10`}>
-
-                        {/* COL 1: TIDE */}
-                        <div className={`p-5 rounded-2xl border transition-all duration-300 ${tacticalAdvice?.type === 'LONG' ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
-                            <div className="text-[10px] text-gray-500 uppercase font-black mb-3 tracking-widest flex items-center justify-between">
-                                SCREEN 1: THE TIDE (WEEKLY EMA 13)
-                                <span className={`px-2 py-0.5 rounded text-[8px] ${tacticalAdvice?.type === 'LONG' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
-                                    {tacticalAdvice?.type === 'LONG' ? 'RISING' : 'FALLING'}
-                                </span>
-                            </div>
-                            <p className="text-sm text-gray-200 leading-relaxed font-medium mb-4">
-                                {tacticalAdvice?.type === 'LONG'
-                                    ? "The Tide is rising. Only long positions are permitted. Look for value entries."
-                                    : "The Tide is falling. Only short positions or cash are permitted."}
-                            </p>
-                            <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                                <div className="text-[9px] text-gray-500 uppercase font-bold mb-1">Logic Binding</div>
-                                {tacticalAdvice?.type === 'LONG'
-                                    ? <span className="text-xs text-green-400 font-mono">Allowed: LONG / CASH</span>
-                                    : <span className="text-xs text-red-400 font-mono">Allowed: SHORT / CASH</span>
-                                }
-                            </div>
-                        </div>
-
-                        {!isWeekly && (
-                            <>
-                                {/* COL 2: WAVE */}
-                                <div className={`p-5 rounded-2xl border transition-all duration-300 ${tacticalAdvice?.screen2?.force_index_2 < 0 ? 'bg-blue-500/10 border-blue-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
-                                    <div className="text-[10px] text-gray-500 uppercase font-black mb-3 tracking-widest flex items-center justify-between">
-                                        SCREEN 2: THE WAVE (OSCILLATORS)
-                                        <span className={`px-2 py-0.5 rounded text-[8px] ${tacticalAdvice?.screen2?.force_index_2 < 0 ? 'bg-blue-500 text-white' : 'bg-amber-500 text-white'}`}>
-                                            {tacticalAdvice?.screen2?.force_index_2 < 0 ? 'BEARS CONTROL' : 'BULLS CONTROL'}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex flex-col gap-2 mb-4">
-                                        <div className="flex items-center justify-between text-xs">
-                                            <span className="text-gray-400 italic">Force Index (2)</span>
-                                            <span className={tacticalAdvice?.screen2?.force_index_2 < 0 ? 'text-blue-400 font-bold' : 'text-amber-400 font-bold'}>
-                                                {tacticalAdvice?.screen2?.force_index_2?.toFixed(0) || '0'} ({tacticalAdvice?.screen2?.f2_streak || 0}d)
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-xs">
-                                            <span className="text-gray-400 italic">Williams %R (14)</span>
-                                            <span className={tacticalAdvice?.screen2?.williams_r < -80 ? 'text-green-400 font-bold' : tacticalAdvice?.screen2?.williams_r > -20 ? 'text-red-400 font-bold' : 'text-gray-200'}>
-                                                {tacticalAdvice?.screen2?.williams_r?.toFixed(1) || '-0.0'}%
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-xs">
-                                            <span className="text-gray-400 italic">Stochastic %K</span>
-                                            <span className={tacticalAdvice?.screen2?.stoch_k < 20 ? 'text-green-400 font-bold' : tacticalAdvice?.screen2?.stoch_k > 80 ? 'text-red-400 font-bold' : 'text-gray-200'}>
-                                                {tacticalAdvice?.screen2?.stoch_k?.toFixed(1) || '0.0'}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                                        <div className="text-[9px] text-gray-500 uppercase font-bold mb-1">Tactical State</div>
-                                        <span className={`text-xs font-mono ${tacticalAdvice?.screen2?.status === 'Oversold' ? 'text-green-400' : tacticalAdvice?.screen2?.status === 'Overbought' ? 'text-red-400' : 'text-blue-300'}`}>
-                                            {tacticalAdvice?.screen2?.status} {tacticalAdvice?.screen2?.wave_intensity === 'High' ? '(Extremely Volatile)' : ''}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* COL 3: TACTICAL SYNTHESIS */}
-                                <div className={`p-5 rounded-2xl border transition-all duration-300 ${tacticalAdvice?.style === 'success' ? 'bg-green-900/20 border-green-500/50' :
-                                    tacticalAdvice?.style === 'danger' ? 'bg-red-900/20 border-red-500/50' :
-                                        'bg-amber-900/20 border-amber-500/50'
-                                    }`}>
-                                    <div className="text-[10px] text-gray-500 uppercase font-black mb-3 tracking-widest flex items-center justify-between">
-                                        SCREEN 3: EXECUTION
-                                        <span className={`px-2 py-0.5 rounded text-[8px] font-black ${tacticalAdvice?.style === 'success' ? 'bg-green-500 text-white' :
-                                            tacticalAdvice?.style === 'danger' ? 'bg-red-500 text-white' : 'bg-amber-500 text-black'}`}>
-                                            {tacticalAdvice?.recommendation}
-                                        </span>
-                                    </div>
-
-                                    {/* Main Decision */}
-                                    <div className="mb-6">
-                                        <p className="text-sm text-gray-200 leading-relaxed font-bold italic mb-2">
-                                            "{tacticalAdvice?.reason}"
-                                        </p>
-                                        <div className="p-3 bg-black/30 rounded-xl border border-white/5">
-                                            <div className="text-[9px] text-gray-500 uppercase font-bold mb-1">Screen 3: The Ripple</div>
-                                            <p className="text-xs text-blue-100 leading-snug">
-                                                {tacticalAdvice?.ripple_msg}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {/* EFI Signal Override */}
-                                    {lastData && (lastData.efi_buy_signal || lastData.efi_sell_signal) && (
-                                        <div className={`mt-3 p-3 rounded-xl border flex items-center gap-3 animation-pulse ${lastData.efi_buy_signal ? 'bg-green-500/20 border-green-500/50' : 'bg-red-500/20 border-red-500/50'}`}>
-                                            <Zap size={16} className={lastData.efi_buy_signal ? 'text-green-400' : 'text-red-400'} fill="currentColor" />
-                                            <div>
-                                                <div className={`text-[10px] font-black uppercase tracking-widest ${lastData.efi_buy_signal ? 'text-green-400' : 'text-red-400'}`}>
-                                                    EFI {lastData.efi_buy_signal ? 'BUY' : 'SELL'} SIGNAL
-                                                </div>
-                                                <div className="text-[10px] text-gray-300 leading-tight">
-                                                    {lastData.efi_buy_signal ? 'Oversold extreme. Look for entry.' : 'Overbought extreme. Tighten stops.'}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Execution Grid */}
-                                    {tacticalAdvice && (
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div className="p-2 bg-black/40 rounded border border-white/5">
-                                                <div className="text-[8px] text-gray-500 uppercase font-bold">Entry Trigger</div>
-                                                <div className="text-sm font-mono font-bold text-blue-400">${tacticalAdvice.entry || 'N/A'}</div>
-                                            </div>
-                                            <div className="p-2 bg-black/40 rounded border border-white/5">
-                                                <div className="text-[8px] text-gray-500 uppercase font-bold">Stop Loss</div>
-                                                <div className="text-sm font-mono font-bold text-red-400">${tacticalAdvice.stop || 'N/A'}</div>
-                                            </div>
-                                            <div className="p-2 bg-black/40 rounded border border-white/5">
-                                                <div className="text-[8px] text-gray-500 uppercase font-bold">Profit Target</div>
-                                                <div className="text-sm font-mono font-bold text-green-400">${tacticalAdvice.target || 'N/A'}</div>
-                                            </div>
-                                            <div className="p-2 bg-black/40 rounded border border-white/5">
-                                                <div className="text-[8px] text-gray-500 uppercase font-bold">Risk/Reward</div>
-                                                <div className={`text-sm font-mono font-bold italic ${(Math.abs((tacticalAdvice?.target || 0) - (tacticalAdvice?.entry || 0)) / Math.abs((tacticalAdvice?.entry || 0) - (tacticalAdvice?.stop || 1))) >= 2 ? 'text-green-400' : 'text-amber-400'}`}>
-                                                    {tacticalAdvice.entry && tacticalAdvice.stop && tacticalAdvice.target
-                                                        ? `${(Math.abs(tacticalAdvice.target - tacticalAdvice.entry) / Math.abs(tacticalAdvice.entry - tacticalAdvice.stop)).toFixed(2)}:1`
-                                                        : 'N/A'}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </div>
-
-                {/* Chart Logic & Visibility Card */}
-                <div className="bg-gray-900/40 border border-white/5 p-6 rounded-2xl backdrop-blur-sm shadow-xl">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                            <Layers className="text-blue-400" size={18} />
-                        </div>
-                        <h4 className="font-black text-white text-sm uppercase tracking-widest italic">
-                            Chart Engine & Visibility
-                        </h4>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-3">
-                        {[
-                            {
-                                id: 'ema', label: 'EMA (13/22/26)', state: showEMA, setter: setShowEMA, icon: Zap, color: 'blue',
-                                activeClass: 'bg-blue-500/20 text-blue-400 border-blue-500/40 shadow-[0_4px_12px_rgba(0,0,0,0.3)]', indicator: 'bg-blue-400'
-                            },
-                            {
-                                id: 'zones', label: 'Value Zones', state: showValueZones, setter: setShowValueZones, icon: Layers, color: 'indigo',
-                                activeClass: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40 shadow-[0_4px_12px_rgba(0,0,0,0.3)]', indicator: 'bg-indigo-400'
-                            },
-                            {
-                                id: 'sr', label: 'S/SR Levels', state: showSRLevels, setter: setShowSRLevels, icon: ShieldCheck, color: 'purple',
-                                activeClass: 'bg-purple-500/20 text-purple-400 border-purple-500/40 shadow-[0_4px_12px_rgba(0,0,0,0.3)]', indicator: 'bg-purple-400'
-                            },
-                            {
-                                id: 'div', label: 'Divergence', state: showDivergences, setter: setShowDivergences, icon: Info, color: 'amber',
-                                activeClass: 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-[0_4px_12px_rgba(0,0,0,0.3)]', indicator: 'bg-amber-400'
-                            },
-                            {
-                                id: 'safe', label: 'SafeZone Stops', state: showSafeZones, setter: setShowSafeZones, icon: ShieldCheck, color: 'red',
-                                activeClass: 'bg-red-500/20 text-red-400 border-red-500/40 shadow-[0_4px_12px_rgba(0,0,0,0.3)]', indicator: 'bg-red-400'
-                            },
-                            {
-                                id: 'markers', label: 'Force Signals', state: showMarkers, setter: setShowMarkers, icon: Search, color: 'emerald',
-                                activeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_4px_12px_rgba(0,0,0,0.3)]', indicator: 'bg-emerald-400'
-                            }
-                        ].map((t) => (
-                            <button
-                                key={t.id}
-                                onClick={() => {
-                                    console.log(`DEBUG [Button]: Toggling ${t.id}. Old state: ${t.state}`);
-                                    t.setter(!t.state);
-                                }}
-                                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all border ${t.state
-                                    ? t.activeClass
-                                    : 'bg-gray-800/40 text-gray-500 border-white/5 hover:bg-gray-800/60'
-                                    }`}
-                            >
-                                <t.icon size={14} className={t.state ? (t.id === 'markers' ? 'text-emerald-400' : `text-${t.color}-400`) : 'text-gray-600'} />
-                                {t.label}
-                                {t.state && <div className={`w-1.5 h-1.5 rounded-full ${t.indicator} animate-pulse`} />}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-2xl overflow-hidden relative">
-
-
-
-
+                {/* Chart Container Wrapper */}
+                <div className="relative w-full flex-1 min-h-[800px] bg-gray-950">
                     {/* Active Trade Widget */}
                     {activeTrade && (
                         <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-20 flex items-center gap-4 px-6 py-3 bg-gray-900/90 border border-blue-500/50 rounded-xl backdrop-blur-md shadow-2xl animate-in fade-in slide-in-from-top-4">
@@ -1198,20 +1129,7 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
 
                             <button
                                 onClick={() => {
-                                    const snapshot = getCombinedSnapshot();
-                                    if (snapshot) {
-                                        setSnapshot(snapshot);
-                                        setTradeModalInitialData({
-                                            ...activeTrade,
-                                            exit_date: new Date().toISOString().split('T')[0],
-                                            exit_price: lastData.Close,
-                                            exit_day_high: lastData.High,
-                                            exit_day_low: lastData.Low,
-                                            upper_channel: lastData.price_atr_h3,
-                                            lower_channel: lastData.price_atr_l3
-                                        });
-                                        setShowTradeModal(true);
-                                    }
+                                    if (onLogTrade) onLogTrade();
                                 }}
                                 className="ml-4 bg-gray-800 hover:bg-gray-700 hover:text-white text-gray-300 border border-gray-600 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all shadow-lg flex items-center gap-2"
                             >
@@ -1220,8 +1138,9 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                         </div>
                     )}
 
-                    <div ref={chartContainerRef} className="w-full h-[1100px] relative overflow-hidden" />
+                    <div ref={chartContainerRef} className="w-full h-full relative overflow-hidden rounded-2xl min-w-0" />
                 </div>
+
             </div>
 
             {/* Sidebar Area (Right) */}
@@ -1389,21 +1308,8 @@ const ElderAnalysis = ({ data, symbol, srLevels = [], tacticalAdvice, macdDiverg
                 )
             }
             {/* Trade Entry Modal */}
-            {
-                showTradeModal && (
-                    <TradeEntryModal
-                        onClose={() => setShowTradeModal(false)}
-                        initialData={tradeModalInitialData}
-                        snapshot={snapshot}
-                        onSave={() => {
-                            fetchActiveTrade();
-                            // Refresh journal entries if needed
-                            // loadJournal(); // If we had this function exposed or local
-                        }}
-                    />
-                )
-            }
-        </div>
+
+        </div >
     );
 };
 

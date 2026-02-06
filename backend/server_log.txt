@@ -1,0 +1,340 @@
+INFO:     Will watch for changes in these directories: ['/Users/william/Documents/stock2026/backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [24820] using StatReload
+/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+INFO:     Started server process [24917]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:cache:CACHE HIT: impulse_wk_ESTC (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AAPL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AVGO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_BRK-B (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_DUK (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_GOOGL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_JPM (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_MSFT (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_NVDA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_SPMO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_TSLA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_XOM (DataFrame)
+Checking database schema...
+✅ Verified tables.
+🏁 Migration check complete.
+INFO:     127.0.0.1:59042 - "GET /stocks/ HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: impulse_wk_ESTC (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AAPL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AVGO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_BRK-B (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_DUK (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_GOOGL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_JPM (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_MSFT (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_NVDA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_SPMO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_TSLA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_XOM (DataFrame)
+INFO:     127.0.0.1:59042 - "GET /stocks/ HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: impulse_wk_ESTC (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AAPL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AVGO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_BRK-B (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_DUK (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_GOOGL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_JPM (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_MSFT (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_NVDA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_SPMO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_TSLA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_XOM (DataFrame)
+INFO:     127.0.0.1:59042 - "GET /stocks/ HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: impulse_wk_ESTC (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AAPL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AVGO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_BRK-B (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_DUK (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_GOOGL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_JPM (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_MSFT (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_NVDA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_SPMO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_TSLA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_XOM (DataFrame)
+INFO:     127.0.0.1:59042 - "GET /stocks/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59047 - "GET /trades/active/ESTC HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: download_ESTC_2y_1wk (DataFrame)
+INFO:     127.0.0.1:59049 - "GET /journal/ESTC HTTP/1.1" 200 OK
+/Users/william/Documents/stock2026/backend/routes/stocks.py:119: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df['efi_buy_signal'] = (efi_in_buy_zone & (~efi_in_buy_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+/Users/william/Documents/stock2026/backend/routes/stocks.py:120: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df['efi_sell_signal'] = (efi_in_sell_zone & (~efi_in_sell_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+INFO:cache:CACHE HIT: proxies_2y_1wk (DataFrame)
+INFO:     127.0.0.1:59047 - "GET /trades/active/ESTC HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59044 - "GET /journal/ESTC HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: sector_leadership_1mo (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_ESTC (DataFrame)
+INFO:cache:CACHE HIT: stock_info_ESTC (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AAPL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AVGO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_BRK-B (DataFrame)
+INFO:     127.0.0.1:59047 - "GET /journal/ESTC HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59049 - "GET /trades/active/ESTC HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: impulse_wk_DUK (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_GOOGL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_JPM (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_MSFT (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_NVDA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_SPMO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_TSLA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_XOM (DataFrame)
+DEBUG [ESTC]: Active Buys=4, Active Sells=3
+DEBUG: Sample Buy Bar: 2024-02-26 00:00:00
+DEBUG: Sample Sell Bar: 2024-06-03 00:00:00
+INFO:     127.0.0.1:59051 - "GET /stocks/ESTC/analysis?period=2y&interval=1wk HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59042 - "GET /stocks/ HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: download_ESTC_2y_1wk (DataFrame)
+/Users/william/Documents/stock2026/backend/routes/stocks.py:119: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df['efi_buy_signal'] = (efi_in_buy_zone & (~efi_in_buy_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+/Users/william/Documents/stock2026/backend/routes/stocks.py:120: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df['efi_sell_signal'] = (efi_in_sell_zone & (~efi_in_sell_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+INFO:cache:CACHE HIT: impulse_wk_ESTC (DataFrame)
+INFO:cache:CACHE HIT: proxies_2y_1wk (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AAPL (DataFrame)
+INFO:cache:CACHE HIT: sector_leadership_1mo (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AVGO (DataFrame)
+INFO:cache:CACHE HIT: stock_info_ESTC (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_BRK-B (DataFrame)
+INFO:     127.0.0.1:59047 - "GET /trades/active/ESTC HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59049 - "GET /journal/ESTC HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: impulse_wk_DUK (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_GOOGL (DataFrame)
+DEBUG [ESTC]: Active Buys=4, Active Sells=3
+DEBUG: Sample Buy Bar: 2024-02-26 00:00:00
+DEBUG: Sample Sell Bar: 2024-06-03 00:00:00
+INFO:     127.0.0.1:59051 - "GET /stocks/ESTC/analysis?period=2y&interval=1wk HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: impulse_wk_JPM (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_MSFT (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_NVDA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_SPMO (DataFrame)
+INFO:cache:CACHE HIT: download_ESTC_2y_1wk (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_TSLA (DataFrame)
+/Users/william/Documents/stock2026/backend/routes/stocks.py:119: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df['efi_buy_signal'] = (efi_in_buy_zone & (~efi_in_buy_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+/Users/william/Documents/stock2026/backend/routes/stocks.py:120: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df['efi_sell_signal'] = (efi_in_sell_zone & (~efi_in_sell_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+INFO:     127.0.0.1:59044 - "GET /journal/ESTC HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: impulse_wk_XOM (DataFrame)
+INFO:     127.0.0.1:59047 - "GET /trades/active/ESTC HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: proxies_2y_1wk (DataFrame)
+INFO:     127.0.0.1:59042 - "GET /stocks/ HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: sector_leadership_1mo (DataFrame)
+INFO:cache:CACHE HIT: stock_info_ESTC (DataFrame)
+INFO:     127.0.0.1:59051 - "GET /journal/ESTC HTTP/1.1" 200 OK
+DEBUG [ESTC]: Active Buys=4, Active Sells=3
+DEBUG: Sample Buy Bar: 2024-02-26 00:00:00
+DEBUG: Sample Sell Bar: 2024-06-03 00:00:00
+INFO:     127.0.0.1:59049 - "GET /stocks/ESTC/analysis?period=2y&interval=1wk HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59047 - "GET /trades/active/ESTC HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: impulse_wk_ESTC (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AAPL (DataFrame)
+INFO:     127.0.0.1:59044 - "GET /journal/ESTC HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: impulse_wk_AVGO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_BRK-B (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_DUK (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_GOOGL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_JPM (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_MSFT (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_NVDA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_SPMO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_TSLA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_XOM (DataFrame)
+INFO:     127.0.0.1:59042 - "GET /stocks/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59047 - "GET /trades/active/ESTC HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: impulse_wk_ESTC (DataFrame)
+INFO:     127.0.0.1:59044 - "GET /journal/ESTC HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: impulse_wk_AAPL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AVGO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_BRK-B (DataFrame)
+INFO:     127.0.0.1:59047 - "GET /trades/active/ESTC HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: impulse_wk_DUK (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_GOOGL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_JPM (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_MSFT (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_NVDA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_SPMO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_TSLA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_XOM (DataFrame)
+INFO:     127.0.0.1:59042 - "GET /stocks/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59049 - "GET /journal/ESTC HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: download_ESTC_2y_1wk (DataFrame)
+INFO:     127.0.0.1:59044 - "GET /trades/active/ESTC HTTP/1.1" 200 OK
+/Users/william/Documents/stock2026/backend/routes/stocks.py:119: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df['efi_buy_signal'] = (efi_in_buy_zone & (~efi_in_buy_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+/Users/william/Documents/stock2026/backend/routes/stocks.py:120: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df['efi_sell_signal'] = (efi_in_sell_zone & (~efi_in_sell_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+INFO:cache:CACHE HIT: proxies_2y_1wk (DataFrame)
+INFO:cache:CACHE HIT: sector_leadership_1mo (DataFrame)
+INFO:     127.0.0.1:59042 - "GET /journal/ESTC HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: stock_info_ESTC (DataFrame)
+DEBUG [ESTC]: Active Buys=4, Active Sells=3
+DEBUG: Sample Buy Bar: 2024-02-26 00:00:00
+DEBUG: Sample Sell Bar: 2024-06-03 00:00:00
+INFO:     127.0.0.1:59047 - "GET /stocks/ESTC/analysis?period=2y&interval=1wk HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59049 - "GET /trades/active/ESTC HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59049 - "GET /trades/active/ESTC HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59047 - "GET /journal/ESTC HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59047 - "GET /trades/active/ESTC HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59049 - "GET /journal/ESTC HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59065 - "GET /backtest/scripts/elder_triple_screen HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59065 - "GET /backtest/scripts/elder_triple_screen HTTP/1.1" 200 OK
+/Users/william/Documents/stock2026/backend/utils.py:19: FutureWarning: YF.download() has changed argument auto_adjust default to True
+  df = yf.download(
+INFO:cache:CACHE SET: download_ESTC_1y_1d (pkl)
+/Users/william/Documents/stock2026/backend/routes/stocks.py:119: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df['efi_buy_signal'] = (efi_in_buy_zone & (~efi_in_buy_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+/Users/william/Documents/stock2026/backend/routes/stocks.py:120: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df['efi_sell_signal'] = (efi_in_sell_zone & (~efi_in_sell_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+INFO:cache:CACHE HIT: proxies_1y_1d (DataFrame)
+INFO:cache:CACHE HIT: sector_leadership_1mo (DataFrame)
+INFO:cache:CACHE HIT: stock_info_ESTC (DataFrame)
+INFO:cache:CACHE HIT: tide_wk_ESTC (DataFrame)
+DEBUG [ESTC]: Active Buys=8, Active Sells=6
+DEBUG: Sample Buy Bar: 2025-02-25 00:00:00
+DEBUG: Sample Sell Bar: 2025-02-10 00:00:00
+INFO:     127.0.0.1:59066 - "GET /stocks/ESTC/analysis?period=1y&interval=1d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59066 - "GET /backtest/scripts/elder_triple_screen HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59066 - "GET /backtest/scripts/elder_triple_screen HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59073 - "GET /backtest/scripts/ HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:59073 - "GET /backtest/scripts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59077 - "OPTIONS /backtest/run HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59077 - "POST /backtest/run HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:59081 - "GET /backtest/scripts/custom HTTP/1.1" 200 OK
+/Users/william/Documents/stock2026/backend/utils.py:19: FutureWarning: YF.download() has changed argument auto_adjust default to True
+  df = yf.download(
+ERROR:backtest_engine:Backtest failed for AAPL: name 'plots' is not defined
+ERROR:routes.backtest:Backtest failed: name 'plots' is not defined
+INFO:     127.0.0.1:59091 - "POST /backtest/run HTTP/1.1" 500 Internal Server Error
+/Users/william/Documents/stock2026/backend/utils.py:19: FutureWarning: YF.download() has changed argument auto_adjust default to True
+  df = yf.download(
+ERROR:backtest_engine:Backtest failed for AAPL: name 'plots' is not defined
+ERROR:routes.backtest:Backtest failed: name 'plots' is not defined
+INFO:     127.0.0.1:59097 - "POST /backtest/run HTTP/1.1" 500 Internal Server Error
+/Users/william/Documents/stock2026/backend/utils.py:19: FutureWarning: YF.download() has changed argument auto_adjust default to True
+  df = yf.download(
+ERROR:backtest_engine:Backtest failed for AAPL: name 'plots' is not defined
+ERROR:routes.backtest:Backtest failed: name 'plots' is not defined
+INFO:     127.0.0.1:59113 - "POST /backtest/run HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:59123 - "GET /backtest/scripts/macd_crossover HTTP/1.1" 200 OK
+/Users/william/Documents/stock2026/backend/utils.py:19: FutureWarning: YF.download() has changed argument auto_adjust default to True
+  df = yf.download(
+ERROR:backtest_engine:Backtest failed for AAPL: name 'plots' is not defined
+ERROR:routes.backtest:Backtest failed: name 'plots' is not defined
+INFO:     127.0.0.1:59123 - "POST /backtest/run HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:59126 - "GET /backtest/scripts/custom HTTP/1.1" 200 OK
+/Users/william/Documents/stock2026/backend/utils.py:19: FutureWarning: YF.download() has changed argument auto_adjust default to True
+  df = yf.download(
+ERROR:backtest_engine:Backtest failed for AAPL: name 'plots' is not defined
+ERROR:routes.backtest:Backtest failed: name 'plots' is not defined
+INFO:     127.0.0.1:59126 - "POST /backtest/run HTTP/1.1" 500 Internal Server Error
+WARNING:  StatReload detected changes in 'backtest_engine.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [24917]
+/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+INFO:     Started server process [25051]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:cache:CACHE HIT: impulse_wk_ESTC (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AAPL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AVGO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_BRK-B (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_DUK (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_GOOGL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_JPM (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_MSFT (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_NVDA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_SPMO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_TSLA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_XOM (DataFrame)
+Checking database schema...
+✅ Verified tables.
+🏁 Migration check complete.
+INFO:     127.0.0.1:59163 - "GET /stocks/ HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: impulse_wk_ESTC (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AAPL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_AVGO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_BRK-B (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_DUK (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_GOOGL (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_JPM (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_MSFT (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_NVDA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_SPMO (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_TSLA (DataFrame)
+INFO:cache:CACHE HIT: impulse_wk_XOM (DataFrame)
+INFO:     127.0.0.1:59163 - "GET /stocks/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59165 - "GET /journal/ESTC HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59163 - "GET /trades/active/ESTC HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: download_ESTC_2y_1wk (DataFrame)
+/Users/william/Documents/stock2026/backend/routes/stocks.py:119: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df['efi_buy_signal'] = (efi_in_buy_zone & (~efi_in_buy_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+/Users/william/Documents/stock2026/backend/routes/stocks.py:120: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df['efi_sell_signal'] = (efi_in_sell_zone & (~efi_in_sell_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+INFO:cache:CACHE HIT: proxies_2y_1wk (DataFrame)
+INFO:cache:CACHE HIT: sector_leadership_1mo (DataFrame)
+INFO:cache:CACHE HIT: stock_info_ESTC (DataFrame)
+DEBUG [ESTC]: Active Buys=4, Active Sells=3
+DEBUG: Sample Buy Bar: 2024-02-26 00:00:00
+DEBUG: Sample Sell Bar: 2024-06-03 00:00:00
+INFO:     127.0.0.1:59167 - "GET /stocks/ESTC/analysis?period=2y&interval=1wk HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59163 - "GET /journal/ESTC HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59167 - "GET /trades/active/ESTC HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59167 - "GET /journal/ESTC HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59163 - "GET /trades/active/ESTC HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: download_ESTC_1y_1d (DataFrame)
+/Users/william/Documents/stock2026/backend/routes/stocks.py:119: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df['efi_buy_signal'] = (efi_in_buy_zone & (~efi_in_buy_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+/Users/william/Documents/stock2026/backend/routes/stocks.py:120: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df['efi_sell_signal'] = (efi_in_sell_zone & (~efi_in_sell_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+INFO:     127.0.0.1:59172 - "GET /trades/ HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: proxies_1y_1d (DataFrame)
+INFO:cache:CACHE HIT: sector_leadership_1mo (DataFrame)
+INFO:cache:CACHE HIT: stock_info_ESTC (DataFrame)
+INFO:cache:CACHE HIT: tide_wk_ESTC (DataFrame)
+INFO:     127.0.0.1:59174 - "GET /trades/ HTTP/1.1" 200 OK
+DEBUG [ESTC]: Active Buys=8, Active Sells=6
+DEBUG: Sample Buy Bar: 2025-02-25 00:00:00
+DEBUG: Sample Sell Bar: 2025-02-10 00:00:00
+INFO:     127.0.0.1:59170 - "GET /stocks/ESTC/analysis?period=1y&interval=1d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59170 - "GET /trades/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59174 - "GET /trades/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59174 - "GET /backtest/scripts/elder_triple_screen HTTP/1.1" 200 OK
+INFO:cache:CACHE HIT: download_ESTC_1y_1d (DataFrame)
+INFO:     127.0.0.1:59174 - "GET /backtest/scripts/elder_triple_screen HTTP/1.1" 200 OK
+/Users/william/Documents/stock2026/backend/routes/stocks.py:119: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df['efi_buy_signal'] = (efi_in_buy_zone & (~efi_in_buy_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+/Users/william/Documents/stock2026/backend/routes/stocks.py:120: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df['efi_sell_signal'] = (efi_in_sell_zone & (~efi_in_sell_zone.shift(1).fillna(False))).fillna(False).astype(bool)
+INFO:cache:CACHE HIT: proxies_1y_1d (DataFrame)
+INFO:cache:CACHE HIT: sector_leadership_1mo (DataFrame)
+INFO:cache:CACHE HIT: stock_info_ESTC (DataFrame)
+INFO:cache:CACHE HIT: tide_wk_ESTC (DataFrame)
+DEBUG [ESTC]: Active Buys=8, Active Sells=6
+DEBUG: Sample Buy Bar: 2025-02-25 00:00:00
+DEBUG: Sample Sell Bar: 2025-02-10 00:00:00
+INFO:     127.0.0.1:59170 - "GET /stocks/ESTC/analysis?period=1y&interval=1d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59170 - "GET /backtest/scripts/elder_triple_screen HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59170 - "GET /backtest/scripts/elder_triple_screen HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59178 - "GET /backtest/scripts/ HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:59178 - "GET /backtest/scripts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59182 - "GET /backtest/scripts/custom HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59185 - "GET /backtest/scripts/ HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:59185 - "GET /backtest/scripts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59199 - "GET /backtest/scripts/custom HTTP/1.1" 200 OK
+/Users/william/Documents/stock2026/backend/utils.py:19: FutureWarning: YF.download() has changed argument auto_adjust default to True
+  df = yf.download(
+ERROR:backtest_engine:Backtest failed for AAPL: name 'plots' is not defined
+ERROR:routes.backtest:Backtest failed: name 'plots' is not defined
+INFO:     127.0.0.1:59734 - "POST /backtest/run HTTP/1.1" 500 Internal Server Error

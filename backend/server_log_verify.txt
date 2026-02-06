@@ -1,0 +1,52 @@
+INFO:     Will watch for changes in these directories: ['/Users/william/Documents/stock2026/backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [27148] using StatReload
+/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+INFO:     Started server process [27197]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+/Users/william/Documents/stock2026/backend/utils.py:19: FutureWarning: YF.download() has changed argument auto_adjust default to True
+  df = yf.download(
+INFO:backtest_engine:BSL: Final Signal Counts: {0: 12, 1: 7, -2: 2}
+INFO:backtest_engine:BSL: Column custom_entry_long has 7 True values
+INFO:backtest_engine:BSL: Column custom_exit_long has 2 True values
+INFO:backtest_engine:BSL: Column custom_entry_short has 0 True values
+INFO:backtest_engine:BSL: Column custom_exit_short has 0 True values
+ERROR:backtest_engine:Backtest failed for AAPL: 'atr'
+ERROR:routes.backtest:Backtest failed: 'atr'
+Checking database schema...
+✅ Verified tables.
+🏁 Migration check complete.
+INFO:     127.0.0.1:59855 - "POST /backtest/run HTTP/1.1" 500 Internal Server Error
+WARNING:  StatReload detected changes in 'validate_plot_fix.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [27197]
+/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+INFO:     Started server process [27422]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+/Users/william/Documents/stock2026/backend/utils.py:19: FutureWarning: YF.download() has changed argument auto_adjust default to True
+  df = yf.download(
+INFO:backtest_engine:BSL: Final Signal Counts: {1: 59, -2: 56, 0: 12}
+INFO:backtest_engine:BSL: Column custom_entry_long has 59 True values
+INFO:backtest_engine:BSL: Column custom_exit_long has 56 True values
+INFO:backtest_engine:BSL: Column custom_entry_short has 0 True values
+INFO:backtest_engine:BSL: Column custom_exit_short has 0 True values
+Checking database schema...
+✅ Verified tables.
+🏁 Migration check complete.
+INFO:     127.0.0.1:59875 - "POST /backtest/run HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'backtest_engine.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [27422]
+/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+INFO:     Started server process [27569]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.

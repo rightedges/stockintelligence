@@ -24,7 +24,12 @@
 *   **Priority Sorting**: Click the **Star Icon** next to any stock in the sidebar.
 *   **Focus First**: Starred stocks are pinned to the top of your list, ensuring your best ideas are always visible.
 
-### 4. 📝 Context-Aware Trading Journal
+### 4. 🧪 Professional Backtesting Engine
+*   **Strategy Simulation**: Test the Elder Triple Screen, Divergence, or MACD strategies against historical data.
+*   **Risk-Adjusted Metrics**: Deep-dive into Sharpe Ratios, Sortino Ratios, and Max Drawdown to validate system robustness.
+*   **Trade Log**: Review every entry, exit, and P/L detail of the simulation. [See Backtesting Guide](./docs/backtest_engine_guide.md).
+
+### 5. 📝 Context-Aware Trading Journal
 *   **Smart Templates**: Click "Elder Template" to inject a prompt tailored to your current view:
     *   **Weekly View**: Injects a "Macro Tide" template (Big Picture focus).
     *   **Daily View**: Injects a "Tactical Setup" template (Entry/Exit focus).
@@ -77,7 +82,11 @@ Access the dashboard at: `http://localhost:5173` (or `http://YOUR_LAN_IP:5173`)
     *   **Screen 1**: Is the Tide Green? (Longs allowed).
     *   **Screen 2**: Is the Wave Negative? (Value entry available).
     *   **Alerts**: Are there any "Critical Divergence" warnings?
-4.  **Plan the Trade**: Use the **Trading Journal** sidebar.
+4.  **Validate via Backtest**: Switch to **Backtest Engine**.
+    *   Select your strategy and ticker.
+    *   Verify if recent price action aligns with the strategy's historical performance.
+    *   Ensure the "Risk Level" (Sharpe/Drawdown) matches your personal threshold.
+5.  **Plan the Trade**: Use the **Trading Journal** sidebar.
     *   Click "Elder Template" to load the Daily checklist.
     *   Validate your Entry, Stop, and R/R Ratio.
     *   Save the plan.

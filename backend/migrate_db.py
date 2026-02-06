@@ -1,6 +1,6 @@
 from sqlmodel import create_engine, Session, text, SQLModel
 from database import sqlite_url
-from models import Trade # Import Trade model to register it
+from models import Trade, BSLScript # Import models to register them
 
 # Initialize engine
 engine = create_engine(sqlite_url)
@@ -58,6 +58,12 @@ def migrate():
     add_column("trade", "grade_exit", "TEXT")
     add_column("trade", "grade_trade", "TEXT")
     add_column("trade", "note", "TEXT")
+
+    # --- BACKTESTRESULT TABLE ---
+    add_column("backtestresult", "price_data", "TEXT")
+    add_column("backtestresult", "calmar_ratio", "REAL")
+    add_column("backtestresult", "ulcer_index", "REAL")
+    add_column("backtestresult", "plots", "TEXT")
 
     print("🏁 Migration check complete.")
 

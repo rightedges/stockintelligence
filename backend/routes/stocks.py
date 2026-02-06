@@ -3,11 +3,16 @@ from sqlmodel import Session, select
 import yfinance as yf
 import pandas as pd
 import ta
+import logging
+import requests
 from database import get_session
 from models import Stock, StockPublic
 from cache import get_cached, set_cache
+from utils import safe_download
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
+logger = logging.getLogger(__name__)
+
 
 def calculate_indicators(df):
     if len(df) < 2:
@@ -228,7 +233,7 @@ def scan_stocks(session: Session = Depends(get_session)):
             # Optimization: 2y Daily is a lot. Let's fetch 2y Weekly + 6mo Daily? 
             # No, yfinance download caching is key.
             # Let's fetch 1y Daily. Weekly Impulse on just 52 bars is okay.
-            df = yf.download(stock.symbol, period="2y", interval="1d", progress=False)
+            df = safe_download(stock.symbol, period="2y", interval="1d")
             
             if df.empty or len(df) < 50:
                 continue
@@ -457,7 +462,7 @@ def get_stocks(session: Session = Depends(get_session)):
     if needed_tickers:
         try:
             # Multi-ticker download is much faster than sequential
-            batch_df = yf.download(needed_tickers, period="1y", interval="1wk", progress=False, group_by='ticker')
+            batch_df = safe_download(needed_tickers, period="1y", interval="1wk", group_by='ticker')
             
             for symbol in needed_tickers:
                 try:
@@ -545,7 +550,7 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y", se
 
     try:
         if df is None:
-            df = yf.download(symbol, period=period, interval=interval, progress=False)
+            df = safe_download(symbol, period=period, interval=interval)
             if df.empty:
                  raise HTTPException(status_code=404, detail="No data found for symbol")
             set_cache(cache_key, df)
@@ -780,7 +785,7 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y", se
             p_data = get_cached(cache_key_proxies, ttl=3600) # Macro cache 1h
             
             if p_data is None:
-                p_data = yf.download(proxies, period=period, interval=interval, progress=False)
+                p_data = safe_download(proxies, period=period, interval=interval)
                 set_cache(cache_key_proxies, p_data)
             
             if not p_data.empty:
@@ -884,7 +889,7 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y", se
                 s_data = get_cached(cache_key_sectors, ttl=14400) # Sector cache 4h
                 
                 if s_data is None:
-                    s_data = yf.download(sector_etfs, period="2mo", interval="1d", progress=False)
+                    s_data = safe_download(sector_etfs, period="2mo", interval="1d")
                     set_cache(cache_key_sectors, s_data)
 
                 sector_performance = {}
@@ -989,7 +994,7 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y", se
                 cache_key_wk = f"tide_wk_{symbol}"
                 wk_df = get_cached(cache_key_wk, ttl=3600)
                 if wk_df is None:
-                    wk_df = yf.download(symbol, period="2y", interval="1wk", progress=False)
+                    wk_df = safe_download(symbol, period="2y", interval="1wk")
                     if isinstance(wk_df.columns, pd.MultiIndex):
                         wk_df.columns = wk_df.columns.get_level_values(0)
                     set_cache(cache_key_wk, wk_df)

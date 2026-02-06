@@ -32,7 +32,6 @@ const StockChart = ({ data, srLevels = [], colors = {} }) => {
                 timeScale: {
                     timeVisible: true,
                     secondsVisible: false,
-                    borderColor: gridColor,
                     borderColor: '#374151',
                 },
                 rightPriceScale: {

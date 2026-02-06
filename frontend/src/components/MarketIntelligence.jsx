@@ -20,7 +20,7 @@ import {
     Navigation
 } from 'lucide-react';
 
-const MarketRegime = ({ activeRegime }) => {
+const MarketRegime = ({ activeRegime, isSidebar }) => {
     const regimes = [
         {
             title: "Accumulation",
@@ -57,7 +57,7 @@ const MarketRegime = ({ activeRegime }) => {
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className={`grid gap-4 mb-4 ${isSidebar ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'}`}>
             {regimes.map((r) => {
                 const isActive = activeRegime?.includes(r.key);
                 return (
@@ -532,37 +532,39 @@ const ConfluenceGuide = ({ isOpen, onClose, regimeData }) => {
     );
 };
 
-const MarketIntelligence = ({ regimeData }) => {
+const MarketIntelligence = ({ regimeData, isSidebar = false }) => {
     const [showGuide, setShowGuide] = useState(false);
     const [showConfluence, setShowConfluence] = useState(false);
     const [showTour, setShowTour] = useState(false);
     const [showLogic, setShowLogic] = useState(true);
 
     return (
-        <div className="animate-in fade-in duration-500 max-w-7xl mx-auto pb-12">
+        <div className={`animate-in fade-in duration-500 mx-auto pb-12 ${isSidebar ? 'px-4' : 'max-w-7xl'}`}>
             <MacroLogicGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
             <ConfluenceGuide isOpen={showConfluence} onClose={() => setShowConfluence(false)} regimeData={regimeData} />
             <DashboardTour isOpen={showTour} onClose={() => setShowTour(false)} />
 
-            <div id="header" className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-gray-800 pb-8">
+            <div id="header" className={`mb-10 flex flex-col justify-between items-start gap-6 border-b border-gray-800 pb-8 ${isSidebar ? '' : 'md:flex-row md:items-center'}`}>
                 <div className="flex-1">
-                    <h2 className="text-3xl font-black mb-2 text-white italic tracking-tighter">MARKET INTELLIGENCE</h2>
+                    <h2 className={`${isSidebar ? 'text-xl' : 'text-3xl'} font-black mb-2 text-white italic tracking-tighter`}>MARKET INTELLIGENCE</h2>
                     <p className="text-gray-400 text-sm max-w-2xl leading-relaxed">
-                        Fundamentals determine the tide; technicals dictate the swim. We synthesize **Macro Tides, Regime Analysis, and Strategic Routines** to filter noise and isolate high-probability opportunities.
+                        {!isSidebar && "Fundamentals determine the tide; technicals dictate the swim. We synthesize **Macro Tides, Regime Analysis, and Strategic Routines** to filter noise and isolate high-probability opportunities."}
                     </p>
                 </div>
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => setShowTour(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-900/20"
-                    >
-                        <Play size={14} fill="currentColor" /> START TOUR
-                    </button>
-                </div>
+                {!isSidebar && (
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => setShowTour(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-900/20"
+                        >
+                            <Play size={14} fill="currentColor" /> START TOUR
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* ROW 1: CONTEXT & STRATEGY */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div className={`grid gap-8 mb-8 ${isSidebar ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`}>
                 {/* SECTION 1: MARKET CONTEXT */}
                 <section id="tour-context">
                     <div className="flex items-center gap-2 mb-4 px-1">
@@ -613,7 +615,7 @@ const MarketIntelligence = ({ regimeData }) => {
             </div>
 
             {/* ROW 2: LEADERSHIP & PHASE */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div className={`grid gap-8 mb-8 ${isSidebar ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`}>
                 {/* SECTION 3: SECTOR LEADERSHIP */}
                 <section id="tour-leadership">
                     <div className="flex items-center gap-2 mb-4 px-1">
@@ -647,7 +649,7 @@ const MarketIntelligence = ({ regimeData }) => {
                             </button>
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 h-[280px]">
+                    <div className={`grid gap-3 ${isSidebar ? 'grid-cols-1' : 'grid-cols-2'} ${isSidebar ? '' : 'h-[280px]'}`}>
                         {["Accumulation", "Mark-Up", "Distribution", "Mark-Down"].map(regime => {
                             const r = [
                                 { key: "Accumulation", icon: <ShieldCheck size={14} className="text-blue-400" /> },
@@ -690,7 +692,7 @@ const MarketIntelligence = ({ regimeData }) => {
                     <div className="w-1 h-4 bg-yellow-500 rounded-full" />
                     <h3 className="text-lg font-black text-gray-300 uppercase tracking-widest text-[10px] font-mono">05. Automated Routine</h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-800/30 p-4 rounded-2xl border border-gray-700">
+                <div className={`grid gap-4 bg-gray-800/30 p-4 rounded-2xl border border-gray-700 ${isSidebar ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
                     <TopDownRoutine regimeData={regimeData} />
                     <div className="flex flex-col justify-center p-4 bg-gray-900/40 rounded-xl border border-gray-800 text-[11px] text-gray-400 leading-relaxed italic">
                         "Fundamentals determine the tide; technicals dictate the swim. This routine ensures your individual trades are backed by institutional currents."
@@ -708,9 +710,9 @@ const MarketIntelligence = ({ regimeData }) => {
                     <div className="bg-gradient-to-br from-blue-900/20 to-gray-900 border border-blue-500/30 rounded-[2.5rem] p-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/5 rounded-full blur-3xl -mr-32 -mt-32" />
 
-                        <div className="flex flex-col xl:flex-row gap-10 items-center xl:items-stretch relative z-10">
+                        <div className={`flex flex-col gap-10 items-center relative z-10 ${isSidebar ? '' : 'xl:flex-row xl:items-stretch'}`}>
                             {/* Decision Box */}
-                            <div className="w-full xl:w-2/5 bg-gradient-to-br from-blue-600 to-indigo-800 p-10 rounded-[2rem] shadow-2xl flex flex-col justify-center border border-blue-400/30 transform hover:scale-[1.02] transition-transform duration-500">
+                            <div className={`w-full bg-gradient-to-br from-blue-600 to-indigo-800 p-10 rounded-[2rem] shadow-2xl flex flex-col justify-center border border-blue-400/30 transform hover:scale-[1.02] transition-transform duration-500 ${isSidebar ? '' : 'xl:w-2/5'}`}>
                                 <div className="text-[10px] uppercase font-black text-blue-100 mb-6 tracking-[0.4em] flex items-center gap-2 opacity-80">
                                     <ShieldCheck size={16} /> FINAL RECOMMENDATION
                                 </div>

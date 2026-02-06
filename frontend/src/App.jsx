@@ -36,10 +36,13 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+import { Toaster } from 'sonner';
+
 function App() {
   return (
     <ErrorBoundary>
       <div className="App">
+        <Toaster richColors position="top-right" theme="dark" />
         <Dashboard />
       </div>
     </ErrorBoundary>

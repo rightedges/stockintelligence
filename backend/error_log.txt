@@ -58,3 +58,365 @@ Traceback (most recent call last):
   File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
     raise ValueError(
 ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 579, in get_stock_analysis
+    df = calculate_indicators(df)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 18, in calculate_indicators
+    df['macd'] = ta.trend.macd(df['Close'])
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 1203, in macd
+    return MACD(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 129, in macd
+    return pd.Series(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/series.py", line 587, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 630, in sanitize_array
+    return sanitize_array(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 656, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
+    raise ValueError(
+ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 579, in get_stock_analysis
+    df = calculate_indicators(df)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 18, in calculate_indicators
+    df['macd'] = ta.trend.macd(df['Close'])
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 1203, in macd
+    return MACD(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 129, in macd
+    return pd.Series(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/series.py", line 587, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 630, in sanitize_array
+    return sanitize_array(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 656, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
+    raise ValueError(
+ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 579, in get_stock_analysis
+    df = calculate_indicators(df)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 18, in calculate_indicators
+    df['macd'] = ta.trend.macd(df['Close'])
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 1203, in macd
+    return MACD(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 129, in macd
+    return pd.Series(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/series.py", line 587, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 630, in sanitize_array
+    return sanitize_array(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 656, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
+    raise ValueError(
+ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 579, in get_stock_analysis
+    df = calculate_indicators(df)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 18, in calculate_indicators
+    df['macd'] = ta.trend.macd(df['Close'])
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 1203, in macd
+    return MACD(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 129, in macd
+    return pd.Series(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/series.py", line 587, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 630, in sanitize_array
+    return sanitize_array(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 656, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
+    raise ValueError(
+ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 579, in get_stock_analysis
+    df = calculate_indicators(df)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 18, in calculate_indicators
+    df['macd'] = ta.trend.macd(df['Close'])
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 1203, in macd
+    return MACD(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 129, in macd
+    return pd.Series(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/series.py", line 587, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 630, in sanitize_array
+    return sanitize_array(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 656, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
+    raise ValueError(
+ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 579, in get_stock_analysis
+    df = calculate_indicators(df)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 18, in calculate_indicators
+    df['macd'] = ta.trend.macd(df['Close'])
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 1203, in macd
+    return MACD(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 129, in macd
+    return pd.Series(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/series.py", line 587, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 630, in sanitize_array
+    return sanitize_array(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 656, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
+    raise ValueError(
+ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 579, in get_stock_analysis
+    df = calculate_indicators(df)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 18, in calculate_indicators
+    df['macd'] = ta.trend.macd(df['Close'])
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 1203, in macd
+    return MACD(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 129, in macd
+    return pd.Series(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/series.py", line 587, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 630, in sanitize_array
+    return sanitize_array(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 656, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
+    raise ValueError(
+ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 579, in get_stock_analysis
+    df = calculate_indicators(df)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 18, in calculate_indicators
+    df['macd'] = ta.trend.macd(df['Close'])
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 1203, in macd
+    return MACD(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 129, in macd
+    return pd.Series(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/series.py", line 587, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 630, in sanitize_array
+    return sanitize_array(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 656, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
+    raise ValueError(
+ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 579, in get_stock_analysis
+    df = calculate_indicators(df)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 18, in calculate_indicators
+    df['macd'] = ta.trend.macd(df['Close'])
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 1203, in macd
+    return MACD(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 129, in macd
+    return pd.Series(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/series.py", line 587, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 630, in sanitize_array
+    return sanitize_array(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 656, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
+    raise ValueError(
+ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 579, in get_stock_analysis
+    df = calculate_indicators(df)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 18, in calculate_indicators
+    df['macd'] = ta.trend.macd(df['Close'])
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 1203, in macd
+    return MACD(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 129, in macd
+    return pd.Series(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/series.py", line 587, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 630, in sanitize_array
+    return sanitize_array(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 656, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
+    raise ValueError(
+ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 579, in get_stock_analysis
+    df = calculate_indicators(df)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 18, in calculate_indicators
+    df['macd'] = ta.trend.macd(df['Close'])
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 1203, in macd
+    return MACD(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 129, in macd
+    return pd.Series(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/series.py", line 587, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 630, in sanitize_array
+    return sanitize_array(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 656, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
+    raise ValueError(
+ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 579, in get_stock_analysis
+    df = calculate_indicators(df)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 18, in calculate_indicators
+    df['macd'] = ta.trend.macd(df['Close'])
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 1203, in macd
+    return MACD(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 129, in macd
+    return pd.Series(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/series.py", line 587, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 630, in sanitize_array
+    return sanitize_array(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 656, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
+    raise ValueError(
+ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 579, in get_stock_analysis
+    df = calculate_indicators(df)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 18, in calculate_indicators
+    df['macd'] = ta.trend.macd(df['Close'])
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 1203, in macd
+    return MACD(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 129, in macd
+    return pd.Series(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/series.py", line 587, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 630, in sanitize_array
+    return sanitize_array(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 656, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
+    raise ValueError(
+ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 579, in get_stock_analysis
+    df = calculate_indicators(df)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 18, in calculate_indicators
+    df['macd'] = ta.trend.macd(df['Close'])
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 1203, in macd
+    return MACD(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 129, in macd
+    return pd.Series(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/series.py", line 587, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 630, in sanitize_array
+    return sanitize_array(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 656, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
+    raise ValueError(
+ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 579, in get_stock_analysis
+    df = calculate_indicators(df)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 18, in calculate_indicators
+    df['macd'] = ta.trend.macd(df['Close'])
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 1203, in macd
+    return MACD(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 129, in macd
+    return pd.Series(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/series.py", line 587, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 630, in sanitize_array
+    return sanitize_array(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 656, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
+    raise ValueError(
+ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 579, in get_stock_analysis
+    df = calculate_indicators(df)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 18, in calculate_indicators
+    df['macd'] = ta.trend.macd(df['Close'])
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 1203, in macd
+    return MACD(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/ta/trend.py", line 129, in macd
+    return pd.Series(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/series.py", line 587, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 630, in sanitize_array
+    return sanitize_array(
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 656, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/william/Documents/stock2026/backend/venv/lib/python3.9/site-packages/pandas/core/construction.py", line 715, in _sanitize_ndim
+    raise ValueError(
+ValueError: Data must be 1-dimensional, got ndarray of shape (53, 1) instead
+
+--- [DEBUG] Error analyzing AAPL (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 576, in get_stock_analysis
+    raise HTTPException(status_code=404, detail="No data found for symbol")
+fastapi.exceptions.HTTPException: 404: No data found for symbol
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 576, in get_stock_analysis
+    raise HTTPException(status_code=404, detail="No data found for symbol")
+fastapi.exceptions.HTTPException: 404: No data found for symbol
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 576, in get_stock_analysis
+    raise HTTPException(status_code=404, detail="No data found for symbol")
+fastapi.exceptions.HTTPException: 404: No data found for symbol
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 576, in get_stock_analysis
+    raise HTTPException(status_code=404, detail="No data found for symbol")
+fastapi.exceptions.HTTPException: 404: No data found for symbol
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 576, in get_stock_analysis
+    raise HTTPException(status_code=404, detail="No data found for symbol")
+fastapi.exceptions.HTTPException: 404: No data found for symbol
+
+--- [DEBUG] Error analyzing ESTC (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 576, in get_stock_analysis
+    raise HTTPException(status_code=404, detail="No data found for symbol")
+fastapi.exceptions.HTTPException: 404: No data found for symbol
+
+--- [DEBUG] Error analyzing AAPL (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 576, in get_stock_analysis
+    # Clean data (Robust MultiIndex flattening)
+fastapi.exceptions.HTTPException: 404: No data found for symbol
