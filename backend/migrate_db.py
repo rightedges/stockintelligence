@@ -27,6 +27,8 @@ def migrate():
     add_column("stock", "divergence_status", "TEXT")
     add_column("stock", "efi_status", "TEXT")
     add_column("stock", "setup_signal", "TEXT")
+    add_column("stock", "candle_pattern", "TEXT")
+    add_column("stock", "candle_pattern_type", "TEXT")
 
     # --- TRADE TABLE ---
     # Core identifying fields (usually in base but checking)

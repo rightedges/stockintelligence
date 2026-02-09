@@ -104,11 +104,25 @@ const ElderStrategyPanel = ({ data, tacticalAdvice, isWeekly, f13Divergence }) =
                         </div>
                     </div>
 
-                    {/* SCREEN 3: EXECUTION */}
+                    {/* SCREEN 3: ACTION */}
                     <div className={`p-3 rounded-xl border transition-all duration-300 ${tacticalAdvice?.style === 'success' ? 'bg-green-900/20 border-green-500/50' :
                         tacticalAdvice?.style === 'danger' ? 'bg-red-900/20 border-red-500/50' :
                             'bg-amber-900/20 border-amber-500/50'
                         }`}>
+
+                        {/* HIGH-CONVICTION CONFLUENCE ALERT */}
+                        {tacticalAdvice?.confluence_alert && (
+                            <div className="mb-3 px-3 py-2.5 bg-blue-500/20 border border-blue-400/50 rounded-lg shadow-inner animate-pulse">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Zap size={14} className="text-blue-400" fill="currentColor" />
+                                    <span className="text-[10px] font-black uppercase tracking-tighter text-blue-300">High-Conviction Confluence</span>
+                                </div>
+                                <p className="text-[10px] text-white leading-snug font-bold italic">
+                                    "{tacticalAdvice.confluence_alert}"
+                                </p>
+                            </div>
+                        )}
+
                         <div className="text-[9px] text-gray-500 uppercase font-black mb-1 tracking-widest flex items-center justify-between">
                             SCREEN 3: ACTION
                             <span className={`px-1.5 py-0.5 rounded text-[8px] font-black ${tacticalAdvice?.style === 'success' ? 'bg-green-500 text-white' :
@@ -143,25 +157,41 @@ const ElderStrategyPanel = ({ data, tacticalAdvice, isWeekly, f13Divergence }) =
 
                         {/* Execution Levels */}
                         {tacticalAdvice && (
-                            <div className="grid grid-cols-2 gap-1.5 mt-2">
-                                <div className="p-1.5 bg-black/40 rounded border border-white/5">
-                                    <div className="text-[8px] text-gray-500 uppercase font-bold">Entry</div>
-                                    <div className="text-xs font-mono font-bold text-blue-400">${tacticalAdvice.entry || 'N/A'}</div>
-                                </div>
-                                <div className="p-1.5 bg-black/40 rounded border border-white/5">
-                                    <div className="text-[8px] text-gray-500 uppercase font-bold">Stop</div>
-                                    <div className="text-xs font-mono font-bold text-red-400">${tacticalAdvice.stop || 'N/A'}</div>
-                                </div>
-                                <div className="p-1.5 bg-black/40 rounded border border-white/5">
-                                    <div className="text-[8px] text-gray-500 uppercase font-bold">Target</div>
-                                    <div className="text-xs font-mono font-bold text-green-400">${tacticalAdvice.target || 'N/A'}</div>
-                                </div>
-                                <div className="p-1.5 bg-black/40 rounded border border-white/5">
-                                    <div className="text-[8px] text-gray-500 uppercase font-bold">R:R</div>
-                                    <div className={`text-xs font-mono font-bold italic`}>
-                                        {tacticalAdvice.entry && tacticalAdvice.stop && tacticalAdvice.target
-                                            ? `${(Math.abs(tacticalAdvice.target - tacticalAdvice.entry) / Math.abs(tacticalAdvice.entry - tacticalAdvice.stop)).toFixed(2)}`
-                                            : 'N/A'}
+                            <div className="flex flex-col gap-2 mt-2">
+                                {/* Integrated Wisdom if exists */}
+                                {tacticalAdvice.candle_wisdom && (
+                                    <div className={`p-2 rounded-lg border flex flex-col gap-1 ${(lastData?.candle_pattern_type || tacticalAdvice?.screen2?.candle_pattern_type) === 'bullish'
+                                        ? 'bg-teal-500/10 border-teal-500/30'
+                                        : 'bg-rose-500/10 border-rose-500/30'}`}>
+                                        <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-white/90">
+                                            <span className="text-sm">💡</span> Pattern Wisdom: {(lastData?.candle_pattern || '').replace('_', ' ')}
+                                        </div>
+                                        <p className="text-[10px] text-gray-300 leading-snug italic px-0.5">
+                                            "{tacticalAdvice.candle_wisdom}"
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-2 gap-1.5">
+                                    <div className="p-1.5 bg-black/40 rounded border border-white/5">
+                                        <div className="text-[8px] text-gray-500 uppercase font-bold">Entry</div>
+                                        <div className="text-xs font-mono font-bold text-blue-400">${tacticalAdvice.entry || 'N/A'}</div>
+                                    </div>
+                                    <div className="p-1.5 bg-black/40 rounded border border-white/5">
+                                        <div className="text-[8px] text-gray-500 uppercase font-bold">Stop</div>
+                                        <div className="text-xs font-mono font-bold text-red-400">${tacticalAdvice.stop || 'N/A'}</div>
+                                    </div>
+                                    <div className="p-1.5 bg-black/40 rounded border border-white/5">
+                                        <div className="text-[8px] text-gray-500 uppercase font-bold">Target</div>
+                                        <div className="text-xs font-mono font-bold text-green-400">${tacticalAdvice.target || 'N/A'}</div>
+                                    </div>
+                                    <div className="p-1.5 bg-black/40 rounded border border-white/5">
+                                        <div className="text-[8px] text-gray-500 uppercase font-bold">R:R</div>
+                                        <div className={`text-xs font-mono font-bold italic`}>
+                                            {tacticalAdvice.entry && tacticalAdvice.stop && tacticalAdvice.target
+                                                ? `${(Math.abs(tacticalAdvice.target - tacticalAdvice.entry) / Math.abs(tacticalAdvice.entry - tacticalAdvice.stop)).toFixed(2)}`
+                                                : 'N/A'}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

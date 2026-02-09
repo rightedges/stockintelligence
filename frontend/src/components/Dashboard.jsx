@@ -48,7 +48,8 @@ const Dashboard = () => {
             { id: 'force_div', type: 'forceDivergence', visible: true, label: 'Force Divergence' },
             { id: 'force_markers', type: 'forceMarkers', visible: true, label: 'Force Markers' },
             { id: 'force_zones', type: 'forceZones', visible: true, label: 'Force Zones' },
-            { id: 'guppy_signals', type: 'guppySignals', visible: false, label: 'GMMA Crossovers' }
+            { id: 'guppy_signals', type: 'guppySignals', visible: false, label: 'GMMA Crossovers' },
+            { id: 'candlestick_patterns', type: 'candlestickPatterns', visible: false, label: 'Candlestick Patterns' }
         ]
     };
 
@@ -56,7 +57,24 @@ const Dashboard = () => {
         if (!['elder', 'weekly'].includes(v)) return INITIAL_INDICATORS;
         try {
             const saved = localStorage.getItem(`elder_indicator_configs_${v}`);
-            return saved ? JSON.parse(saved) : INITIAL_INDICATORS;
+            if (!saved) return INITIAL_INDICATORS;
+
+            const parsed = JSON.parse(saved);
+            // Ensure new default indicators are merged into saved state
+            const merged = { ...INITIAL_INDICATORS };
+
+            Object.keys(INITIAL_INDICATORS).forEach(category => {
+                const savedList = parsed[category] || [];
+                const defaultList = INITIAL_INDICATORS[category] || [];
+
+                // Keep saved items, but append any default items that are missing by ID
+                const existingIds = new Set(savedList.map(item => item.id));
+                const missingDefaults = defaultList.filter(item => !existingIds.has(item.id));
+
+                merged[category] = [...savedList, ...missingDefaults];
+            });
+
+            return merged;
         } catch { return INITIAL_INDICATORS; }
     };
 
@@ -93,6 +111,17 @@ const Dashboard = () => {
             }
             return newState;
         });
+    };
+
+    // Chart Style State
+    const [chartStyle, setChartStyle] = useState(() => {
+        const saved = localStorage.getItem(`chartStyle_${view}`);
+        return saved || 'normal';
+    });
+
+    const handleChartStyleChange = (style) => {
+        setChartStyle(style);
+        localStorage.setItem(`chartStyle_${view}`, style);
     };
 
     // Helper to extract dynamic parameters for API
@@ -150,12 +179,24 @@ const Dashboard = () => {
         if (template) {
             const configData = template.indicatorConfigs || template;
 
-            if (configData.overlays && configData.panes) {
-                setIndicatorConfigs(configData);
+            // Merge defaults into template config if it's missing them
+            const mergedConfig = { ...INITIAL_INDICATORS };
+            Object.keys(INITIAL_INDICATORS).forEach(category => {
+                const templateList = configData[category] || [];
+                const defaultList = INITIAL_INDICATORS[category] || [];
+
+                const existingIds = new Set(templateList.map(item => item.id));
+                const missingDefaults = defaultList.filter(item => !existingIds.has(item.id));
+
+                mergedConfig[category] = [...templateList, ...missingDefaults];
+            });
+
+            if (mergedConfig.overlays && mergedConfig.panes) {
+                setIndicatorConfigs(mergedConfig);
                 // Sync to timeframe-specific storage
                 const targetView = template.view || view;
                 if (['elder', 'weekly'].includes(targetView)) {
-                    localStorage.setItem(`elder_indicator_configs_${targetView}`, JSON.stringify(configData));
+                    localStorage.setItem(`elder_indicator_configs_${targetView}`, JSON.stringify(mergedConfig));
                 }
             } else {
                 console.warn("Incompatible template format detected");
@@ -176,6 +217,12 @@ const Dashboard = () => {
             prevViewRef.current = view;
         }
     }, [view, defaultTemplates, templates]);
+
+    useEffect(() => {
+        if (['elder', 'weekly', 'backtest'].includes(view)) {
+            setIndicatorConfigs(getSavedConfig(view));
+        }
+    }, [view]);
 
     const deleteTemplate = (name) => {
         const newTemplates = { ...templates };
@@ -241,7 +288,7 @@ const Dashboard = () => {
         setF13Divergence(null);
 
         try {
-            const period = view === 'weekly' ? '2y' : '1y';
+            const period = view === 'weekly' ? '5y' : '5y';
             const interval = view === 'weekly' ? '1wk' : '1d';
 
             const dynamicIndicators = getDynamicIndicatorList(indicatorConfigs);
@@ -364,6 +411,8 @@ const Dashboard = () => {
                     onDeleteTemplate={deleteTemplate}
                     defaultTemplates={defaultTemplates}
                     onSetDefaultTemplate={setDefaultTemplate}
+                    chartStyle={chartStyle}
+                    onChartStyleChange={handleChartStyleChange}
                 />
 
                 {/* View Content */}
@@ -394,6 +443,7 @@ const Dashboard = () => {
                                     symbol={selectedSymbol}
                                     data={chartData}
                                     indicatorConfigs={indicatorConfigs}
+                                    chartStyle={chartStyle}
                                     macdDivergence={macdDivergence}
                                     f13Divergence={f13Divergence}
                                     srLevels={srLevels}

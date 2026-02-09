@@ -17,6 +17,7 @@ from sqlmodel import Session, select
 from models import BacktestResult, BacktestTrade
 from database import engine
 from utils import safe_download
+from analysis_utils import detect_candlestick_pattern, detect_confluence
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -41,6 +42,7 @@ class StrategyTypes:
     DIVERGENCE = "divergence"
     FORCE_INDEX = "force_index"
     MACD_CROSSOVER = "macd_crossover"
+    CONFLUENCE_EXPERT = "confluence_expert"
     CUSTOM = "custom"
 
 # BSL Scripts for Built-in Strategies
@@ -48,10 +50,40 @@ STRATEGY_SCRIPTS = {
     StrategyTypes.ELDER_TRIPLE_SCREEN: """
 EMA13 = EMA(13)
 EMA26 = EMA(26)
+EMA50 = EMA(50)
 FI2 = FORCE_INDEX(2)
 RSI14 = RSI(14)
-ENTRY_LONG = EMA13 > EMA26 AND FI2 < 0 AND Close < EMA13 AND RSI14 < 40
+CONFLUENCE = CONFLUENCE_LONG()
+ENTRY_LONG = (EMA13 > EMA26) AND (EMA13 > EMA50) AND (FI2 < 0) AND (RSI14 < 45) OR CONFLUENCE
 EXIT_LONG = EMA13 < EMA26 AND FI2 > 0 AND Close > EMA13 AND RSI14 > 60
+""",
+    StrategyTypes.FORCE_INDEX: """
+FI13 = FORCE_INDEX(13)
+ENTRY_LONG = CROSSOVER(FI13, 0)
+EXIT_LONG = CROSSUNDER(FI13, 0)
+""",
+    StrategyTypes.CONFLUENCE_EXPERT: """
+// High-Conviction "Perfect Storm" Strategy
+EMA13 = EMA(13)
+EMA26 = EMA(26)
+EMA50 = EMA(50)
+
+// Detect Reversal Confluence (EFI-ATR + Patterns)
+CONFLUENCE_L = CONFLUENCE_LONG()
+CONFLUENCE_S = CONFLUENCE_SHORT()
+
+// Main Strategy Logic
+TIDE_UP = EMA13 > EMA26 AND EMA13 > EMA50
+TIDE_DOWN = EMA13 < EMA26 AND EMA13 < EMA50
+
+// Entry: Trend with confirmation or Pure Confluence
+ENTRY_LONG = (TIDE_UP AND CONFLUENCE_L) OR (CROSSOVER(EMA13, EMA26) AND CONFLUENCE_L)
+ENTRY_SHORT = (TIDE_DOWN AND CONFLUENCE_S) OR (CROSSUNDER(EMA13, EMA26) AND CONFLUENCE_S)
+
+// Exit: RSI reaching extremes or Trend Fatigue
+// Exit: RSI reaching extremes or Trend Fatigue
+EXIT_LONG = EMA13 < EMA26 OR RSI(14) > 70
+EXIT_SHORT = EMA13 > EMA26 OR RSI(14) < 30
 """,
     StrategyTypes.FORCE_INDEX: """
 FI = FORCE_INDEX(13)
@@ -246,10 +278,13 @@ class ScriptParser:
                         period = args[0]
                         raw_force = (df['Close'] - df['Close'].shift(1)) * df['Volume']
                         df[base_col] = raw_force.ewm(span=period, adjust=False).mean()
-                    elif name == "MACD_DIVERGENCE_BULLISH":
-                        df[base_col] = False 
-                    elif name == "MACD_DIVERGENCE_BEARISH":
-                        df[base_col] = False
+                    elif name == "CONFLUENCE_LONG":
+                        # Allow EFI signal to be within the last 3 bars of the pattern
+                        efi_any = df.get('efi_buy_signal', pd.Series([False]*len(df))).rolling(3).max().astype(bool)
+                        df[base_col] = (df.get('candle_pattern_type') == 'bullish') & efi_any
+                    elif name == "CONFLUENCE_SHORT":
+                        efi_any = df.get('efi_sell_signal', pd.Series([False]*len(df))).rolling(3).max().astype(bool)
+                        df[base_col] = (df.get('candle_pattern_type') == 'bearish') & efi_any
                  except Exception as e:
                      logger.error(f"Failed to calc {name}: {e}")
             
@@ -312,6 +347,18 @@ class BacktestEngine:
         df['force_index_2'] = raw_force.ewm(span=2, adjust=False).mean()
         df['force_index_13'] = raw_force.ewm(span=13, adjust=False).mean()
         
+        # EFI 3-ATR Signals (Elder Standard)
+        # EFI = 13-period EMA of (Close - Close[1]) * Volume
+        # Band = EFI_Signal +/- 3 * EFI_ATR
+        efi_signal = df['force_index_13'].ewm(span=13, adjust=False).mean()
+        efi_range = (df['force_index_13'] - df['force_index_13'].shift(1)).abs()
+        efi_atr = efi_range.ewm(span=22, adjust=False).mean()
+        
+        df['efi_atr_upper'] = efi_signal + efi_atr * 3
+        df['efi_atr_lower'] = efi_signal - efi_atr * 3
+        df['efi_buy_signal'] = df['force_index_13'] <= df['efi_atr_lower']
+        df['efi_sell_signal'] = df['force_index_13'] >= df['efi_atr_upper']
+        
         # Elder Impulse System
         df['ema_13_slope'] = df['ema_13'].diff()
         df['macd_diff_slope'] = df['macd_diff'].diff()
@@ -335,6 +382,22 @@ class BacktestEngine:
         stoch = ta.momentum.StochasticOscillator(df['High'], df['Low'], df['Close'], window=14, smooth_window=3)
         df['stoch_k'] = stoch.stoch()
         df['stoch_d'] = stoch.stoch_signal()
+        
+        # Candlestick Patterns (Whole History for Backtesting)
+        pattern_list = [None] * len(df)
+        pattern_type_list = [None] * len(df)
+        
+        # Run detection in a loop for the whole history with sliding window (O(N))
+        for i in range(15, len(df)):
+            # Use 20 bars total for context (15 for body avg + 5 for longest pattern)
+            subset_start = max(0, i - 19)
+            subset = df.iloc[subset_start:i+1]
+            p, pt = detect_candlestick_pattern(subset)
+            pattern_list[i] = p
+            pattern_type_list[i] = pt
+            
+        df['candle_pattern'] = pattern_list
+        df['candle_pattern_type'] = pattern_type_list
         
         return df
     
@@ -453,6 +516,7 @@ class BacktestEngine:
             df = self.calculate_indicators(df)
             
             # Generate signals based on strategy
+            plots = []
             if strategy_type == StrategyTypes.DIVERGENCE:
                 # Specialized pre-processing for Divergence
                 divergences = self.detect_divergence(df)

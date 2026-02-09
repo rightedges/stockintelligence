@@ -10,10 +10,25 @@ from database import get_session
 from models import Stock, StockPublic
 from cache import get_cached, set_cache
 from utils import safe_download
+import numpy as np
+from analysis_utils import detect_candlestick_pattern, detect_confluence
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
 logger = logging.getLogger(__name__)
 
+
+def clean_nans(obj):
+    """Sanitize NumPy/Pandas NaNs for JSON serialization"""
+    if isinstance(obj, float) and (np.isnan(obj) or np.isinf(obj)):
+        return None
+    if isinstance(obj, dict):
+        return {k: clean_nans(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [clean_nans(i) for i in obj]
+    return obj
+
+
+# Candlestick pattern detection logic moved to analysis_utils.py
 
 def calculate_indicators(df, dynamic_configs=None):
     if len(df) < 2:
@@ -34,6 +49,22 @@ def calculate_indicators(df, dynamic_configs=None):
     df['ema_26'] = ta.trend.ema_indicator(df['Close'], window=26)
     df['ema_50'] = ta.trend.ema_indicator(df['Close'], window=50)
     df['ema_200'] = ta.trend.ema_indicator(df['Close'], window=200)
+
+    # Candlestick Patterns (Whole History)
+    patterns = [None] * len(df)
+    p_types = [None] * len(df)
+    
+    # We need up to 5 bars for complex patterns, plus at least 15 bars for body average
+    for i in range(15, len(df)):
+        subset_start = max(0, i - 19) # 20 bars total for context
+        subset = df.iloc[subset_start:i+1]
+        p_name, p_type = detect_candlestick_pattern(subset)
+        patterns[i] = p_name
+        p_types[i] = p_type
+            
+    df['candle_pattern'] = patterns
+    df['candle_pattern_type'] = p_types
+
 
     # Oscillators for Screen 2
     df['williams_r'] = ta.momentum.williams_r(df['High'], df['Low'], df['Close'], lbp=14)
@@ -561,10 +592,20 @@ def scan_stocks(session: Session = Depends(get_session)):
             except Exception as e:
                 print(f"TS Scan error {stock.symbol}: {e}")
 
+            # 6. Detect Candlestick Patterns & Confluence
+            candle_pattern, candle_pattern_type = detect_candlestick_pattern(df)
+            
+            # Use current logic for MACD divergence mapping to detected confluence
+            macd_div_obj = {'type': macd_div, 'recency': 0} if macd_div else None
+            confluence_alert, _ = detect_confluence(df, macd_div_obj)
+
             # Update DB
             stock.divergence_status = macd_div 
             stock.efi_status = efi_status
             stock.setup_signal = setup_signal
+            stock.candle_pattern = candle_pattern
+            stock.candle_pattern_type = candle_pattern_type
+            stock.confluence_alert = confluence_alert
             
             session.add(stock)
             
@@ -1139,122 +1180,8 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y", in
         except Exception as p_err:
             print(f"Error fetching Market Proxies: {p_err}")
 
-        # --- Alex Elder Tactical Logic ---
-        # 1. Trend (The Tide)
-        # If interval is daily, Screen 1 (The Tide) must be the Weekly EMA13 slope.
-        # If already in weekly, use the current dataframe.
-        
-        ema13_slope = df['ema_13'].diff().iloc[-1]
-        tide_slope = ema13_slope
-        tide_label = "Daily"
-        
-        if interval == "1d":
-            try:
-                # Fetch weekly data for Screen 1 (The Tide)
-                cache_key_wk = f"tide_wk_{symbol}"
-                wk_df = get_cached(cache_key_wk, ttl=3600)
-                if wk_df is None:
-                    wk_df = safe_download(symbol, period="2y", interval="1wk")
-                    if isinstance(wk_df.columns, pd.MultiIndex):
-                        wk_df.columns = wk_df.columns.get_level_values(0)
-                    set_cache(cache_key_wk, wk_df)
-                
-                if not wk_df.empty and len(wk_df) > 13:
-                    wk_ema13 = ta.trend.ema_indicator(wk_df['Close'], window=13)
-                    tide_slope = wk_ema13.diff().iloc[-1]
-                    tide_label = "Weekly"
-            except Exception as wk_err:
-                print(f"Error fetching Weekly Tide for {symbol}: {wk_err}")
-                # Fallback to daily slope if weekly fails
-
-        # 2. Strategy Synthesis (Triple Screen)
-        force2 = df['force_index_2'].iloc[-1]
-        wr = df['williams_r'].iloc[-1]
-        stoch_k = df['stoch_k'].iloc[-1]
-        impulse_color = df['impulse'].iloc[-1]
-        
-        # Screen 2: The Wave (Oscillator Streaks)
-        f2_streak = 0
-        f2_vals = df['force_index_2'].values
-        if force2 > 0:
-            for v in reversed(f2_vals):
-                if v > 0: f2_streak += 1
-                else: break
-        else:
-            for v in reversed(f2_vals):
-                if v < 0: f2_streak += 1
-                else: break
-
-        elder_recommendation = "WAIT"
-        tactic_reason = "No high-confluence setup detected."
-        ripple_msg = "Waiting for setup."
-        entry_price = None
-        target_price = None
-        stop_price = None
-
-        u_envelope = df['envelope_upper'].iloc[-1]
-        l_envelope = df['envelope_lower'].iloc[-1]
-
-        if tide_slope > 0: # Bull Tide
-            # Entry/Stop calculation (Screen 3: The Ripple)
-            # Buy Stop at High + wiggle, Stop at EMA 26
-            entry_price = float(df['High'].iloc[-1])
-            target_price = float(u_envelope)
-            stop_price = float(df['ema_26'].iloc[-1])
-            
-            if impulse_color == "red":
-                elder_recommendation = "WAIT (CENSORED)"
-                tactic_reason = f"{tide_label} Tide is active, but Impulse System is RED. Long trades are forbidden."
-                ripple_msg = "Stay in cash or preserve existing shorts. No new longs allowed."
-            elif force2 < 0:
-                elder_recommendation = "BUY"
-                tactic_reason = f"{tide_label} Bull Tide; {f2_streak}-day pullback detected. Oscillator confluence is active."
-                ripple_msg = f"Place BUY STOP at ${entry_price:.2f} (today's high). If not filled tomorrow, lower to tomorrow's high."
-            else:
-                elder_recommendation = "HOLD / ADD"
-                tactic_reason = f"{tide_label} Tide is intact. Momentum is with the bulls."
-                ripple_msg = "Wait for a Force Index dip below zero before adding new size."
-        
-        elif tide_slope < 0: # Bear Tide
-            # Sell Stop at Low - wiggle, Stop at EMA 26
-            entry_price = float(df['Low'].iloc[-1])
-            target_price = float(l_envelope)
-            stop_price = float(df['ema_26'].iloc[-1])
-
-            if impulse_color == "green":
-                elder_recommendation = "WAIT (CENSORED)"
-                tactic_reason = f"{tide_label} Tide is active, but Impulse System is GREEN. Short trades are forbidden."
-                ripple_msg = "Liquidate shorts and wait for a blue/red impulse before re-entering."
-            elif force2 > 0:
-                elder_recommendation = "SELL / SHORT"
-                tactic_reason = f"{tide_label} Bear Tide; {f2_streak}-day counter-rally detected. Bears are looking for an entry."
-                ripple_msg = f"Place SELL STOP at ${entry_price:.2f} (today's low). Protect with stop at ${stop_price:.2f}."
-            else:
-                elder_recommendation = "AVOID / PROTECT"
-                tactic_reason = f"{tide_label} Tide is intact. Momentum is with the bears."
-                ripple_msg = "Wait for a Force Index rally above zero before initiating new shorts."
-
-        # Screen 2 Detailed Metadata
-        screen2_data = {
-            "force_index_2": float(force2),
-            "f2_streak": f2_streak,
-            "williams_r": float(wr),
-            "stoch_k": float(stoch_k),
-            "status": "Oversold" if wr < -80 else "Overbought" if wr > -20 else "Neutral",
-            "wave_intensity": "High" if abs(force2) > df['force_index_2'].tail(20).std() * 2 else "Normal"
-        }
-
-        elder_tactics = {
-            "type": "LONG" if tide_slope > 0 else "SHORT",
-            "recommendation": elder_recommendation,
-            "reason": tactic_reason,
-            "ripple_msg": ripple_msg,
-            "entry": round(entry_price, 2) if entry_price else None,
-            "target": round(target_price, 2) if target_price else None,
-            "stop": round(stop_price, 2) if stop_price else None,
-            "screen2": screen2_data,
-            "style": "success" if elder_recommendation in ["BUY", "HOLD / ADD"] else "danger" if elder_recommendation in ["SELL / SHORT", "AVOID / PROTECT"] else "warning"
-        }
+        # --- Market Dynamics Synthesis ---
+        # (This block moved down to allow divergence access)
 
         # Prepare response
         # --- MACD Divergence Detection (Wave-based) ---
@@ -1384,43 +1311,145 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y", in
         if interval != '1wk':
              f13_divergence = find_divergence(df, 'force_index_13')
 
-        # Convert index (Date) to listing
-        df.reset_index(inplace=True)
+        # --- Alexander Elder Technical Synthesis (Post-Divergence) ---
+        # 1. Trend (The Tide)
+        # If interval is daily, Screen 1 (The Tide) must be the Weekly EMA13 slope.
+        # If already in weekly, use the current dataframe.
         
-        # Convert to list of dicts for frontend
-        data = df.to_dict(orient="records")
+        ema13_slope = df['ema_13'].diff().iloc[-1]
+        tide_slope = ema13_slope
+        tide_label = "Daily"
         
-        def clean_nans(obj):
-            if isinstance(obj, list):
-                return [clean_nans(i) for i in obj]
-            elif isinstance(obj, dict):
-                return {k: clean_nans(v) for k, v in obj.items()}
-            
-            # Scalar - first check for NaN/Nat
+        if interval == "1d":
             try:
-                if pd.isna(obj):
-                    return None
-            except:
-                pass
+                # Fetch weekly data for Screen 1 (The Tide)
+                cache_key_wk = f"tide_wk_{symbol}"
+                wk_df = get_cached(cache_key_wk, ttl=3600)
+                if wk_df is None:
+                    wk_df = safe_download(symbol, period="2y", interval="1wk")
+                    if isinstance(wk_df.columns, pd.MultiIndex):
+                        wk_df.columns = wk_df.columns.get_level_values(0)
+                    set_cache(cache_key_wk, wk_df)
+                
+                if not wk_df.empty and len(wk_df) > 13:
+                    wk_ema13 = ta.trend.ema_indicator(wk_df['Close'], window=13)
+                    tide_slope = wk_ema13.diff().iloc[-1]
+                    tide_label = "Weekly"
+            except Exception as wk_err:
+                print(f"Error fetching Weekly Tide for {symbol}: {wk_err}")
 
-            # Handle Datetime/Timestamp
-            if hasattr(obj, 'isoformat'):
-                return obj.isoformat()
+        # 2. Strategy Synthesis (Triple Screen)
+        force2 = df['force_index_2'].iloc[-1]
+        wr = df['williams_r'].iloc[-1]
+        stoch_k = df['stoch_k'].iloc[-1]
+        impulse_color = df['impulse'].iloc[-1]
+        last_pattern = df['candle_pattern'].iloc[-1] if 'candle_pattern' in df.columns else None
+        last_pattern_type = df['candle_pattern_type'].iloc[-1] if 'candle_pattern_type' in df.columns else None
+        efi_buy = bool(df['efi_buy_signal'].iloc[-1])
+        efi_sell = bool(df['efi_sell_signal'].iloc[-1])
+        
+        # Screen 2: The Wave (Oscillator Streaks)
+        f2_streak = 0
+        f2_vals = df['force_index_2'].values
+        if force2 > 0:
+            for v in reversed(f2_vals):
+                if v > 0: f2_streak += 1
+                else: break
+        else:
+            for v in reversed(f2_vals):
+                if v < 0: f2_streak += 1
+                else: break
+
+        elder_recommendation = "WAIT"
+        tactic_reason = "No high-confluence setup detected."
+        ripple_msg = "Waiting for setup."
+        confluence_alert = None
+        
+        entry_price = float(df['High'].iloc[-1])
+        target_price = float(df['envelope_upper'].iloc[-1])
+        stop_price = float(df['ema_26'].iloc[-1])
+
+        if tide_slope > 0: # Bull Tide
+            if impulse_color == "red":
+                elder_recommendation = "WAIT (CENSORED)"
+                tactic_reason = f"{tide_label} Tide is active, but Impulse System is RED. Long trades are forbidden."
+                ripple_msg = "Stay in cash or preserve existing shorts."
+            elif force2 < 0:
+                elder_recommendation = "BUY"
+                tactic_reason = f"{tide_label} Bull Tide; {f2_streak}-day pullback detected."
+                # Confluence: Pullback + Bullish Candlestick
+                if last_pattern_type == 'bullish':
+                    pattern_clean = last_pattern.replace('_', ' ').title()
+                    tactic_reason += f" {pattern_clean} pattern validates demand during this pullback."
+                    if efi_buy:
+                        confluence_alert = f"HIGH-CONVICTION REVERSAL: {pattern_clean} + EFI 3-ATR exhaustion signal. Professional buying detected."
+                
+                # Confluence: Divergence
+                if macd_divergence and macd_divergence['type'] == 'bullish' and macd_divergence['recency'] < 5:
+                    confluence_alert = "BULLISH CONFLUENCE: MACD Divergence confirmed by oscillator exhaustion."
+                
+                ripple_msg = f"Place BUY STOP at ${entry_price:.2f} (today's high). Target ${target_price:.2f}."
+            else:
+                elder_recommendation = "HOLD / ADD"
+                tactic_reason = f"{tide_label} Tide is intact. Momentum is with the bulls."
+                ripple_msg = "Wait for a Force Index (2) dip below zero before adding size."
+        
+        elif tide_slope < 0: # Bear Tide
+            entry_price = float(df['Low'].iloc[-1])
+            target_price = float(df['envelope_lower'].iloc[-1])
             
-            # Handle Numpy Scalars (convert to native python)
-            if hasattr(obj, 'item') and not isinstance(obj, (list, dict, str)):
-                try:
-                    val = obj.item()
-                    if pd.isna(val): return None
-                    return val
-                except:
-                    return obj
+            if impulse_color == "green":
+                elder_recommendation = "WAIT (CENSORED)"
+                tactic_reason = f"{tide_label} Tide is active, but Impulse System is GREEN. Short trades are forbidden."
+                ripple_msg = "Liquidate shorts and wait for a blue/red impulse."
+            elif force2 > 0:
+                elder_recommendation = "SELL / SHORT"
+                tactic_reason = f"{tide_label} Bear Tide; {f2_streak}-day counter-rally detected."
+                
+                # Confluence: Counter-rally + Bearish Candlestick
+                if last_pattern_type == 'bearish':
+                    pattern_clean = last_pattern.replace('_', ' ').title()
+                    tactic_reason += f" {pattern_clean} pattern signals professional selling into this bounce."
+                    if efi_sell:
+                        confluence_alert = f"HIGH-CONVICTION REVERSAL: {pattern_clean} + EFI 3-ATR exhaustion signal. Professional selling detected."
+                
+                # Confluence: Divergence
+                if macd_divergence and macd_divergence['type'] == 'bearish' and macd_divergence['recency'] < 5:
+                    confluence_alert = "BEARISH CONFLUENCE: MACD Divergence confirmed by rally exhaustion."
 
-            return obj
+                ripple_msg = f"Place SELL STOP at ${entry_price:.2f} (today's low). Target ${target_price:.2f}."
+            else:
+                elder_recommendation = "AVOID / PROTECT"
+                tactic_reason = f"{tide_label} Tide is intact. Momentum is with the bears."
+                ripple_msg = "Wait for a Force Index (2) rally above zero before shorting."
 
+        # Custom Confluence Alerts & Wisdom
+        confluence_alert, candle_wisdom = detect_confluence(df, macd_divergence)
+
+        elder_tactics = {
+            "type": "LONG" if tide_slope > 0 else "SHORT",
+            "recommendation": elder_recommendation,
+            "reason": tactic_reason,
+            "confluence_alert": confluence_alert,
+            "candle_wisdom": candle_wisdom,
+            "ripple_msg": ripple_msg,
+            "entry": round(entry_price, 2) if entry_price else None,
+            "target": round(target_price, 2) if target_price else None,
+            "stop": round(stop_price, 2) if stop_price else None,
+            "screen2": {
+                "force_index_2": float(force2),
+                "f2_streak": f2_streak,
+                "williams_r": float(wr),
+                "stoch_k": float(stoch_k),
+                "status": "Oversold" if wr < -80 else "Overbought" if wr > -20 else "Neutral",
+            },
+            "style": "success" if elder_recommendation in ["BUY", "HOLD / ADD"] else "danger" if elder_recommendation in ["SELL / SHORT", "AVOID / PROTECT"] else "warning"
+        }
+
+        # Sidebar Sync & Response construction...
         response = {
             "symbol": symbol,
-            "data": data,
+            "data": df.reset_index().to_dict(orient="records"),
             "regime": regime,
             "regime_reason": reason,
             "volatility": volatility_status,
@@ -1466,14 +1495,17 @@ def get_stock_analysis(symbol: str, interval: str = "1d", period: str = "1y", in
                 # 3. Divergence
                 db_stock.divergence_status = macd_divergence.get('type') if macd_divergence else None
                 
+                # 4. Confluence
+                db_stock.confluence_alert = confluence_alert
+                
                 session.add(db_stock)
                 session.commit()
         except Exception as sync_err:
             print(f"Sync error for {symbol}: {sync_err}")
 
         # DEBUG: Verify signals in response
-        active_buys = [d for d in data if d.get('efi_buy_signal')]
-        active_sells = [d for d in data if d.get('efi_sell_signal')]
+        active_buys = [d for d in response['data'] if d.get('efi_buy_signal')]
+        active_sells = [d for d in response['data'] if d.get('efi_sell_signal')]
         print(f"DEBUG [{symbol}]: Active Buys={len(active_buys)}, Active Sells={len(active_sells)}")
         if active_buys: print(f"DEBUG: Sample Buy Bar: {active_buys[0].get('Date')}")
         if active_sells: print(f"DEBUG: Sample Sell Bar: {active_sells[0].get('Date')}")

@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { List, Zap, BookOpen, Settings, Globe } from 'lucide-react';
+import { List, Zap, BookOpen, Settings, Globe, Target } from 'lucide-react';
 import Watchlist from './Watchlist';
 import ElderStrategyPanel from './ElderStrategyPanel';
 import MarketIntelligence from './MarketIntelligence';
+import MarketScanner from './MarketScanner';
 
 const RightSidebar = ({
     // Watchlist Props
@@ -85,6 +86,15 @@ const RightSidebar = ({
                             onScan={onScan}
                         />
                     )}
+                    {activeTab === 'scanning' && (
+                        <MarketScanner
+                            stocks={stocks}
+                            selectedSymbol={selectedSymbol}
+                            onSelect={onSelect}
+                            isScanning={isScanning}
+                            onScan={onScan}
+                        />
+                    )}
                     {activeTab === 'strategy' && (
                         <ElderStrategyPanel
                             data={data}
@@ -109,6 +119,14 @@ const RightSidebar = ({
                     title="Watchlist"
                 >
                     <List size={22} strokeWidth={activeTab === 'watchlist' ? 2.5 : 2} />
+                </button>
+
+                <button
+                    onClick={() => toggleTab('scanning')}
+                    className={`p-2.5 rounded-xl transition-all ${activeTab === 'scanning' ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/20' : 'text-gray-500 hover:text-purple-400 hover:bg-gray-900'}`}
+                    title="Market Scanner"
+                >
+                    <Target size={22} strokeWidth={activeTab === 'scanning' ? 2.5 : 2} />
                 </button>
 
                 <button

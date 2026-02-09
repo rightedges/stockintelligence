@@ -32,14 +32,6 @@ const Watchlist = ({
             {/* Header */}
             <div className="p-3 border-b border-gray-800 flex items-center justify-between">
                 <span className="font-bold text-sm text-gray-400 uppercase tracking-wider">Watchlist</span>
-                <button
-                    onClick={onScan}
-                    disabled={isScanning}
-                    className={`p-1.5 rounded transition-all ${isScanning ? 'text-purple-400 animate-pulse' : 'text-gray-500 hover:text-purple-400 hover:bg-gray-800'}`}
-                    title="Scan Market"
-                >
-                    <Zap size={16} />
-                </button>
             </div>
 
             {/* Add & Filter */}

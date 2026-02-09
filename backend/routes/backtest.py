@@ -53,6 +53,7 @@ def run_backtest(
             StrategyTypes.DIVERGENCE,
             StrategyTypes.FORCE_INDEX,
             StrategyTypes.MACD_CROSSOVER,
+            StrategyTypes.CONFLUENCE_EXPERT,
             StrategyTypes.CUSTOM
         ]
         
@@ -471,7 +472,8 @@ async def run_batch_backtest(
             StrategyTypes.ELDER_TRIPLE_SCREEN,
             StrategyTypes.DIVERGENCE,
             StrategyTypes.FORCE_INDEX,
-            StrategyTypes.MACD_CROSSOVER
+            StrategyTypes.MACD_CROSSOVER,
+            StrategyTypes.CONFLUENCE_EXPERT
         ]
         
         if strategy_type not in valid_strategies:

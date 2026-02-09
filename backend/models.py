@@ -11,6 +11,9 @@ class Stock(SQLModel, table=True):
     divergence_status: Optional[str] = None # 'bullish', 'bearish', 'dual_bullish', 'dual_bearish'
     efi_status: Optional[str] = None # 'buy', 'sell'
     setup_signal: Optional[str] = None # 'pullback_buy', 'pullback_sell'
+    candle_pattern: Optional[str] = None # 'hammer', 'engulfing', 'morning_star', etc.
+    candle_pattern_type: Optional[str] = None # 'bullish' or 'bearish'
+    confluence_alert: Optional[str] = None # 'HIGH-CONVICTION REVERSAL...', etc.
 
 class StockPublic(Stock):
     impulse: Optional[str] = None

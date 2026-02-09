@@ -72,7 +72,8 @@ const StrategyTypes = {
     ELDER_TRIPLE_SCREEN: { id: 'elder_triple_screen', name: 'Elder Triple Screen', description: 'Weekly tide + Daily wave + Execution' },
     DIVERGENCE: { id: 'divergence', name: 'Divergence Strategy', description: 'MACD and Force Index divergence detection' },
     FORCE_INDEX: { id: 'force_index', name: 'Force Index Strategy', description: 'Volume-based momentum strategy' },
-    MACD_CROSSOVER: { id: 'macd_crossover', name: 'MACD Crossover', description: 'Classic MACD signal line crossovers' }
+    MACD_CROSSOVER: { id: 'macd_crossover', name: 'MACD Crossover', description: 'Classic MACD signal line crossovers' },
+    CONFLUENCE_EXPERT: { id: 'confluence_expert', name: 'Confluence Expert', description: 'High-conviction "Perfect Storm" signals' }
 };
 
 // --- Helper Components ---
@@ -811,7 +812,8 @@ EXIT_LONG = RSI(14) > 70`
                                                 />
                                                 <div className="flex justify-between items-center text-[10px] text-gray-500 italic px-1">
                                                     <span>Supports: Variables, Assignments (=), CROSSOVER, logic (AND/OR).</span>
-                                                    <span>Req: ENTRY_LONG, EXIT_LONG</span>
+                                                    <span>Signals: CONFLUENCE_LONG(), CONFLUENCE_SHORT() (EFI + Candlesticks)</span>
+                                                    <span>Req: ENTRY_LONG, EXIT_LONG balance.</span>
                                                 </div>
                                             </div>
                                         </div>

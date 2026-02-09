@@ -22,7 +22,9 @@ const TopToolbar = ({
     onSymbolChange,
     onAddToWatchlist,
     defaultTemplates,
-    onSetDefaultTemplate
+    onSetDefaultTemplate,
+    chartStyle,
+    onChartStyleChange
 }) => {
     const [showAddMenu, setShowAddMenu] = useState(false);
     const [editingId, setEditingId] = useState(null);
@@ -118,14 +120,36 @@ const TopToolbar = ({
             {/* Separator */}
             <div className="w-px h-1/2 bg-gray-800 mx-1" />
 
-            {/* 3. Chart Tools (Placeholders usually) */}
+            {/* 3. Chart Tools */}
             <div className="flex items-center gap-1">
                 <button className="flex items-center gap-1 px-3 py-1.5 text-gray-400 hover:text-white hover:bg-gray-900 rounded transition-colors text-sm font-medium">
                     <CandlestickChart size={18} />
                 </button>
-                <button className="flex items-center gap-1 px-3 py-1.5 text-gray-400 hover:text-white hover:bg-gray-900 rounded transition-colors text-sm font-medium">
-                    <CandlestickChart size={18} />
-                </button>
+                {/* Chart Style Selector */}
+                <div className="relative group z-50">
+                    <button className="flex items-center gap-1 px-3 py-1.5 text-gray-400 hover:text-white hover:bg-gray-900 rounded transition-colors text-sm font-medium">
+                        <CandlestickChart size={18} />
+                    </button>
+                    <div className="absolute top-full left-0 mt-1 w-52 bg-gray-900 border border-gray-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                        <div className="p-2">
+                            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-2 mb-2">Chart Style</div>
+                            <button
+                                onClick={() => onChartStyleChange('normal')}
+                                className={`w-full text-left px-3 py-2 text-sm rounded transition-colors flex items-center gap-2 ${chartStyle === 'normal' ? 'bg-blue-600/20 text-blue-400' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}
+                            >
+                                {chartStyle === 'normal' && <span className="text-xs">✓</span>}
+                                <span>Normal OHLC</span>
+                            </button>
+                            <button
+                                onClick={() => onChartStyleChange('impulse')}
+                                className={`w-full text-left px-3 py-2 text-sm rounded transition-colors flex items-center gap-2 ${chartStyle === 'impulse' ? 'bg-blue-600/20 text-blue-400' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}
+                            >
+                                {chartStyle === 'impulse' && <span className="text-xs">✓</span>}
+                                <span>Elder Impulse</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 {/* Indicators Dropdown */}
                 <div className="relative group z-50">
@@ -292,10 +316,30 @@ const TopToolbar = ({
                                 })}
                             </div>
 
-                            {/* 3. Miscellaneous Signals */}
+                            {/* 3. Pattern Detection */}
+                            <div className="mb-4">
+                                <div className="px-2 mb-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-center">Pattern Detection</div>
+                                {indicatorConfigs?.signals?.filter(s => s.type === 'candlestickPatterns').map(cfg => (
+                                    <div key={cfg.id} className="group/item px-2 py-0.5">
+                                        <div className="flex items-center justify-between hover:bg-gray-800/50 rounded px-1 group/row">
+                                            <label className="flex items-center gap-2 flex-1 py-1 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={cfg.visible}
+                                                    onChange={() => onUpdateIndicator('signals', cfg.id, { visible: !cfg.visible })}
+                                                    className="rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-0 focus:ring-offset-0 scale-90"
+                                                />
+                                                <span className="text-xs text-gray-200 font-bold">{cfg.label}</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* 4. Miscellaneous Signals */}
                             <div>
                                 <div className="px-2 mb-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-center">Other Signals</div>
-                                {indicatorConfigs?.signals?.filter(s => !['macdDivergence', 'forceDivergence', 'forceMarkers', 'forceZones', 'guppySignals'].includes(s.type)).map(cfg => (
+                                {indicatorConfigs?.signals?.filter(s => !['macdDivergence', 'forceDivergence', 'forceMarkers', 'forceZones', 'guppySignals', 'candlestickPatterns'].includes(s.type)).map(cfg => (
                                     <div key={cfg.id} className="group/item px-2 py-0.5">
                                         <div className="flex items-center justify-between hover:bg-gray-800/50 rounded px-1 group/row">
                                             <label className="flex items-center gap-2 flex-1 py-1 cursor-pointer">

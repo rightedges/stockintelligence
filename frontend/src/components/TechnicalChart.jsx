@@ -15,11 +15,22 @@ import { saveJournalEntry, getJournalEntries, updateJournalEntry, deleteJournalE
 import { X } from 'lucide-react';
 // TradeEntryModal moved to Dashboard
 
+const LegendItem = ({ code, label, color, description, onHover, onLeave }) => (
+    <div
+        className="flex items-center gap-1.5 whitespace-nowrap cursor-help hover:bg-white/5 px-1 py-0.5 rounded transition-all group/item"
+        onMouseEnter={() => onHover({ code, label, description })}
+        onMouseLeave={onLeave}
+    >
+        <span className={`text-[9px] font-bold min-w-[18px] transition-transform group-hover/item:scale-110 ${color}`}>{code}</span>
+        <span className="text-[9px] text-gray-500 font-medium group-hover/item:text-gray-300 transition-colors">{label}</span>
+    </div>
+);
+
 const TechnicalChart = ({
     data,
     symbol,
     srLevels = [],
-    tacticalAdvice,
+    elderTactics,
     macdDivergence,
     f13Divergence,
     timeframeLabel = 'Daily',
@@ -27,12 +38,14 @@ const TechnicalChart = ({
     setInitError,
     onLogTrade,
     indicatorConfigs, // Props from Dashboard
-    isSidebarOpen // Props from Dashboard
+    isSidebarOpen, // Props from Dashboard
+    chartStyle
 }) => {
     console.log('TechnicalChart Init', { symbol, dataLength: data?.length, timeframeLabel });
     const lastData = data && data.length > 0 ? data[data.length - 1] : null;
 
     const chartContainerRef = useRef();
+    // STATE
     const [persistenceKey, setPersistenceKey] = useState(null);
     const [journalEntries, setJournalEntries] = useState([]);
     const [note, setNote] = useState('');
@@ -41,6 +54,8 @@ const TechnicalChart = ({
     const [selectedImage, setSelectedImage] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [editingId, setEditingId] = useState(null);
+    const [editingNote, setEditingNote] = useState('');
+    const [hoveredPattern, setHoveredPattern] = useState(null);
 
 
     // Modal state moved to Dashboard
@@ -71,7 +86,7 @@ const TechnicalChart = ({
     const showEMA = getVis('ema'); // Helper for legacy blocks if any
     const showForceZones = getVis('forceZones');
     const showGuppySignals = getVis('guppySignals');
-    const showSRLevels = getVis('srLevels');
+    const showSRLevels = getVis('sr_levels') || getVis('srLevels');
     const showSafeZones = getVis('safeZones');
     const showGuppy = getVis('guppy');
     const showBollinger = getVis('bollinger');
@@ -83,6 +98,7 @@ const TechnicalChart = ({
     const showMacdDivergence = getVis('macdDivergence');
     const showForceDivergence = getVis('forceDivergence');
     const showForceMarkers = getVis('forceMarkers');
+    const showPatternSignals = getVis('candlestickPatterns');
 
     const priceFormatter = (price) => (price || 0).toFixed(2);
 
@@ -435,7 +451,7 @@ const TechnicalChart = ({
                         if (cfg.visible && ['ema', 'sma'].includes(cfg.type)) {
                             const val = d[`${cfg.type}_${cfg.params?.window}`];
                             if (val != null) {
-                                overlaysHtml += `<span style="color: ${cfg.color || '#9ca3af'}; font-size: 10px; margin-left: 8px;">${cfg.type.toUpperCase()}(${cfg.params.window}) ${val.toFixed(2)}</span>`;
+                                overlaysHtml += `<span style="color: ${cfg.color || '#9ca3af'}; font-size: 10px; margin-left: 8px;">${cfg.type.toUpperCase()}(${cfg.params?.window}) ${val.toFixed(2)}</span>`;
                             }
                         }
                     });
@@ -451,9 +467,14 @@ const TechnicalChart = ({
                     </div>
                 `;
             }
-            if (l.volume) l.volume.innerHTML = `<div style="color: #94a3b8">VOL ${d.Volume ? (d.Volume / 1000000).toFixed(2) : '0.00'}M</div>`;
-            if (l.macd) l.macd.innerHTML = `<div style="color: #34d399">MACD ${d.macd_diff?.toFixed(2) || '0.00'}</div>`;
-            if (l.force13) l.force13.innerHTML = `<div style="color: #60a5fa">FORCE (13) ${d.efi ? (d.efi / 1000000).toFixed(2) + 'M' : '0.00M'}</div>`;
+            if (l.volume && d.Volume != null) l.volume.innerHTML = `<div style="color: #94a3b8">VOL ${(d.Volume / 1000000).toFixed(2)}M</div>`;
+            if (l.macd && d.macd_line != null && d.macd_signal != null) {
+                l.macd.innerHTML = `
+                    <span style="color: #60a5fa; font-size: 10px;">MACD ${d.macd_line.toFixed(3)}</span>
+                    <span style="color: #ef4444; font-size: 10px; margin-left: 8px;">Signal ${d.macd_signal.toFixed(3)}</span>
+                `;
+            }
+            if (l.force13 && d.efi != null) l.force13.innerHTML = `<div style="color: #60a5fa; font-size: 10px;">EFI ${d.efi.toFixed(0)}</div>`;
             if (l.force2) l.force2.innerHTML = `<div style="color: #a78bfa">FORCE (2) ${d.force_index_2 ? (d.force_index_2 / 1000).toFixed(1) + 'K' : '0.0K'}</div>`;
         };
         updateLegendsRef.current = updateLegends; // Assign to Ref
@@ -501,16 +522,18 @@ const TechnicalChart = ({
             }
 
             // SYNC CROSSHAIR
-            Object.keys(chartsRef.current).forEach(id => {
-                if (id === sourceId) return;
+            if (s && s.anchors && chartsRef.current) {
+                Object.keys(chartsRef.current).forEach(id => {
+                    if (id === sourceId) return;
 
-                const ts = s.anchors[id] || (id === 'price' ? s.candles : null);
-                if (ts) {
-                    // UNDEFINED price + horizontal line visibility FALSE (set above)
-                    // handles the 'single horizontal line' requirement perfectly.
-                    chartsRef.current[id].setCrosshairPosition(undefined, param.time, ts);
-                }
-            });
+                    const ts = s.anchors[id] || (id === 'price' ? s.candles : null);
+                    if (ts && chartsRef.current[id]) {
+                        // UNDEFINED price + horizontal line visibility FALSE (set above)
+                        // handles the 'single horizontal line' requirement perfectly.
+                        chartsRef.current[id].setCrosshairPosition(undefined, param.time, ts);
+                    }
+                });
+            }
 
             // LEGEND SYNC
             let timeStr;
@@ -784,21 +807,23 @@ const TechnicalChart = ({
         const candleData = [], ema22Data = [], priceH1Data = [], priceL1Data = [], priceH2Data = [], priceL2Data = [], priceH3Data = [], priceL3Data = [], macdHistData = [], macdSignalData = [], force2Data = [], force13Data = [], ema13DataForce = [], efiH1Data = [], efiL1Data = [], efiH2Data = [], efiL2Data = [], efiH3Data = [], efiL3Data = [], volumeData = [], volumeSMAData = [], szLongData = [], szShortData = [];
 
         // 1. Sync & Cleanup Dynamic Overlays first so they exist for data population
-        indicatorConfigs.overlays.forEach(cfg => {
-            if (['ema', 'sma'].includes(cfg.type)) {
-                if (!s.overlays[cfg.id]) {
-                    s.overlays[cfg.id] = createSeries(chartsRef.current.price, 'Line', {
-                        color: cfg.color || '#60a5fa',
-                        lineWidth: 2,
-                        lastValueVisible: false,
-                        priceLineVisible: false
-                    });
-                } else {
-                    // Update color if it changed
-                    s.overlays[cfg.id].applyOptions({ color: cfg.color || '#60a5fa' });
+        if (s && s.overlays) {
+            indicatorConfigs.overlays.forEach(cfg => {
+                if (['ema', 'sma'].includes(cfg.type)) {
+                    if (!s.overlays[cfg.id]) {
+                        s.overlays[cfg.id] = createSeries(chartsRef.current.price, 'Line', {
+                            color: cfg.color || '#60a5fa',
+                            lineWidth: 2,
+                            lastValueVisible: false,
+                            priceLineVisible: false
+                        });
+                    } else {
+                        // Update color if it changed
+                        s.overlays[cfg.id].applyOptions({ color: cfg.color || '#60a5fa' });
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // Cleanup: Remove dynamic series that are no longer in configs
         Object.keys(s.overlays || {}).forEach(id => {
@@ -825,19 +850,33 @@ const TechnicalChart = ({
             if (processedTimes.has(time)) return;
             processedTimes.add(time);
 
-            const candleColor = d.impulse === 'green' ? '#22c55e' : d.impulse === 'red' ? '#ef4444' : '#60a5fa';
+            // --- Main OHLC Candles ---
+            let candleColor = d.Close >= d.Open ? '#22c55e' : '#ef4444'; // Default colors
+
+            // Apply Elder Impulse coloring if in impulse mode
+            if (chartStyle === 'impulse' && d.impulse) {
+                const impulseColors = {
+                    'green': '#22c55e',
+                    'red': '#ef4444',
+                    'blue': '#60a5fa'
+                };
+                candleColor = impulseColors[d.impulse] || candleColor;
+            }
+
             candleData.push({ time, open: d.Open, high: d.High, low: d.Low, close: d.Close, color: candleColor, wickColor: candleColor, borderColor: candleColor });
 
             // Dynamic Overlays
-            indicatorConfigs.overlays.forEach(cfg => {
-                const series = s.overlays[cfg.id];
-                if (series && cfg.visible) {
-                    const colName = `${cfg.type}_${cfg.params?.window}`;
-                    if (d[colName] !== undefined) {
-                        dynamicData[cfg.id].push({ time, value: d[colName] });
+            if (s && s.overlays) {
+                indicatorConfigs.overlays.forEach(cfg => {
+                    const series = s.overlays[cfg.id];
+                    if (series && cfg.visible) {
+                        const colName = `${cfg.type}_${cfg.params?.window}`;
+                        if (d[colName] !== undefined) {
+                            dynamicData[cfg.id].push({ time, value: d[colName] });
+                        }
                     }
-                }
-            });
+                });
+            }
 
             if (d.ema_22) ema22Data.push({ time, value: d.ema_22 });
 
@@ -907,11 +946,13 @@ const TechnicalChart = ({
             }
         });
 
-        indicatorConfigs.overlays.forEach(cfg => {
-            if (s.overlays[cfg.id]) {
-                safeSetData(s.overlays[cfg.id], dynamicData[cfg.id], cfg.id);
-            }
-        });
+        if (s && s.overlays) {
+            indicatorConfigs.overlays.forEach(cfg => {
+                if (s.overlays[cfg.id]) {
+                    safeSetData(s.overlays[cfg.id], dynamicData[cfg.id], cfg.id);
+                }
+            });
+        }
 
         safeSetData(s.candles, candleData, 'Candles');
         // s.ema13 and s.ema26 now handled by the dynamicData loop above
@@ -1003,8 +1044,22 @@ const TechnicalChart = ({
             safeSetData(s.anchors[id], timeAnchorData, `Anchor-${id}`);
         });
 
-        chartsRef.current.price.timeScale().fitContent();
-    }, [data, symbol, srLevels, indicatorConfigs, safeSetData]);
+        // Filter out duplicate or strictly increasing/decreasing ranges to avoid errors
+        if (data.length > 0) {
+            const sliceSize = timeframeLabel === 'Weekly' ? 104 : 252;
+            const zoomData = data.slice(-Math.min(data.length, sliceSize));
+            if (zoomData.length > 0) {
+                chartsRef.current.price.timeScale().setVisibleRange({
+                    from: zoomData[0].Date.split('T')[0],
+                    to: data[data.length - 1].Date.split('T')[0]
+                });
+            } else {
+                chartsRef.current.price.timeScale().fitContent();
+            }
+        } else {
+            chartsRef.current.price.timeScale().fitContent();
+        }
+    }, [data, symbol, srLevels, indicatorConfigs, safeSetData, chartStyle]);
 
     // Dedicated Marker Effect with slight delay to ensure series are painted
     useEffect(() => {
@@ -1043,7 +1098,38 @@ const TechnicalChart = ({
                         seenTimes.add(timeStr);
                     }
                 }
+
+                // 3. Candlestick Pattern Signals
+                if (showPatternSignals && d.candle_pattern && !seenTimes.has(timeStr)) {
+                    const isBullish = d.candle_pattern_type === 'bullish';
+                    // Manual mapping for clearer 2-letter codes
+                    const patternMap = {
+                        'bullish_engulfing': 'BE',
+                        'bearish_engulfing': 'bE',
+                        'abandoned_baby': { 'bullish': 'AB', 'bearish': 'aB' },
+                        'morning_star': 'MS',
+                        'evening_star': 'ES',
+                        'rising_three_methods': 'RT',
+                        'falling_three_methods': 'FT',
+                        'piercing_line': 'PL',
+                        'dark_cloud_cover': 'DC',
+                        'three_white_soldiers': 'WS',
+                        'three_black_crows': 'BC'
+                    };
+                    const mapVal = patternMap[d.candle_pattern];
+                    const label = (typeof mapVal === 'object') ? mapVal[d.candle_pattern_type] : mapVal || d.candle_pattern.split('_').map(w => w[0].toUpperCase()).join('').substring(0, 2);
+
+                    markers.push({
+                        time: timeStr,
+                        position: isBullish ? 'belowBar' : 'aboveBar',
+                        color: isBullish ? '#34d399' : '#f87171',
+                        shape: isBullish ? 'arrowUp' : 'arrowDown',
+                        text: label
+                    });
+                    seenTimes.add(timeStr);
+                }
             });
+
 
             // V5 MARKERS API CALL
             if (s.markers?.candles) {
@@ -1057,7 +1143,7 @@ const TechnicalChart = ({
 
         const timer = setTimeout(applyMarkers, 100);
         return () => clearTimeout(timer);
-    }, [data, symbol, showForceMarkers, showGuppySignals]);
+    }, [data, symbol, showForceMarkers, showGuppySignals, showPatternSignals]);
 
     // Visibility Control Effect
     useEffect(() => {
@@ -1069,10 +1155,12 @@ const TechnicalChart = ({
         };
 
         // Dynamic Overlays
-        Object.keys(s.overlays).forEach(id => {
-            const cfg = indicatorConfigs.overlays.find(c => c.id === id);
-            if (cfg) setVis(s.overlays[id], cfg.visible);
-        });
+        if (s && s.overlays) {
+            Object.keys(s.overlays).forEach(id => {
+                const cfg = indicatorConfigs.overlays.find(o => o.id === id);
+                if (cfg && s.overlays[id]) setVis(s.overlays[id], cfg.visible);
+            });
+        }
 
         const getVisById = (id) => {
             const item = [...(indicatorConfigs.overlays || []), ...(indicatorConfigs.panes || []), ...(indicatorConfigs.signals || [])]
@@ -1129,14 +1217,16 @@ const TechnicalChart = ({
     // Dedicated S/R Levels Effect
     useEffect(() => {
         const s = seriesRef.current;
-        if (!s || !s.candles) return;
+        if (!s || !s.candles) {
+            return;
+        }
 
         // Clear existing lines
         srLineRefs.current.forEach(line => s.candles.removePriceLine(line));
         srLineRefs.current = [];
 
         // Re-create only if enabled
-        if (showSRLevels && srLevels) {
+        if (showSRLevels && srLevels && srLevels.length > 0) {
             srLevels.forEach(level => {
                 const line = s.candles.createPriceLine({
                     price: level.price,
@@ -1201,7 +1291,39 @@ const TechnicalChart = ({
             <div className="w-full h-full relative overflow-hidden flex flex-col min-w-0">
 
                 {/* Chart Container Wrapper */}
-                <div className="relative w-full flex-1 min-h-[800px] bg-gray-950">
+                <div className="relative w-full flex-1 bg-gray-950 group/chart">
+                    {/* Candlestick Legend - Repositioned to Top-Left with Integrated Help */}
+                    {showPatternSignals && (
+                        <div className="absolute top-[44px] left-[12px] z-20 bg-gray-950/80 border border-gray-800/50 rounded-lg p-3 backdrop-blur-md opacity-90 hover:opacity-100 hover:bg-gray-950/95 transition-all duration-300 pointer-events-auto shadow-2xl w-[360px] flex flex-col gap-2.5">
+                            <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-800/50 pb-2 flex items-center justify-between">
+                                <span className="flex items-center gap-1.5"><span className="text-blue-400">🕯️</span> Patterns Legend</span>
+                                {hoveredPattern && <span className="text-blue-400/80 font-black animate-pulse text-[9px]">{hoveredPattern.code}</span>}
+                            </div>
+                            <div className="grid grid-cols-3 gap-x-2 gap-y-1.5">
+                                <LegendItem code="BE" label="Bull Eng." color="text-green-400" onHover={setHoveredPattern} onLeave={() => setHoveredPattern(null)} description="Bullish Engulfing: Large green body covers previous red body. Strong reversal." />
+                                <LegendItem code="bE" label="Bear Eng." color="text-red-400" onHover={setHoveredPattern} onLeave={() => setHoveredPattern(null)} description="Bearish Engulfing: Large red body covers previous green body. Strong reversal." />
+                                <LegendItem code="AB" label="Bull Baby" color="text-green-400" onHover={setHoveredPattern} onLeave={() => setHoveredPattern(null)} description="Bullish Abandoned Baby: 3-bar reversal with a Doji gapped below. High conviction." />
+                                <LegendItem code="aB" label="Bear Baby" color="text-red-400" onHover={setHoveredPattern} onLeave={() => setHoveredPattern(null)} description="Bearish Abandoned Baby: 3-bar reversal with a Doji gapped above. High conviction." />
+                                <LegendItem code="MS" label="Morn Star" color="text-green-400" onHover={setHoveredPattern} onLeave={() => setHoveredPattern(null)} description="Morning Star: 3-bar reversal (Red, Small, Green). Indicates bottoming out." />
+                                <LegendItem code="ES" label="Even Star" color="text-red-400" onHover={setHoveredPattern} onLeave={() => setHoveredPattern(null)} description="Evening Star: 3-bar reversal (Green, Small, Red). Indicates topping out." />
+                                <LegendItem code="PL" label="Piercing" color="text-green-400" onHover={setHoveredPattern} onLeave={() => setHoveredPattern(null)} description="Piercing Line: Bullish reversal gapping lower but closing deep into previous red body." />
+                                <LegendItem code="DC" label="Dark Cloud" color="text-red-400" onHover={setHoveredPattern} onLeave={() => setHoveredPattern(null)} description="Dark Cloud Cover: Bearish reversal gapping higher but closing deep into previous green body." />
+                                <LegendItem code="RT" label="Rising 3" color="text-green-400" onHover={setHoveredPattern} onLeave={() => setHoveredPattern(null)} description="Rising Three Methods: 5-bar trend continuation. Bullish consolidation breakout." />
+                                <LegendItem code="FT" label="Falling 3" color="text-red-400" onHover={setHoveredPattern} onLeave={() => setHoveredPattern(null)} description="Falling Three Methods: 5-bar trend continuation. Bearish consolidation breakdown." />
+                                <LegendItem code="WS" label="3 White Sold." color="text-green-400" onHover={setHoveredPattern} onLeave={() => setHoveredPattern(null)} description="Three White Soldiers: Three long green candles with higher closes. Strong momentum." />
+                                <LegendItem code="BC" label="3 Black Crows" color="text-red-400" onHover={setHoveredPattern} onLeave={() => setHoveredPattern(null)} description="Three Black Crows: Three long red candles with lower closes. Strong momentum." />
+                            </div>
+
+                            {/* help info is within the card */}
+                            <div className={`mt-1 pt-2.5 border-t border-gray-800/50 min-h-[48px] flex flex-col justify-center transition-all duration-300 ${hoveredPattern ? 'opacity-100 bg-blue-500/5' : 'opacity-30'}`}>
+                                <p className="text-[9px] text-gray-400 leading-relaxed font-medium italic px-1">
+                                    {hoveredPattern
+                                        ? hoveredPattern.description
+                                        : "Hover patterns to see structural logic and market signals."}
+                                </p>
+                            </div>
+                        </div>
+                    )}
                     {/* Active Trade Widget */}
                     {activeTrade && (
                         <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-20 flex items-center gap-4 px-6 py-3 bg-gray-900/90 border border-blue-500/50 rounded-xl backdrop-blur-md shadow-2xl animate-in fade-in slide-in-from-top-4">

@@ -420,3 +420,59 @@ Traceback (most recent call last):
   File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 576, in get_stock_analysis
     # Clean data (Robust MultiIndex flattening)
 fastapi.exceptions.HTTPException: 404: No data found for symbol
+
+--- [DEBUG] Error analyzing BRK-B (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 866, in get_stock_analysis
+    df = calculate_indicators(df, dynamic_configs=dynamic_configs)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 148, in calculate_indicators
+    patterns[i] = p_name
+NameError: name 'patterns' is not defined
+
+--- [DEBUG] Error analyzing BRK-B (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 866, in get_stock_analysis
+    df = calculate_indicators(df, dynamic_configs=dynamic_configs)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 148, in calculate_indicators
+    patterns[i] = p_name
+NameError: name 'patterns' is not defined
+
+--- [DEBUG] Error analyzing BRK-B (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 866, in get_stock_analysis
+    df = calculate_indicators(df, dynamic_configs=dynamic_configs)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 148, in calculate_indicators
+    patterns[i] = p_name
+NameError: name 'patterns' is not defined
+
+--- [DEBUG] Error analyzing BRK-B (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 866, in get_stock_analysis
+    df = calculate_indicators(df, dynamic_configs=dynamic_configs)
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 148, in calculate_indicators
+    patterns[i] = p_name
+NameError: name 'patterns' is not defined
+
+--- [DEBUG] Error analyzing BRK-B (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 1487, in get_stock_analysis
+    active_buys = [d for d in data if d.get('efi_buy_signal')]
+NameError: name 'data' is not defined
+
+--- [DEBUG] Error analyzing BRK-B (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 1487, in get_stock_analysis
+    active_buys = [d for d in data if d.get('efi_buy_signal')]
+NameError: name 'data' is not defined
+
+--- [DEBUG] Error analyzing BRK-B (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 1487, in get_stock_analysis
+    active_buys = [d for d in data if d.get('efi_buy_signal')]
+NameError: name 'data' is not defined
+
+--- [DEBUG] Error analyzing AAPL (Remote) ---
+Traceback (most recent call last):
+  File "/Users/william/Documents/stock2026/backend/routes/stocks.py", line 1493, in get_stock_analysis
+    return clean_nans(response)
+NameError: name 'clean_nans' is not defined
