@@ -404,7 +404,11 @@ def scan_stocks(session: Session = Depends(get_session)):
     import time
     
     # Get all stocks
-    stocks = session.exec(select(Stock)).all()
+    try:
+        stocks = session.exec(select(Stock)).all()
+    except Exception as e:
+        logger.error(f"Scan pre-fetch error: {e}")
+        return {"scanned": 0, "results": [], "error": str(e)}
     results = []
     
     # Process each stock (limit history to save bandwidth)
@@ -635,9 +639,14 @@ def scan_stocks_efi(session: Session = Depends(get_session)):
 
 @router.get("/", response_model=list[StockPublic])
 def get_stocks(session: Session = Depends(get_session)):
-    # Sort by is_watched (descending -> True first) then symbol (ascending)
-    statement = select(Stock).order_by(Stock.is_watched.desc(), Stock.symbol)
-    stocks = session.exec(statement).all()
+    try:
+        # Sort by is_watched (descending -> True first) then symbol (ascending)
+        statement = select(Stock).order_by(Stock.is_watched.desc(), Stock.symbol)
+        stocks = session.exec(statement).all()
+    except Exception as e:
+        logger.error(f"Error fetching stocks from DB: {e}. This may be a pending migration issue.")
+        # If DB fails, return empty list or attempt a fallback if critical
+        return []
     
     # 1. Identify which stocks need weekly impulse
     needed_tickers = []
@@ -713,19 +722,29 @@ def get_stock_info_cached(symbol: str):
 
 @router.delete("/{symbol}")
 def delete_stock(symbol: str, session: Session = Depends(get_session)):
-    statement = select(Stock).where(Stock.symbol == symbol)
-    stock = session.exec(statement).first()
+    try:
+        statement = select(Stock).where(Stock.symbol == symbol)
+        stock = session.exec(statement).first()
+    except Exception as e:
+        logger.error(f"Error fetching stock record for deletion {symbol}: {e}")
+        stock = None
+    
     if not stock:
         raise HTTPException(status_code=404, detail="Stock not found")
+    
     session.delete(stock)
-    session.commit()
     session.commit()
     return {"ok": True}
 
-@router.put("/{symbol}/watch", response_model=Stock)
-def toggle_watch(symbol: str, session: Session = Depends(get_session)):
-    statement = select(Stock).where(Stock.symbol == symbol)
-    stock = session.exec(statement).first()
+@router.put("/{symbol}/watch")
+def toggle_watch_stock(symbol: str, session: Session = Depends(get_session)):
+    try:
+        statement = select(Stock).where(Stock.symbol == symbol)
+        stock = session.exec(statement).first()
+    except Exception as e:
+        logger.error(f"Error fetching stock for watch toggle {symbol}: {e}")
+        raise HTTPException(status_code=500, detail="Database migration pending")
+    
     if not stock:
         raise HTTPException(status_code=404, detail="Stock not found")
     

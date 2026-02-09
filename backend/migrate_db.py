@@ -29,6 +29,7 @@ def migrate():
     add_column("stock", "setup_signal", "TEXT")
     add_column("stock", "candle_pattern", "TEXT")
     add_column("stock", "candle_pattern_type", "TEXT")
+    add_column("stock", "confluence_alert", "TEXT")
 
     # --- TRADE TABLE ---
     # Core identifying fields (usually in base but checking)
@@ -37,6 +38,12 @@ def migrate():
     add_column("trade", "snapshot", "TEXT")
     add_column("trade", "exit_snapshot", "TEXT")
     add_column("trade", "exit_reason", "TEXT")
+    add_column("trade", "account", "TEXT")
+    add_column("trade", "source", "TEXT")
+    add_column("trade", "entry_order_type", "TEXT")
+    add_column("trade", "entry_order_price", "REAL")
+    add_column("trade", "exit_order_type", "TEXT")
+    add_column("trade", "exit_order_price", "REAL")
     
     # Performance & Financials
     add_column("trade", "slippage_entry", "REAL")
@@ -63,6 +70,7 @@ def migrate():
 
     # --- BACKTESTRESULT TABLE ---
     add_column("backtestresult", "price_data", "TEXT")
+    add_column("backtestresult", "sortino_ratio", "REAL")
     add_column("backtestresult", "calmar_ratio", "REAL")
     add_column("backtestresult", "ulcer_index", "REAL")
     add_column("backtestresult", "plots", "TEXT")
